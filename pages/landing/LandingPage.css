@@ -1,0 +1,104 @@
+/* Tổng thể và Nền xanh Teal đặc trưng */
+.landing-container {
+  min-height: 100vh;
+  background-color: #438e8e;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: white;
+}
+
+/* Header: UTH nằm bên trái */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 5%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo {
+  height: 40px; /* Logo UTH bên trái */
+}
+
+.lab-name {
+    text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #438e8e;
+  border-left: 2px solid #ddd;
+  padding-left: 15px;
+}
+
+.login-btn {
+  background-color: #438e8e;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+}
+.login-btn:hover {
+  transform: translateY(-3px);}
+  
+/* Nội dung chính căn giữa màn hình */
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 10%;
+}
+
+.hero-box {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 50px;
+  border-radius: 24px; /* Bo tròn lớn giống form đăng nhập */
+  text-align: center;
+  margin-bottom: 50px;
+  width: 100%;
+  max-width: 1000px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Grid 3 cột cố định cho máy tính */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Giữ 3 cột thẳng hàng */
+  gap: 30px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Card trắng bo tròn mềm mại */
+.card {
+  background: white;
+  color: #333;
+  padding: 40px 20px;
+  border-radius: 20px; /* Bo tròn card */
+  text-align: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+}
+
+.card h3 {
+  font-size: 2.5rem;
+  color: #438e8e;
+  margin-bottom: 10px;
+}
+
+/* Loại bỏ Responsive Mobile để fit cứng trang web máy tính */
