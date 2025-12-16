@@ -1,0 +1,97 @@
+/* Nền xanh teal toàn màn hình */
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #438e8e; 
+}
+
+/* Card trắng với góc bo */
+.login-card {
+  background: #ffffff;
+  padding: 50px 40px;
+  border-radius: 40px; 
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 250px;
+  margin-bottom: 25px;
+}
+
+.login-title {
+  color: #438e8e; 
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  letter-spacing: 1px;
+}
+
+/*bo tròn chỗ nhập */
+.input-field {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.input-field input {
+  width: 90%;
+  padding: 15px;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  background-color: #fafafa;
+}
+
+.input-field input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.password-group {
+  position: relative;
+}
+
+.show-password-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  cursor: pointer;
+}
+
+/* Nút đăng nhập xanh teal */
+.btn-login {
+  width: 100%;
+  padding: 15px;
+  background-color: #438e8e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.3s;
+}
+
+.btn-login:hover {
+  background-color: #367a7a;
+}
+
+.login-footer {
+  margin-top: 30px;
+}
+
+.forgot-password {
+  color: #b22222;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
