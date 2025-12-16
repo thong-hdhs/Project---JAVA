@@ -1,0 +1,15 @@
+# Các thư viện được cài đặt (Rất nặng, không đẩy lên)
+node_modules/
+
+# Các file chạy thử hoặc kết quả biên dịch
+dist/
+build/
+*.log
+
+# File chứa thông tin bảo mật (Token, API Key, thông tin thanh toán)
+.env
+.env.local
+
+# Các file rác của hệ điều hành
+.DS_Store
+Thumbs.db
