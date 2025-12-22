@@ -1,5 +1,9 @@
 package com.example.labOdc.DTO;
 
+import java.time.LocalDateTime;
+
+import com.example.labOdc.Model.UserRole;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,8 +14,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class UserDTO {
-    private String name;
     private String email;
-    private String role;
+    private String password;
+    private String fullName;
+    private String phone;
+    private String avatarUrl;
+    private UserRole role;
+    private Boolean isActive;
+    private Boolean emailVerified;
+    private LocalDateTime emailVerifiedAt;
+    private LocalDateTime lastLoginAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
 }

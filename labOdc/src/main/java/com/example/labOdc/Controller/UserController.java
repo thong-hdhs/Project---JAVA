@@ -49,19 +49,19 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<?> deleteUser(@PathVariable String id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(String.format("Xoa thanh cong"));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<UserResponse> getUserById(@PathVariable Long id) {
+    public ApiResponse<UserResponse> getUserById(@PathVariable String id) {
         User user = userService.getUserById(id);
         return ApiResponse.success(UserResponse.fromUser(user), "Thanh cong", HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<UserResponse> updateUser(@Valid @RequestBody UserDTO userDTO, @PathVariable Long id) {
+    public ApiResponse<UserResponse> updateUser(@Valid @RequestBody UserDTO userDTO, @PathVariable String id) {
         User user = userService.updateUser(userDTO, id);
         return ApiResponse.success(UserResponse.fromUser(user), "Thanh cong", HttpStatus.OK);
     }
