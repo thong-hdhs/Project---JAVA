@@ -2,8 +2,7 @@ package com.example.labOdc.DTO;
 
 import java.time.LocalDateTime;
 
-import com.example.labOdc.Model.CompanySize;
-import com.example.labOdc.Model.CompanyStatus;
+import com.example.labOdc.Model.Company;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,8 +21,8 @@ public class CompanyDTO {
     private String industry;
     private String description;
     private String website;
-    private CompanySize companySize;
-    private CompanyStatus status;
+    private Company.Size companySize;
+    private Company.Status status;
     private String approvedById;
     private LocalDateTime approvedAt;
     private String rejectionReason;

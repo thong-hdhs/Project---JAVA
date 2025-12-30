@@ -3,8 +3,6 @@ package com.example.labOdc.DTO.Response;
 import java.time.LocalDateTime;
 
 import com.example.labOdc.Model.Company;
-import com.example.labOdc.Model.CompanySize;
-import com.example.labOdc.Model.CompanyStatus;
 
 import lombok.Builder;
 import lombok.Data;
@@ -20,8 +18,8 @@ public class CompanyResponse {
     private String industry;
     private String description;
     private String website;
-    private CompanySize companySize;
-    private CompanyStatus status;
+    private Company.Size companySize;
+    private Company.Status status;
     private String approvedById;
     private LocalDateTime approvedAt;
     private String rejectionReason;
