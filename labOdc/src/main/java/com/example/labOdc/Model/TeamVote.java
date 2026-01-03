@@ -1,13 +1,16 @@
 package com.example.labOdc.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter
+@Setter
 @Entity
 @Table(
         name = "team_votes",
@@ -15,9 +18,6 @@ import java.util.UUID;
                 columnNames = {"project_id", "talent_id", "proposal_type", "proposal_id"}
         )
 )
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class TeamVote {
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)

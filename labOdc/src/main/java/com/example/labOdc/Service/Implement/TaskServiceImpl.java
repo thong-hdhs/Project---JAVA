@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,92 +17,73 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
 
     @Override
-    public TaskResponse createTask(TaskDTO DTO, String createdBy) {
+    public TaskResponse createTask(TaskDTO taskDTO, String creatorId) {
 
         Task task = Task.builder()
-                .projectId(DTO.getProjectId())
-                .assignedTo(DTO.getAssignedTo())
-                .createdBy(createdBy)
-                .taskName(DTO.getTaskName())
-                .description(DTO.getDescription())
-                .priority(DTO.getPriority())
-                .status(DTO.getStatus())
-                .startDate(DTO.getStartDate())
-                .dueDate(DTO.getDueDate())
-                .estimatedHours(DTO.getEstimatedHours())
-                .excelTemplateUrl(DTO.getExcelTemplateUrl())
-                .attachments(DTO.getAttachments())
+                .projectId(taskDTO.getProjectId())
+                .assignedTo(taskDTO.getAssignedTo())
+                .createdBy(creatorId)
+                .taskName(taskDTO.getTaskName())
+                .description(taskDTO.getDescription())
+                .priority(taskDTO.getPriority())
+                .status(taskDTO.getStatus())
+                .startDate(taskDTO.getStartDate())
+                .dueDate(taskDTO.getDueDate())
+                .estimatedHours(taskDTO.getEstimatedHours())
+                .actualHours(taskDTO.getActualHours())
+                .excelTemplateUrl(taskDTO.getExcelTemplateUrl())
+                .attachments(taskDTO.getAttachments())
                 .build();
 
-        return mapToResponse(taskRepository.save(task));
+        return TaskResponse.fromEntity(taskRepository.save(task));
     }
 
     @Override
-    public TaskResponse updateTask(String taskId, TaskDTO DTO) {
+    public TaskResponse updateTask(String id, TaskDTO taskDTO) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhiệm vụ"));
+        task.setTaskName(taskDTO.getTaskName());
+        task.setDescription(taskDTO.getDescription());
+        task.setPriority(taskDTO.getPriority());
+        task.setStatus(taskDTO.getStatus());
+        task.setAssignedTo(taskDTO.getAssignedTo());
+        task.setStartDate(taskDTO.getStartDate());
+        task.setDueDate(taskDTO.getDueDate());
+        task.setCompletedDate(taskDTO.getCompletedDate());
+        task.setEstimatedHours(taskDTO.getEstimatedHours());
+        task.setActualHours(taskDTO.getActualHours());
+        task.setExcelTemplateUrl(taskDTO.getExcelTemplateUrl());
+        task.setAttachments(taskDTO.getAttachments());
 
-        task.setTaskName(DTO.getTaskName());
-        task.setDescription(DTO.getDescription());
-        task.setPriority(DTO.getPriority());
-        task.setStatus(DTO.getStatus());
-        task.setStartDate(DTO.getStartDate());
-        task.setDueDate(DTO.getDueDate());
-        task.setEstimatedHours(DTO.getEstimatedHours());
-        task.setExcelTemplateUrl(DTO.getExcelTemplateUrl());
-        task.setAttachments(DTO.getAttachments());
-
-        return mapToResponse(taskRepository.save(task));
+        return TaskResponse.fromEntity(taskRepository.save(task));
     }
 
     @Override
-    public void deleteTask(String taskId) {
-        taskRepository.deleteById(taskId);
-    }
-
-    @Override
-    public TaskResponse getTaskById(String taskId) {
-        return taskRepository.findById(taskId)
-                .map(this::mapToResponse)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhiệm vụ"));
+    public TaskResponse getTaskById(String id) {
+        return taskRepository.findById(id)
+                .map(TaskResponse::fromEntity)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
     }
 
     @Override
     public List<TaskResponse> getTasksByProject(String projectId) {
         return taskRepository.findByProjectId(projectId)
                 .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .map(TaskResponse::fromEntity)
+                .toList();
     }
 
     @Override
-    public List<TaskResponse> getTasksByAssignee(String userId) {
-        return taskRepository.findByAssignedTo(userId)
+    public List<TaskResponse> getTasksByAssignee(String assignedTo) {
+        return taskRepository.findByAssignedTo(assignedTo)
                 .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .map(TaskResponse::fromEntity)
+                .toList();
     }
 
-    private TaskResponse mapToResponse(Task task) {
-        return TaskResponse.builder()
-                .id(task.getId())
-                .projectId(task.getProjectId())
-                .assignedTo(task.getAssignedTo())
-                .createdBy(task.getCreatedBy())
-                .taskName(task.getTaskName())
-                .description(task.getDescription())
-                .priority(task.getPriority())
-                .status(task.getStatus())
-                .startDate(task.getStartDate())
-                .dueDate(task.getDueDate())
-                .completedDate(task.getCompletedDate())
-                .estimatedHours(task.getEstimatedHours())
-                .actualHours(task.getActualHours())
-                .excelTemplateUrl(task.getExcelTemplateUrl())
-                .attachments(task.getAttachments())
-                .createdAt(task.getCreatedAt())
-                .updatedAt(task.getUpdatedAt())
-                .build();
+    @Override
+    public void deleteTask(String id) {
+        taskRepository.deleteById(id);
     }
 }

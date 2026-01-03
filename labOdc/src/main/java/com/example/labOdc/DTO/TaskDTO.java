@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 @Data
 @AllArgsConstructor
@@ -27,5 +28,7 @@ public class TaskDTO {
     private BigDecimal actualHours;
     private String excelTemplateUrl;
     private List<String>  attachments;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
 

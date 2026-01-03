@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/tasks")
+@RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 public class TaskController {
 
@@ -76,6 +76,11 @@ public class TaskController {
     public ApiResponse<List<TaskResponse>> getTasksByProject(@PathVariable String projectId) {
         List<TaskResponse> list = taskService.getTasksByProject(projectId);
         return ApiResponse.success(list, "Lấy danh sách task theo project", HttpStatus.OK);
+    }
+    @GetMapping("/assignee/{assignedTo}")
+    public ApiResponse<List<TaskResponse>> getTasksByAssignee(@PathVariable String assignedTo) {
+        List<TaskResponse> list = taskService.getTasksByAssignee(assignedTo);
+        return ApiResponse.success(list, "Lấy danh sách task theo người được giao", HttpStatus.OK);
     }
 }
 

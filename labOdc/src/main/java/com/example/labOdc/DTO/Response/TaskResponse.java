@@ -16,6 +16,7 @@ import java.util.List;
 @Data
 @Builder
 public class TaskResponse {
+
     private String id;
     private String projectId;
     private String assignedTo;
@@ -34,8 +35,8 @@ public class TaskResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static TaskResponse fromTask(Task task) {
-        TaskResponse taskResponse = TaskResponse.builder()
+    public static TaskResponse fromEntity(Task task) {
+        return TaskResponse.builder()
                 .id(task.getId())
                 .projectId(task.getProjectId())
                 .assignedTo(task.getAssignedTo())
@@ -48,11 +49,11 @@ public class TaskResponse {
                 .dueDate(task.getDueDate())
                 .completedDate(task.getCompletedDate())
                 .estimatedHours(task.getEstimatedHours())
+                .actualHours(task.getActualHours())
                 .excelTemplateUrl(task.getExcelTemplateUrl())
                 .attachments(task.getAttachments())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .build();
-        return taskResponse;
     }
 }

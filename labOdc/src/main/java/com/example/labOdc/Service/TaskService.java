@@ -7,15 +7,15 @@ import java.util.List;
 
 public interface TaskService {
 
-    TaskResponse createTask(TaskDTO DTO, String createdBy);
+    TaskResponse createTask(TaskDTO taskDTO, String creatorId);
 
-    TaskResponse updateTask(String taskId, TaskDTO DTO);
+    TaskResponse updateTask(String id, TaskDTO taskDTO);
 
-    void deleteTask(String taskId);
-
-    TaskResponse getTaskById(String taskId);
+    TaskResponse getTaskById(String id);
 
     List<TaskResponse> getTasksByProject(String projectId);
 
-    List<TaskResponse> getTasksByAssignee(String userId);
+    List<TaskResponse> getTasksByAssignee(String assignedTo);
+
+    void deleteTask(String id);
 }
