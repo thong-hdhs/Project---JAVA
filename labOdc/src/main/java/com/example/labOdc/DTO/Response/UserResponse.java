@@ -15,6 +15,7 @@ public class UserResponse {
     private String email;
     private String password;
     private String fullName;
+    private String username;
     private String phone;
     private String avatarUrl;
     private UserRole role;
@@ -31,6 +32,7 @@ public class UserResponse {
                 .email(user.getEmail())
                 .password(user.getPassword())
                 .fullName(user.getFullName())
+                .username(user.getUsername())
                 .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())

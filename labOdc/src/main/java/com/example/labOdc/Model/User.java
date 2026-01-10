@@ -21,13 +21,14 @@ public class User {
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
-
+    @NonNull
     @Column(name = "email", nullable = false, unique = true)
     private String email;
-
+    @NonNull
     @Column(name = "password", nullable = false)
     private String password;
-
+    @Column(name = "username", unique = true)
+    private String username;
     @Column(name = "full_name")
     private String fullName;
 
@@ -36,7 +37,7 @@ public class User {
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
-
+    @NonNull
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private UserRole role;
