@@ -80,15 +80,3 @@ public class UserServiceImpl implements UserService {
     }
 
 }
-// private String email;
-// private String password;
-// private String fullName;
-// private String phone;
-// private String avatarUrl;
-// private UserRole role;
-// private Boolean isActive;
-// private Boolean emailVerified;
-// private LocalDateTime emailVerifiedAt;
-// private LocalDateTime lastLoginAt;
-// private LocalDateTime createdAt;
-// private LocalDateTime updatedAt;
