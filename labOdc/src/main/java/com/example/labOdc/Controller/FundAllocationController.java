@@ -7,6 +7,7 @@ import com.example.labOdc.Service.FundAllocationService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,7 @@ public class FundAllocationController {
     private final FundAllocationService fundAllocationService;
 
     @PostMapping("/")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundAllocationResponse> allocateFund(
             @Valid @RequestBody FundAllocationDTO dto,
             BindingResult result) {
@@ -44,6 +46,7 @@ public class FundAllocationController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundAllocationResponse> updateAllocationStatus(
             @PathVariable String id,
             @RequestParam String status,
@@ -60,12 +63,14 @@ public class FundAllocationController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundAllocationResponse> getById(@PathVariable String id) {
         FundAllocationResponse response = fundAllocationService.getById(id);
         return ApiResponse.success(response, "Fund allocation retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/payment/{paymentId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundAllocationResponse> getByPaymentId(@PathVariable String paymentId) {
         FundAllocationResponse response = fundAllocationService.getByPaymentId(paymentId);
         return ApiResponse.success(response, "Fund allocation by payment retrieved successfully", HttpStatus.OK);

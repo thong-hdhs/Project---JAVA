@@ -7,6 +7,7 @@ import com.example.labOdc.Service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<PaymentResponse> createPayment(
             @Valid @RequestBody PaymentDTO dto,
             BindingResult result) {
@@ -45,6 +47,7 @@ public class PaymentController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<PaymentResponse> updatePaymentStatus(
             @PathVariable String id,
             @RequestParam String status,
@@ -62,18 +65,21 @@ public class PaymentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<PaymentResponse> getById(@PathVariable String id) {
         PaymentResponse response = paymentService.getById(id);
         return ApiResponse.success(response, "Payment retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<List<PaymentResponse>> getByProject(@PathVariable String projectId) {
         List<PaymentResponse> list = paymentService.getByProjectId(projectId);
         return ApiResponse.success(list, "Payments by project retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<List<PaymentResponse>> getByCompany(@PathVariable String companyId) {
         List<PaymentResponse> list = paymentService.getByCompanyId(companyId);
         return ApiResponse.success(list, "Payments by company retrieved successfully", HttpStatus.OK);

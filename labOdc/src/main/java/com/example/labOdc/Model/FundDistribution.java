@@ -39,6 +39,7 @@ public class FundDistribution {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private FundDistributionStatus status = FundDistributionStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)

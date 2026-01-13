@@ -41,6 +41,7 @@ public class MentorPayment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private MentorPaymentStatus status = MentorPaymentStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)

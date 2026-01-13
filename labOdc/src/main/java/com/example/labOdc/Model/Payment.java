@@ -36,10 +36,12 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_type", nullable = false)
+    @Builder.Default
     private PaymentType paymentType = PaymentType.INITIAL;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private PaymentStatus status = PaymentStatus.PENDING;
 
     @Column(name = "transaction_id", length = 255)

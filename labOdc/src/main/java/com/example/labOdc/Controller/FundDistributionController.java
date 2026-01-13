@@ -7,6 +7,7 @@ import com.example.labOdc.Service.FundDistributionService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,7 @@ public class FundDistributionController {
     private final FundDistributionService fundDistributionService;
 
     @PostMapping("/")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundDistributionResponse> createDistribution(
             @Valid @RequestBody FundDistributionDTO dto,
             BindingResult result) {
@@ -46,6 +48,7 @@ public class FundDistributionController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundDistributionResponse> updateDistributionStatus(
             @PathVariable String id,
             @RequestParam String status,
@@ -65,24 +68,28 @@ public class FundDistributionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'TALENT')")
     public ApiResponse<FundDistributionResponse> getById(@PathVariable String id) {
         FundDistributionResponse response = fundDistributionService.getById(id);
         return ApiResponse.success(response, "Fund distribution retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/allocation/{fundAllocationId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<List<FundDistributionResponse>> getByAllocation(@PathVariable String fundAllocationId) {
         List<FundDistributionResponse> list = fundDistributionService.getByFundAllocationId(fundAllocationId);
         return ApiResponse.success(list, "Distributions by allocation retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/talent/{talentId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'TALENT')")
     public ApiResponse<List<FundDistributionResponse>> getByTalent(@PathVariable String talentId) {
         List<FundDistributionResponse> list = fundDistributionService.getByTalentId(talentId);
         return ApiResponse.success(list, "Distributions by talent retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/talent/{talentId}/total-paid")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'TALENT')")
     public ApiResponse<BigDecimal> getTotalPaidForTalent(@PathVariable String talentId) {
         BigDecimal total = fundDistributionService.getTotalPaidForTalent(talentId);
         return ApiResponse.success(total, "Total paid to talent retrieved successfully", HttpStatus.OK);

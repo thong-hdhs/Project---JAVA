@@ -38,6 +38,7 @@ public class LabFundAdvance {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private LabFundAdvanceStatus status = LabFundAdvanceStatus.ADVANCED;
 
     @ManyToOne(fetch = FetchType.LAZY)
