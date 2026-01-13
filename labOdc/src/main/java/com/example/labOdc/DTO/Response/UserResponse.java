@@ -1,23 +1,25 @@
 package com.example.labOdc.DTO.Response;
 
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.example.labOdc.Model.User;
-import com.example.labOdc.Model.UserRole;
 
 import lombok.Builder;
 import lombok.Data;
 
-@Data
 @Builder
+@Data
 public class UserResponse {
     private String id;
     private String email;
-    private String password;
     private String fullName;
+    private String username;
     private String phone;
     private String avatarUrl;
-    private UserRole role;
+    private Set<String> roles;
+    private Set<String> permissions;
     private Boolean isActive;
     private Boolean emailVerified;
     private LocalDateTime emailVerifiedAt;
@@ -26,14 +28,20 @@ public class UserResponse {
     private LocalDateTime updatedAt;
 
     public static UserResponse fromUser(User user) {
-        UserResponse userResponse = UserResponse.builder()
+        return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .password(user.getPassword())
                 .fullName(user.getFullName())
+                .username(user.getUsername())
                 .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
-                .role(user.getRole())
+                .roles(user.getRoles().stream()
+                        .map(role -> role.getRole().name())
+                        .collect(Collectors.toSet()))
+                .permissions(user.getRoles().stream()
+                        .flatMap(role -> role.getPermissions().stream())
+                        .map(p -> p.getCode())
+                        .collect(Collectors.toSet()))
                 .isActive(user.getIsActive())
                 .emailVerified(user.getEmailVerified())
                 .emailVerifiedAt(user.getEmailVerifiedAt())
@@ -41,6 +49,5 @@ public class UserResponse {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
-        return userResponse;
     }
 }
