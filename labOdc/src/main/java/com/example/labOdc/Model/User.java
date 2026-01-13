@@ -1,6 +1,8 @@
 package com.example.labOdc.Model;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -37,10 +39,10 @@ public class User {
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
-    @NonNull
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role")
-    private UserRole role;
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private final Set<RoleEntity> roles = new HashSet<>();
 
     @Builder.Default // Quan trọng: Giữ lại giá trị true khi dùng Builder
     @Column(name = "is_active")

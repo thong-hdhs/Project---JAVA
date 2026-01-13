@@ -1,4 +1,4 @@
-package com.example.labOdc.Model;
+package com.example.labOdc.Enum;
 
 public enum Permission {
     SYSTEM_MANAGE_USERS,

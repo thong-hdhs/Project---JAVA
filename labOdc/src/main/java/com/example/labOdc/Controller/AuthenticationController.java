@@ -17,30 +17,32 @@ import com.example.labOdc.DTO.Response.IntrospectResponse;
 import com.example.labOdc.Service.Implement.AuthenticationSvc;
 import com.nimbusds.jose.JOSEException;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @CrossOrigin("*")
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
-    AuthenticationSvc authenticationSvc;
+
+    private final AuthenticationSvc authenticationSvc;
 
     @PostMapping("/token")
-    ApiResponse<AutheticationResponse> authenticated(@RequestBody AuthenticationRequest request) {
-        AutheticationResponse result = authenticationSvc.Authenticate(request);
+    public ApiResponse<AutheticationResponse> authenticated(
+            @RequestBody AuthenticationRequest request) {
 
-        return ApiResponse.success(result, "thanh cong", HttpStatus.OK);
+        AutheticationResponse result = authenticationSvc.authenticate(request);
+
+        return ApiResponse.success(result, "success", HttpStatus.OK);
     }
 
     @PostMapping("/introspect")
-    ApiResponse<IntrospectResponse> authenticated(@RequestBody IntrospectRequest request)
+    public ApiResponse<IntrospectResponse> introspect(
+            @RequestBody IntrospectRequest request)
             throws ParseException, JOSEException {
+
         IntrospectResponse result = authenticationSvc.introspect(request);
 
-        return ApiResponse.success(result, "thanh cong", HttpStatus.OK);
+        return ApiResponse.success(result, "success", HttpStatus.OK);
     }
 }
