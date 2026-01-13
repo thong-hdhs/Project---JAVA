@@ -54,6 +54,7 @@ public class RolePermissionSeeder {
              */
             Map<UserRole, Set<Permission>> rolePermissionMap = Map.of(
                     UserRole.SYSTEM_ADMIN, Set.of(Permission.values()),
+                    UserRole.USER, Set.of(),
                     UserRole.LAB_ADMIN, filter("LAB_"),
                     UserRole.COMPANY, filter("COMPANY_"),
                     UserRole.MENTOR, filter("MENTOR_"),
