@@ -8,6 +8,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -20,11 +21,13 @@ public class Report {
     @Column(length = 36, updatable = false)
     private String id;
 
-    @Column(name = "project_id",length = 36,  nullable = false)
-    private String projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-    @Column(name = "mentor_id",length = 36,  nullable = false)
-    private String mentorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mentor_id", nullable = false)
+    private Mentor mentor;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "report_type")
@@ -49,8 +52,9 @@ public class Report {
     @Column(name = "status")
     private Status status;
 
-    @Column(name = "reviewed_by")
-    private String reviewedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private LabAdmin reviewedBy;
 
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
@@ -75,9 +79,11 @@ public class Report {
             id = UUID.randomUUID().toString();
         }
     }
+
     public enum ReportType {
         MONTHLY, PHASE, FINAL, INCIDENT, WEEKLY
     }
+
     public enum Status {
         DRAFT, SUBMITTED, APPROVED, REJECTED, REVISION_NEEDED
     }

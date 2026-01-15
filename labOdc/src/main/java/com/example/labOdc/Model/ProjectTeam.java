@@ -25,11 +25,12 @@ public class ProjectTeam {
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "project_id", length = 36, nullable = false)
-    private String projectId;
-
-    @Column(name = "talent_id", length = 36, nullable = false)
-    private String talentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "talent_id", nullable = false)
+    private Talent talent;
 
     @Builder.Default
     @Column(name = "is_leader")

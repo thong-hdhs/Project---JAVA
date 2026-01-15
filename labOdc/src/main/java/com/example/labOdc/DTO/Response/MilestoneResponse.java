@@ -28,7 +28,7 @@ public class MilestoneResponse {
     public static MilestoneResponse fromMilestone(Milestone m) {
         return MilestoneResponse.builder()
                 .id(m.getId())
-                .projectId(m.getProjectId())
+                .projectId(m.getProject() != null ? m.getProject().getId() : null)
                 .milestoneName(m.getMilestoneName())
                 .description(m.getDescription())
                 .dueDate(m.getDueDate())

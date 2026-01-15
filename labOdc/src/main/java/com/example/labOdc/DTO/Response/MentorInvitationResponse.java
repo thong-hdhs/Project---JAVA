@@ -25,9 +25,9 @@ public class MentorInvitationResponse {
     public static MentorInvitationResponse fromMentorInvitation(MentorInvitation mi) {
         return MentorInvitationResponse.builder()
                 .id(mi.getId())
-                .projectId(mi.getProjectId())
-                .mentorId(mi.getMentorId())
-                .invitedBy(mi.getInvitedBy())
+                .projectId(mi.getProject() != null ? mi.getProject().getId() : null)
+                .mentorId(mi.getMentor() != null ? mi.getMentor().getId() : null)
+                .invitedBy(mi.getInvitedBy() != null ? mi.getInvitedBy().getId() : null)
                 .invitationMessage(mi.getInvitationMessage())
                 .proposedFeePercentage(mi.getProposedFeePercentage())
                 .status(mi.getStatus())

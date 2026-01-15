@@ -24,8 +24,9 @@ public class Milestone {
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "project_id", length = 36, nullable = false)
-    private String projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @Column(name = "milestone_name", nullable = false)
     private String milestoneName;

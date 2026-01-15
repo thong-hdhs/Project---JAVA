@@ -1,10 +1,8 @@
 package com.example.labOdc.DTO;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
-import com.example.labOdc.Model.MentorInvitationStatus;
-
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
@@ -12,12 +10,12 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class MentorInvitationDTO {
+    @NotBlank
     private String projectId;
+
+    @NotBlank
     private String mentorId;
-    private String invitedBy;
+
     private String invitationMessage;
     private BigDecimal proposedFeePercentage;
-
-    private MentorInvitationStatus status;
-    private LocalDateTime respondedAt;
 }

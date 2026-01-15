@@ -13,20 +13,17 @@ import lombok.*;
 @Builder
 public class CompanyRiskRecordDTO {
 
-    @NotBlank(message = "companyId is required")
+    @NotBlank
     private String companyId;
 
-    private String projectId;  
+    private String projectId;
 
-    @NotNull(message = "riskType is required")
+    @NotNull
     private CompanyRiskType riskType;
 
-    @NotNull(message = "severity is required")
+    @NotNull
     private RiskSeverity severity;
 
-    @NotBlank(message = "description is required")
+    @NotBlank
     private String description;
-
-    @NotBlank(message = "recordedById is required")
-    private String recordedById;
 }

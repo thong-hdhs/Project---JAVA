@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -18,17 +19,18 @@ public class TaskComment {
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id", nullable = false)
+    private Task task;
 
-    @Column(name = "task_id", length = 36, nullable = false)
-    private String taskId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "user_id", length = 36, nullable = false)
-    private String userId;
-
-    @Column(name = "comment",nullable = false, columnDefinition = "TEXT")
+    @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
     private String comment;
 
-    @Column(name = "attachments",columnDefinition = "TEXT")
+    @Column(name = "attachments", columnDefinition = "TEXT")
     private String attachments;
 
     @CreationTimestamp

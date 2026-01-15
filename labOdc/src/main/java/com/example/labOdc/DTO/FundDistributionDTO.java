@@ -24,6 +24,7 @@ public class FundDistributionDTO {
     @Positive(message = "amount must be positive")
     private BigDecimal amount;
 
+    @Positive(message = "percentage must be positive")
     private BigDecimal percentage;
 
     private String notes;

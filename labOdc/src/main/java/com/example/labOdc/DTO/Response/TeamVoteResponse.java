@@ -21,8 +21,8 @@ public class TeamVoteResponse {
     public static TeamVoteResponse fromEntity(TeamVote teamVote) {
         return TeamVoteResponse.builder()
                 .id(teamVote.getId())
-                .projectId(teamVote.getProjectId())
-                .talentId(teamVote.getTalentId())
+                .projectId(teamVote.getProject() != null ? teamVote.getProject().getId() : null)
+                .talentId(teamVote.getTalent() != null ? teamVote.getTalent().getId() : null)
                 .proposalType(teamVote.getProposalType())
                 .proposalId(teamVote.getProposalId())
                 .vote(teamVote.getVote())

@@ -12,22 +12,20 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(
-        name = "team_votes",
-        uniqueConstraints = @UniqueConstraint(
-                columnNames = {"project_id", "talent_id", "proposal_type", "proposal_id"}
-        )
-)
+@Table(name = "team_votes", uniqueConstraints = @UniqueConstraint(columnNames = { "project_id", "talent_id",
+        "proposal_type", "proposal_id" }))
 public class TeamVote {
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "project_id", nullable = false)
-    private String projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-    @Column(name = "talent_id", nullable = false)
-    private String talentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "talent_id", nullable = false)
+    private Talent talent;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "proposal_type")
@@ -45,8 +43,10 @@ public class TeamVote {
 
     @PrePersist
     public void ensureId() {
-        if (id == null) id = UUID.randomUUID().toString();
-        if (votedAt == null) votedAt = LocalDateTime.now();
+        if (id == null)
+            id = UUID.randomUUID().toString();
+        if (votedAt == null)
+            votedAt = LocalDateTime.now();
     }
 
     public enum ProposalType {

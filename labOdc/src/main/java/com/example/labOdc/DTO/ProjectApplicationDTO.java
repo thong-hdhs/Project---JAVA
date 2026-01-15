@@ -1,9 +1,6 @@
 package com.example.labOdc.DTO;
 
-import java.time.LocalDateTime;
-
-import com.example.labOdc.Model.ProjectApplication;
-
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,14 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class ProjectApplicationDTO {
+    @NotBlank
     private String projectId;
-    private String talentId;
+
     private String coverLetter;
-    private ProjectApplication.Status status;
-    private String reviewedById;
-    private LocalDateTime reviewedAt;
-    private String rejectionReason;
-    private LocalDateTime appliedAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

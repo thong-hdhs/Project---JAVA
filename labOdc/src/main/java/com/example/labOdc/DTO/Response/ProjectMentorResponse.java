@@ -22,8 +22,8 @@ public class ProjectMentorResponse {
     public static ProjectMentorResponse fromProjectMentor(ProjectMentor pm) {
         return ProjectMentorResponse.builder()
                 .id(pm.getId())
-                .projectId(pm.getProjectId())
-                .mentorId(pm.getMentorId())
+                .projectId(pm.getProject() != null ? pm.getProject().getId() : null)
+                .mentorId(pm.getMentor() != null ? pm.getMentor().getId() : null)
                 .role(pm.getRole())
                 .assignedAt(pm.getAssignedAt())
                 .status(pm.getStatus())

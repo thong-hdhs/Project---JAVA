@@ -1,13 +1,13 @@
 package com.example.labOdc.DTO;
 
 import com.example.labOdc.Model.Evaluation;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -15,17 +15,20 @@ import java.time.LocalDateTime;
 @Builder
 public class EvaluationDTO {
 
+    @NotBlank
     private String projectId;
-    private String evaluatorId;
+
+    @NotBlank
     private String evaluatedId;
-    private Evaluation.EvaluatorType evaluatorType;
+
+    @NotNull
     private Evaluation.EvaluatedType evaluatedType;
+
     private Integer rating;
     private Integer technicalSkills;
     private Integer communication;
     private Integer teamwork;
     private Integer punctuality;
     private String feedback;
-    private LocalDate evaluationDate;
     private Boolean isAnonymous;
 }

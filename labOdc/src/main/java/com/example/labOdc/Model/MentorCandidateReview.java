@@ -19,11 +19,16 @@ public class MentorCandidateReview {
     @Id
     private String id;
 
-    private String mentorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mentor_id", nullable = false)
+    private Mentor mentor;
 
-    private String talentId;
-
-    private String projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "talent_id", nullable = false)
+    private Talent talent;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     private BigDecimal rating;
 
@@ -33,7 +38,9 @@ public class MentorCandidateReview {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    private String reviewedById;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
 
     private LocalDateTime reviewedAt;
 
@@ -51,8 +58,11 @@ public class MentorCandidateReview {
 
     @PrePersist
     public void prePersist() {
-        if (this.id == null) this.id = java.util.UUID.randomUUID().toString();
-        if (this.status == null) this.status = Status.PENDING;
-        if (this.reviewedAt == null && this.status != Status.PENDING) this.reviewedAt = LocalDateTime.now();
+        if (this.id == null)
+            this.id = java.util.UUID.randomUUID().toString();
+        if (this.status == null)
+            this.status = Status.PENDING;
+        if (this.reviewedAt == null && this.status != Status.PENDING)
+            this.reviewedAt = LocalDateTime.now();
     }
 }

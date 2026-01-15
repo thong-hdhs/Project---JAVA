@@ -1,12 +1,12 @@
 package com.example.labOdc.Model;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -19,11 +19,12 @@ public class MemberContribution {
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "project_id", nullable = false)
-    private String projectId;
-
-    @Column(name = "talent_id", nullable = false)
-    private String talentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "talent_id", nullable = false)
+    private Talent talent;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "contribution_type")
@@ -35,8 +36,9 @@ public class MemberContribution {
     @Column(name = "score")
     private BigDecimal score;
 
-    @Column(name = "recorded_by")
-    private String recordedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recorded_by")
+    private User recordedBy;
     @Column(name = "recorded_at")
     private LocalDateTime recordedAt;
 

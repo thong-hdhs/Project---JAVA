@@ -1,9 +1,10 @@
 package com.example.labOdc.DTO;
 
 import com.example.labOdc.Model.TeamVote;
-import lombok.*;
 
-import java.time.LocalDateTime;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
 @Data
 @AllArgsConstructor
@@ -13,10 +14,15 @@ import java.time.LocalDateTime;
 @Setter
 public class TeamVoteDTO {
 
+    @NotBlank
     private String projectId;
-    private String talentId;
+
+    @NotNull
     private TeamVote.ProposalType proposalType;
+
+    @NotBlank
     private String proposalId;
+
+    @NotNull
     private TeamVote.Vote vote;
-    private LocalDateTime votedAt;
 }
