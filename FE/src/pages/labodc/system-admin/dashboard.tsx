@@ -1,0 +1,116 @@
+import React, { useState, useEffect } from 'react';
+import Card from '@/components/ui/Card';
+import MetricCard from '@/components/ui/MetricCard';
+import Button from '@/components/ui/Button';
+import { Link } from 'react-router-dom';
+// Using emoji icons
+
+const SystemAdminDashboard: React.FC = () => {
+  const [stats, setStats] = useState({
+    totalUsers: 125,
+    activeUsers: 98,
+    totalSettings: 15,
+    excelTemplates: 8,
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              System Administration
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Manage users, settings, and system configurations
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Total Users"
+          value={stats.totalUsers.toString()}
+          icon={<span className="text-primary-600">👥</span>}
+        />
+
+        <MetricCard
+          title="Active Users"
+          value={stats.activeUsers.toString()}
+          icon={<span className="text-green-600">✅</span>}
+        />
+
+        <MetricCard
+          title="System Settings"
+          value={stats.totalSettings.toString()}
+          icon={<span className="text-blue-600">⚙️</span>}
+        />
+
+        <MetricCard
+          title="Excel Templates"
+          value={stats.excelTemplates.toString()}
+          icon={<span className="text-yellow-600">📄</span>}
+        />
+      </div>
+
+      {/* Quick Actions */}
+      <Card title="Quick Actions">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/system-admin/users" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-primary-600 mx-auto mb-2 block">👥</span>
+            <span className="text-sm font-medium text-gray-900">Manage Users</span>
+          </Link>
+
+          <Link to="/system-admin/settings" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-blue-600 mx-auto mb-2 block">⚙️</span>
+            <span className="text-sm font-medium text-gray-900">System Settings</span>
+          </Link>
+
+          <Link to="/system-admin/excel-templates" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-yellow-600 mx-auto mb-2 block">📄</span>
+            <span className="text-sm font-medium text-gray-900">Excel Templates</span>
+          </Link>
+
+          <Link to="/system-admin/audit-logs" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-green-600 mx-auto mb-2 block">🛡️</span>
+            <span className="text-sm font-medium text-gray-900">Audit Logs</span>
+          </Link>
+        </div>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card title="Recent System Activity">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3 border-b border-gray-200">
+            <div>
+              <p className="font-medium text-gray-900">User Registration</p>
+              <p className="text-sm text-gray-600">New company registered: TechCorp Inc.</p>
+            </div>
+            <span className="text-sm text-gray-500">2 hours ago</span>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-gray-200">
+            <div>
+              <p className="font-medium text-gray-900">Project Validation</p>
+              <p className="text-sm text-gray-600">Project "E-commerce Platform" approved</p>
+            </div>
+            <span className="text-sm text-gray-500">4 hours ago</span>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-gray-200">
+            <div>
+              <p className="font-medium text-gray-900">Settings Updated</p>
+              <p className="text-sm text-gray-600">Maintenance mode disabled</p>
+            </div>
+            <span className="text-sm text-gray-500">1 day ago</span>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default SystemAdminDashboard;
