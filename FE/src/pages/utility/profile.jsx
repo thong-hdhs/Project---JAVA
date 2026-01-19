@@ -3,21 +3,74 @@ import { Link } from "react-router-dom";
 import Icon from "@/components/ui/Icon";
 import Card from "@/components/ui/Card";
 import BasicArea from "../chart/appex-chart/BasicArea";
+import { useSelector, useDispatch } from "react-redux";
+import { useRef } from "react";
+import { setUser } from "@/store/api/auth/authSlice";
+import { authService } from "@/services/auth.service";
+import AvatarUpload from "@/components/ui/AvatarUpload";
 
 // import images
 import ProfileImage from "@/assets/images/users/user-1.jpg";
 
 const profile = () => {
   const projects = [
-    { id: 1, title: 'Project Alpha', role: 'Frontend', status: 'Completed', date: '2025-09-01' },
-    { id: 2, title: 'Project Beta', role: 'Full Stack', status: 'In Progress', date: '2025-11-15' },
-    { id: 3, title: 'Project Gamma', role: 'UI/UX', status: 'Planned', date: '2026-02-01' },
+    {
+      id: 1,
+      title: "Project Alpha",
+      role: "Frontend",
+      status: "Completed",
+      date: "2025-09-01",
+    },
+    {
+      id: 2,
+      title: "Project Beta",
+      role: "Full Stack",
+      status: "In Progress",
+      date: "2025-11-15",
+    },
+    {
+      id: 3,
+      title: "Project Gamma",
+      role: "UI/UX",
+      status: "Planned",
+      date: "2026-02-01",
+    },
   ];
 
   const evaluations = [
-    { id: 1, mentor: 'John Doe', rating: 4.5, comment: 'Great attention to detail and timely delivery.' },
-    { id: 2, mentor: 'Jane Smith', rating: 4.0, comment: 'Solid technical skills; improve communication.' },
+    {
+      id: 1,
+      mentor: "John Doe",
+      rating: 4.5,
+      comment: "Great attention to detail and timely delivery.",
+    },
+    {
+      id: 2,
+      mentor: "Jane Smith",
+      rating: 4.0,
+      comment: "Solid technical skills; improve communication.",
+    },
   ];
+
+  const dispatch = useDispatch();
+  const auth = useSelector((state) => state.auth || {});
+  const currentUser = auth.user || null;
+  const token = auth.token || null;
+  const avatarRef = useRef(null);
+
+  async function handleAvatarUpload(file) {
+    if (!currentUser) return;
+    try {
+      await authService.uploadAvatar(currentUser.id || currentUser._id, file);
+      // Refresh current user from server to get canonical fields (avatar_url, etc.)
+      const refreshed = await authService.getCurrentUser();
+      dispatch(setUser({ user: refreshed, token }));
+    } catch (err) {
+      // swallow or show toast - keep minimal here
+      console.error("Avatar upload failed", err);
+      throw err;
+    }
+  }
 
   return (
     <div>
@@ -29,16 +82,26 @@ const profile = () => {
               <div className="flex-none">
                 <div className="md:h-[186px] md:w-[186px] h-[140px] w-[140px] md:ml-0 md:mr-0 ml-auto mr-auto md:mb-0 mb-4 rounded-full ring-4 ring-slate-100 relative">
                   <img
-                    src={ProfileImage}
+                    src={
+                      (currentUser &&
+                        (currentUser.avatar ||
+                          currentUser.avatar_url ||
+                          currentUser.avatarUrl)) ||
+                      ProfileImage
+                    }
                     alt=""
                     className="w-full h-full object-cover rounded-full"
                   />
-                  <Link
-                    to="#"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      avatarRef.current && avatarRef.current.openFileDialog()
+                    }
                     className="absolute right-2 h-8 w-8 bg-slate-50 text-slate-600 rounded-full shadow-sm flex flex-col items-center justify-center md:top-[140px] top-[100px]"
+                    aria-label="Change avatar"
                   >
                     <Icon icon="heroicons:pencil-square" />
-                  </Link>
+                  </button>
                 </div>
               </div>
               <div className="flex-1">
@@ -50,6 +113,8 @@ const profile = () => {
                 </div>
               </div>
             </div>
+            {/* Hidden file input/upload handler triggered by the avatar edit button */}
+            <AvatarUpload ref={avatarRef} onUpload={handleAvatarUpload} />
           </div>
 
           <div className="profile-info-500 md:flex md:text-start text-center flex-1 max-w-[516px] md:space-y-0 space-y-4">
@@ -149,8 +214,12 @@ const profile = () => {
                 {projects.map((p) => (
                   <li key={p.id} className="flex justify-between items-center">
                     <div>
-                      <div className="font-medium text-slate-900">{p.title}</div>
-                      <div className="text-sm text-slate-500">{p.role} • {p.status}</div>
+                      <div className="font-medium text-slate-900">
+                        {p.title}
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {p.role} • {p.status}
+                      </div>
                     </div>
                     <div className="text-sm text-slate-400">{p.date}</div>
                   </li>
@@ -167,9 +236,14 @@ const profile = () => {
                     <div className="flex items-start space-x-3 rtl:space-x-reverse">
                       <div className="flex-1">
                         <div className="font-medium text-slate-900">
-                          {e.mentor} <span className="text-sm text-slate-500">• {e.rating}/5</span>
+                          {e.mentor}{" "}
+                          <span className="text-sm text-slate-500">
+                            • {e.rating}/5
+                          </span>
                         </div>
-                        <div className="text-sm text-slate-600">{e.comment}</div>
+                        <div className="text-sm text-slate-600">
+                          {e.comment}
+                        </div>
                       </div>
                     </div>
                   </li>

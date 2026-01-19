@@ -27,12 +27,23 @@ export const authService = {
     return response.data;
   },
 
+  async uploadAvatar(userId: string, file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const response = await apiClient.post(`/users/${userId}/avatar`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return response.data;
+  },
+
   async updateAvatarsForAllUsers(
     avatarUrl: string,
-    userIds: string[]
+    userIds: string[],
   ): Promise<void> {
     const updatePromises = userIds.map((userId) =>
-      apiClient.patch(`/users/${userId}`, { avatar: avatarUrl })
+      apiClient.patch(`/users/${userId}`, { avatar: avatarUrl }),
     );
     await Promise.all(updatePromises);
   },
