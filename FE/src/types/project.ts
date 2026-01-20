@@ -1,6 +1,7 @@
 // Project Types
 export type ProjectStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ON_HOLD';
 export type ProjectValidationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type PaymentStatus = 'NOT_REQUIRED' | 'PENDING' | 'PAID' | 'FAILED';
 
 export interface Project {
   id: string;
@@ -15,6 +16,7 @@ export interface Project {
   required_skills: string[];
   status: ProjectStatus;
   validation_status: ProjectValidationStatus;
+  payment_status?: PaymentStatus;
   rejection_reason?: string;
   validated_by?: string;
   validated_at?: Date;

@@ -66,11 +66,6 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
-            title: "Validate Companies",
-            icon: "heroicons-outline:building-office",
-            link: "lab-admin/validate-companies",
-          },
-          {
             title: "Validate Projects",
             icon: "heroicons-outline:document-check",
             link: "lab-admin/validate-projects",

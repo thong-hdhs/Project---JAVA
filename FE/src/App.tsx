@@ -82,9 +82,6 @@ const FundApprovals = lazy(
 const LabAdminDashboard = lazy(
   () => import("./pages/labodc/lab-admin/dashboard")
 );
-const ValidateCompanies = lazy(
-  () => import("./pages/labodc/lab-admin/validate-companies")
-);
 const ValidateProjects = lazy(
   () => import("./pages/labodc/lab-admin/validate-projects")
 );
@@ -210,10 +207,6 @@ function App() {
 
           {/* Lab Admin routes */}
           <Route path="lab-admin/dashboard" element={<LabAdminDashboard />} />
-          <Route
-            path="lab-admin/validate-companies"
-            element={<ValidateCompanies />}
-          />
           <Route
             path="lab-admin/validate-projects"
             element={<ValidateProjects />}

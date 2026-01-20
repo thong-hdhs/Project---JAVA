@@ -1,33 +1,241 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import StatusBadge from '@/components/ui/StatusBadge';
+import DataTable from '@/components/ui/DataTable';
+import Icon from '@/components/ui/Icon';
+import { projectService } from '@/services/project.service';
+import { companyService } from '@/services/company.service';
+import { Project } from '@/types';
+
+interface ProjectWithCompany extends Project {
+  companyName?: string;
+}
 
 const ValidateProjects: React.FC = () => {
-	const projects = [
-		{ id: 1, name: 'Project Alpha', company: 'Company A', status: 'Pending' },
-	];
+  const [projects, setProjects] = useState<ProjectWithCompany[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState<ProjectWithCompany | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
-	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-bold text-gray-900">Validate Projects</h1>
-			</div>
-			<Card>
-				<div className="overflow-x-auto">
-					<table className="min-w-full text-sm">
-						<thead>
-							<tr className="text-left text-gray-600"><th className="py-2">Project</th><th className="py-2">Company</th><th className="py-2">Status</th><th className="py-2">Actions</th></tr>
-						</thead>
-						<tbody>
-							{projects.map(p => (
-								<tr key={p.id} className="border-t"><td className="py-3">{p.name}</td><td className="py-3">{p.company}</td><td className="py-3">{p.status}</td><td className="py-3"><Button text="Approve" className="mr-2"/><Button text="Reject" className="bg-red-500 text-white"/></td></tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-			</Card>
-		</div>
-	);
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      // Get projects pending validation
+      const projectsData = await projectService.getProjects({
+        status: 'PENDING',
+      });
+
+      // Fetch company names
+      const projectsWithCompany = await Promise.all(
+        projectsData.data.map(async (project) => {
+          try {
+            const company = await companyService.getCompany(project.company_id);
+            return { ...project, companyName: company.company_name };
+          } catch {
+            return { ...project, companyName: 'Unknown' };
+          }
+        })
+      );
+
+      setProjects(projectsWithCompany);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (project: ProjectWithCompany) => {
+    try {
+      setActionLoading(true);
+      await projectService.validateProject(project.id, 'APPROVED');
+      setProjects(projects.filter(p => p.id !== project.id));
+    } catch (error) {
+      console.error('Error approving project:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectClick = (project: ProjectWithCompany) => {
+    setSelectedProject(project);
+    setShowRejectModal(true);
+    setRejectionReason('');
+  };
+
+  const handleReject = async () => {
+    if (!selectedProject || !rejectionReason.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      await projectService.validateProject(selectedProject.id, 'REJECTED', rejectionReason);
+      setProjects(projects.filter(p => p.id !== selectedProject.id));
+      setShowRejectModal(false);
+      setSelectedProject(null);
+    } catch (error) {
+      console.error('Error rejecting project:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const columns = [
+    {
+      key: 'project_name',
+      header: 'Project Name',
+      render: (value: string, item: ProjectWithCompany) => (
+        <div>
+          <div className="font-medium text-gray-900">{value}</div>
+          <div className="text-sm text-gray-500">{item.description?.substring(0, 50)}...</div>
+        </div>
+      ),
+    },
+    {
+      key: 'companyName',
+      header: 'Company',
+      render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
+    },
+    {
+      key: 'budget',
+      header: 'Budget',
+      render: (value: number) => <span className="font-semibold text-blue-600">${value.toLocaleString()}</span>,
+    },
+    {
+      key: 'duration_months',
+      header: 'Duration',
+      render: (value: number) => `${value} months`,
+    },
+    {
+      key: 'max_team_size',
+      header: 'Team Size',
+      render: (value: number) => `${value} members`,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (value: string) => <StatusBadge status={value} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (value: any, item: ProjectWithCompany) => (
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handleApprove(item)}
+            disabled={actionLoading}
+            className="inline-flex items-center space-x-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+          >
+            <Icon icon="check" className="w-4 h-4" />
+            <span className="text-sm font-medium">Approve</span>
+          </button>
+          <button
+            onClick={() => handleRejectClick(item)}
+            disabled={actionLoading}
+            className="inline-flex items-center space-x-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+          >
+            <Icon icon="close" className="w-4 h-4" />
+            <span className="text-sm font-medium">Reject</span>
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Review Projects</h1>
+          <p className="text-gray-600 mt-1">Approve or reject projects submitted by companies</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-yellow-200 rounded-full">
+              <Icon icon="clock" className="w-6 h-6 text-yellow-700" />
+            </div>
+            <div>
+              <div className="text-sm text-yellow-700">Pending Review</div>
+              <div className="text-2xl font-bold text-yellow-900">{projects.length}</div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Projects Table */}
+      <Card>
+        <DataTable
+          data={projects}
+          columns={columns}
+          loading={loading}
+          emptyMessage="No projects pending review"
+        />
+      </Card>
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Reject Project</h2>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-900 mb-2">Project</p>
+                <p className="text-gray-600">{selectedProject?.project_name}</p>
+              </div>
+
+              <div>
+                <label htmlFor="reason" className="block text-sm font-medium text-gray-900 mb-2">
+                  Reason for Rejection
+                </label>
+                <textarea
+                  id="reason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Explain why you are rejecting this project..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex space-x-3 rounded-b-lg">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={actionLoading || !rejectionReason.trim()}
+                className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {actionLoading ? 'Processing...' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default ValidateProjects;

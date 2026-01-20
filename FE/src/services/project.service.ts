@@ -89,5 +89,37 @@ export const projectService = {
   async updateChangeRequest(id: string, data: Partial<ProjectChangeRequest>): Promise<ProjectChangeRequest> {
     const response = await apiClient.patch(`/project-change-requests/${id}`, data);
     return response.data;
+  },
+
+  // Project Validation (Lab Admin)
+  async validateProject(
+    id: string,
+    validationStatus: 'APPROVED' | 'REJECTED',
+    rejectionReason?: string
+  ): Promise<Project> {
+    const response = await apiClient.patch(`/projects/${id}/validate`, {
+      validation_status: validationStatus,
+      rejection_reason: rejectionReason,
+    });
+    return response.data;
+  },
+
+  async getProjectsForValidation(params?: {
+    validation_status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Project[]; total: number }> {
+    const response = await apiClient.get('/projects/validation/pending', { params });
+    return response.data;
+  },
+
+  async updateProjectPaymentStatus(
+    id: string,
+    paymentStatus: 'PENDING' | 'PAID' | 'FAILED'
+  ): Promise<Project> {
+    const response = await apiClient.patch(`/projects/${id}/payment-status`, {
+      payment_status: paymentStatus,
+    });
+    return response.data;
   }
 };

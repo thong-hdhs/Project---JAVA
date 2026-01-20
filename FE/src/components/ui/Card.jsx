@@ -10,7 +10,7 @@ const Card = ({
   bodyClass = "p-6",
   noborder,
   titleClass = "custom-class",
-}) => {
+} = {}) => {
   const [skin] = useSkin();
 
   return (
@@ -34,9 +34,20 @@ const Card = ({
           {headerslot && <div className="card-header-slot">{headerslot}</div>}
         </header>
       )}
-      <main className={`card-body ${bodyClass}`}>{children}</main>
+      {children && <main className={`card-body ${bodyClass}`}>{children}</main>}
     </div>
   );
+};
+
+Card.propTypes = {
+  children: null,
+  title: null,
+  subtitle: null,
+  headerslot: null,
+  className: null,
+  bodyClass: null,
+  noborder: null,
+  titleClass: null,
 };
 
 export default Card;

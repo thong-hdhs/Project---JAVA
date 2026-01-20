@@ -104,46 +104,26 @@ const EnterpriseDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
             <h1 className="text-2xl font-bold text-gray-900">
               Welcome back, {user?.full_name}!
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600">
               Manage your projects and track payments
             </p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             <Link to="/enterprise/projects/create">
               <Button
                 text="Create Project"
-                className="bg-primary-500 text-white"
-                isLoading={false}
-                disabled={false}
-                children=""
-                icon=""
-                loadingClass=""
-                iconPosition="left"
-                iconClass=""
-                link=""
-                onClick={() => {}}
-                div={false}
+                className="bg-primary-500 text-white w-full sm:w-auto"
               />
             </Link>
             <Link to="/profile">
               <Button
                 text="Profile"
-                className="bg-white border border-gray-300 text-gray-700"
-                isLoading={false}
-                disabled={false}
-                children=""
-                icon=""
-                loadingClass=""
-                iconPosition="left"
-                iconClass=""
-                link=""
-                onClick={() => {}}
-                div={false}
+                className="bg-white border border-gray-300 text-gray-700 w-full sm:w-auto"
               />
             </Link>
           </div>
@@ -151,7 +131,7 @@ const EnterpriseDashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
         <MetricCard
           title="Total Projects"
           value={stats.totalProjects.toString()}
@@ -210,7 +190,7 @@ const EnterpriseDashboard: React.FC = () => {
       )}
 
       {/* Recent Projects & Payments */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Recent Projects */}
         <Card
           title="Recent Projects"
@@ -220,16 +200,6 @@ const EnterpriseDashboard: React.FC = () => {
               <Button
                 text="View All"
                 className="btn-outline-dark btn-sm"
-                isLoading={false}
-                disabled={false}
-                children=""
-                icon=""
-                loadingClass=""
-                iconPosition="left"
-                iconClass=""
-                link=""
-                onClick={() => {}}
-                div={false}
               />
             </Link>
           }
@@ -262,16 +232,6 @@ const EnterpriseDashboard: React.FC = () => {
                     <Button
                       text="View"
                       className="btn-outline-dark btn-sm"
-                      isLoading={false}
-                      disabled={false}
-                      children=""
-                      icon=""
-                      loadingClass=""
-                      iconPosition="left"
-                      iconClass=""
-                      link=""
-                      onClick={() => {}}
-                      div={false}
                     />
                   </Link>
                 </div>
@@ -289,16 +249,6 @@ const EnterpriseDashboard: React.FC = () => {
               <Button
                 text="View All"
                 className="btn-outline-dark btn-sm"
-                isLoading={false}
-                disabled={false}
-                children=""
-                icon=""
-                loadingClass=""
-                iconPosition="left"
-                iconClass=""
-                link=""
-                onClick={() => {}}
-                div={false}
               />
             </Link>
           }
@@ -329,16 +279,6 @@ const EnterpriseDashboard: React.FC = () => {
                   <Button
                     text="View"
                     className="btn-outline-dark btn-sm"
-                    isLoading={false}
-                    disabled={false}
-                    children=""
-                    icon=""
-                    loadingClass=""
-                    iconPosition="left"
-                    iconClass=""
-                    link=""
-                    onClick={() => {}}
-                    div={false}
                   />
                 </div>
               ))
@@ -349,7 +289,7 @@ const EnterpriseDashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <Card title="Quick Actions" subtitle="" headerslot="" noborder={false}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <Link
             to="/enterprise/projects/create"
             className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

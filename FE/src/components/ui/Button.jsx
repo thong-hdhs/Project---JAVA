@@ -2,10 +2,10 @@ import React from "react";
 import Icon from "@/components/ui/Icon";
 import { Link } from "react-router-dom";
 function Button({
-  text,
+  text = "",
   type = "button",
-  isLoading,
-  disabled,
+  isLoading = false,
+  disabled = false,
   className = "bg-primary-500 text-white",
   children,
   icon,
@@ -15,7 +15,7 @@ function Button({
   link,
   onClick,
   div,
-}) {
+} = {}) {
   return (
     <>
       {!link && !div && (

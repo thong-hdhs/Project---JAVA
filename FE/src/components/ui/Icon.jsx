@@ -1,6 +1,6 @@
 import React from "react";
 import { Icon } from "@iconify/react";
-const Icons = ({ icon, className, width, rotate, hFlip, vFlip }) => {
+const Icons = ({ icon, className = "", width, rotate, hFlip, vFlip }) => {
   return (
     <>
       <Icon
