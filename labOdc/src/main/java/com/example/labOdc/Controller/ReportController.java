@@ -5,10 +5,11 @@ import com.example.labOdc.DTO.ReportDTO;
 import com.example.labOdc.DTO.Response.ReportResponse;
 import com.example.labOdc.Model.Report;
 import com.example.labOdc.Service.ReportService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -16,86 +17,120 @@ import java.util.List;
 @AllArgsConstructor
 public class ReportController {
 
-    private final ReportService service;
+    private final ReportService reportService;
 
-    @PostMapping
-    public ApiResponse<ReportResponse> create(@RequestBody ReportDTO reportDTO) {
+    @PostMapping("/{mentorId}")
+    @PreAuthorize("hasAnyRole('MENTOR')")
+    public ApiResponse<ReportResponse> createReport(
+            @PathVariable String mentorId,
+            @Valid @RequestBody ReportDTO dto) {
+
+        Report report = reportService.createReport(dto, mentorId);
+
         return ApiResponse.success(
-                ReportResponse.fromEntity(service.create(reportDTO)),
+                ReportResponse.fromEntity(report),
                 "Tạo report thành công",
-                HttpStatus.CREATED
-        );
+                HttpStatus.CREATED);
     }
 
-    @GetMapping
-    public ApiResponse<List<ReportResponse>> getAll() {
+    @GetMapping("/")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<ReportResponse>> getAllReports() {
         return ApiResponse.success(
-                service.getAll().stream()
+                reportService.getAllReports()
+                        .stream()
                         .map(ReportResponse::fromEntity)
                         .toList(),
-                "OK",
-                HttpStatus.OK
-        );
+                "Thành công",
+                HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<ReportResponse> getById(@PathVariable String id) {
         return ApiResponse.success(
-                ReportResponse.fromEntity(service.getById(id)),
-                "OK",
-                HttpStatus.OK
-        );
+                ReportResponse.fromEntity(reportService.getReportById(id)),
+                "Thành công",
+                HttpStatus.OK);
     }
 
     @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<List<ReportResponse>> getByProject(@PathVariable String projectId) {
         return ApiResponse.success(
-                service.getByProject(projectId).stream()
+                reportService.getReportsByProject(projectId)
+                        .stream()
                         .map(ReportResponse::fromEntity)
                         .toList(),
-                "OK",
-                HttpStatus.OK
-        );
+                "Thành công",
+                HttpStatus.OK);
+    }
+
+    @GetMapping("/mentor/{mentorId}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<ReportResponse>> getByMentor(@PathVariable String mentorId) {
+        return ApiResponse.success(
+                reportService.getReportsByMentor(mentorId)
+                        .stream()
+                        .map(ReportResponse::fromEntity)
+                        .toList(),
+                "Thành công",
+                HttpStatus.OK);
+    }
+
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<ReportResponse>> byStatus(@PathVariable Report.Status status) {
+        List<Report> list = reportService.getReportsByStatus(status);
+        return ApiResponse.success(list
+                        .stream()
+                        .map(ReportResponse::fromEntity)
+                        .toList(),
+                "Thành công",
+                HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<ReportResponse> update(
+    @PreAuthorize("hasAnyRole('MENTOR')")
+    public ApiResponse<ReportResponse> updateReport(
             @PathVariable String id,
-            @RequestBody ReportDTO reportDTO) {
+            @RequestBody ReportDTO dto) {
+
+        Report report = reportService.updateReport(id, dto);
 
         return ApiResponse.success(
-                ReportResponse.fromEntity(service.update(id, reportDTO)),
+                ReportResponse.fromEntity(report),
                 "Cập nhật thành công",
-                HttpStatus.OK
-        );
+                HttpStatus.OK);
     }
-
-    @PostMapping("/{id}/submit")
-    public ApiResponse<ReportResponse> submit(@PathVariable String id) {
+    @PutMapping("/{id}/submit")
+    @PreAuthorize("hasAnyRole('MENTOR')")
+    public ApiResponse<ReportResponse> submitReport(@PathVariable String id) {
         return ApiResponse.success(
-                ReportResponse.fromEntity(service.submit(id)),
-                "Đã gửi report",
-                HttpStatus.OK
-        );
+                ReportResponse.fromEntity(reportService.submitReport(id)),
+                "Đã submit report",
+                HttpStatus.OK);
     }
 
-    @PostMapping("/{id}/review")
-    public ApiResponse<ReportResponse> review(
+    @PutMapping("/{id}/review/{adminId}")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN')")
+    public ApiResponse<ReportResponse> reviewReport(
             @PathVariable String id,
+            @PathVariable String adminId,
             @RequestParam Report.Status status,
-            @RequestParam String reviewer,
             @RequestParam(required = false) String notes) {
 
         return ApiResponse.success(
-                ReportResponse.fromEntity(service.review(id, status, reviewer, notes)),
-                "Đã review",
-                HttpStatus.OK
-        );
+                ReportResponse.fromEntity(
+                        reportService.reviewReport(id, adminId, status, notes)),
+                "Review thành công",
+                HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
-        service.delete(id);
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<String> deleteReport(@PathVariable String id) {
+        reportService.deleteReport(id);
         return ApiResponse.success("Xóa thành công", "OK", HttpStatus.OK);
     }
 }

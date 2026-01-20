@@ -2,20 +2,29 @@ package com.example.labOdc.Service;
 
 import com.example.labOdc.DTO.Response.TaskResponse;
 import com.example.labOdc.DTO.TaskDTO;
+import com.example.labOdc.Model.Task;
 
 import java.util.List;
 
 public interface TaskService {
 
-    TaskResponse createTask(TaskDTO taskDTO, String creatorId);
+    Task createTask(TaskDTO dto, String createdBy);
 
-    TaskResponse updateTask(String id, TaskDTO taskDTO);
+    Task updateTask(TaskDTO dto, String taskId);
 
-    TaskResponse getTaskById(String id);
+    Task updateStatus(String taskId, Task.Status status);
 
-    List<TaskResponse> getTasksByProject(String projectId);
+    Task assignTask(String taskId, String talentId);
 
-    List<TaskResponse> getTasksByAssignee(String assignedTo);
+    Task completeTask(String taskId);
 
-    void deleteTask(String id);
+    Task getTaskById(String taskId);
+
+    List<Task> getTasksByProject(String projectId);
+
+    List<Task> getTasksByAssignee(String talentId);
+
+    List<Task> getTasksByCreator(String userId);
+
+    void deleteTask(String taskId);
 }

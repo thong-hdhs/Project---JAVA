@@ -7,7 +7,9 @@ import java.util.List;
 
 public interface MemberContributionService {
 
-    MemberContribution create(MemberContributionDTO memberContributionDTO);
+    MemberContribution createContribution(
+            MemberContributionDTO dto,
+            String recordedByUserId);
 
     MemberContribution getById(String id);
 
@@ -17,7 +19,11 @@ public interface MemberContributionService {
 
     List<MemberContribution> getByTalent(String talentId);
 
-    MemberContribution update(String id, MemberContributionDTO memberContributionDTO);
+    List<MemberContribution> getByType(MemberContribution.ContributionType type);
 
-    void delete(String id);
+    List<MemberContribution> getByRecorder(String userId);
+
+    MemberContribution updateContribution(String id, MemberContributionDTO dto);
+
+    void deleteContribution(String id);
 }

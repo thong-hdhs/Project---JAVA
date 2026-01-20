@@ -7,19 +7,24 @@ import java.util.List;
 
 public interface EvaluationService {
 
-    Evaluation create(EvaluationDTO evaluationDTO);
-
-    List<Evaluation> getAll();
+    Evaluation createEvaluation(
+            EvaluationDTO dto,
+            String evaluatorId,
+            Evaluation.EvaluatorType evaluatorType);
 
     Evaluation getById(String id);
 
-    List<Evaluation> getByProject(String projectId);
+    List<Evaluation> getAll();
 
-    List<Evaluation> getByEvaluator(String evaluatorId);
+    List<Evaluation> getByProject(String projectId);
 
     List<Evaluation> getByEvaluated(String evaluatedId);
 
-    Evaluation update(String id, EvaluationDTO evaluationDTO);
+    List<Evaluation> getByEvaluator(String evaluatorId);
 
-    void delete(String id);
+    List<Evaluation> getByEvaluatedType(Evaluation.EvaluatedType type);
+
+    Evaluation updateEvaluation(String id, EvaluationDTO dto);
+
+    void deleteEvaluation(String id);
 }

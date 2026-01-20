@@ -4,7 +4,13 @@ package com.example.labOdc.Service.Implement;
 import com.example.labOdc.DTO.MemberContributionDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.MemberContribution;
+import com.example.labOdc.Model.Project;
+import com.example.labOdc.Model.Talent;
+import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.MemberContributionRepository;
+import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.TalentRepository;
+import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.MemberContributionService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,68 +20,92 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class MemberContributionServiceImpl
-        implements MemberContributionService {
+public class MemberContributionServiceImpl implements MemberContributionService {
 
-    private final MemberContributionRepository repository;
+    private final MemberContributionRepository memberContributionRepository;
+    private final ProjectRepository projectRepository;
+    private final TalentRepository talentRepository;
+    private final UserRepository userRepository;
 
     @Override
-    public MemberContribution create(MemberContributionDTO memberContributionDTO) {
+    public MemberContribution createContribution(
+            MemberContributionDTO dto,
+            String recordedByUserId) {
+
+        Project project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Project"));
+
+        Talent talent = talentRepository.findById(dto.getTalentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Talent"));
+
+        User recorder = userRepository.findById(recordedByUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy User"));
 
         MemberContribution mc = MemberContribution.builder()
-                .projectId(memberContributionDTO.getProjectId())
-                .talentId(memberContributionDTO.getTalentId())
-                .contributionType(memberContributionDTO.getContributionType())
-                .description(memberContributionDTO.getDescription())
-                .score(memberContributionDTO.getScore())
-                .recordedBy(memberContributionDTO.getRecordedBy())
-                .recordedAt(LocalDateTime.now())
+                .project(project)
+                .talent(talent)
+                .contributionType(dto.getContributionType())
+                .description(dto.getDescription())
+                .score(dto.getScore())
+                .recordedBy(recorder)
                 .build();
 
-        return repository.save(mc);
+        return memberContributionRepository.save(mc);
     }
 
     @Override
     public MemberContribution getById(String id) {
-        return repository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Không tìm thấy contribution"));
+        return memberContributionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy MemberContribution"));
     }
 
     @Override
     public List<MemberContribution> getAll() {
-        return repository.findAll();
+        return memberContributionRepository.findAll();
     }
 
     @Override
     public List<MemberContribution> getByProject(String projectId) {
-        return repository.findByProjectId(projectId);
+        return memberContributionRepository.findByProjectId(projectId);
     }
 
     @Override
     public List<MemberContribution> getByTalent(String talentId) {
-        return repository.findByTalentId(talentId);
+        return memberContributionRepository.findByTalentId(talentId);
     }
 
     @Override
-    public MemberContribution update(String id, MemberContributionDTO memberContributionDTO) {
+    public List<MemberContribution> getByRecorder(String userId) {
+        return memberContributionRepository.findByRecordedById(userId);
+    }
+
+    @Override
+    public List<MemberContribution> getByType(MemberContribution.ContributionType type) {
+        return memberContributionRepository.findByContributionType(type);
+    }
+
+    @Override
+    public MemberContribution updateContribution(String id, MemberContributionDTO dto) {
 
         MemberContribution mc = getById(id);
 
-        if (memberContributionDTO.getContributionType() != null)
-            mc.setContributionType(memberContributionDTO.getContributionType());
+        if (dto.getContributionType() != null) {
+            mc.setContributionType(dto.getContributionType());
+        }
 
-        if (memberContributionDTO.getDescription() != null)
-            mc.setDescription(memberContributionDTO.getDescription());
+        if (dto.getDescription() != null) {
+            mc.setDescription(dto.getDescription());
+        }
 
-        if (memberContributionDTO.getScore() != null)
-            mc.setScore(memberContributionDTO.getScore());
+        if (dto.getScore() != null) {
+            mc.setScore(dto.getScore());
+        }
 
-        return repository.save(mc);
+        return memberContributionRepository.save(mc);
     }
 
     @Override
-    public void delete(String id) {
-        repository.deleteById(id);
+    public void deleteContribution(String id) {
+        memberContributionRepository.deleteById(id);
     }
 }

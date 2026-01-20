@@ -9,16 +9,24 @@ import java.util.List;
 
 public interface TeamVoteService {
 
-    TeamVoteResponse createVote(TeamVoteDTO teamVoteDTO);
+    TeamVote vote(
+            TeamVoteDTO dto,
+            String talentId);
 
-    TeamVoteResponse getById(String id);
+    TeamVote getById(String id);
 
-    List<TeamVoteResponse> getByProject(String projectId);
+    TeamVote updateVote(String id, TeamVoteDTO dto);
 
-    List<TeamVoteResponse> getByProposal(
+    List<TeamVote> getAll();
+
+    List<TeamVote> getByProject(String projectId);
+
+    List<TeamVote> getByTalent(String talentId);
+
+    List<TeamVote> getByProposal(
+            String projectId,
             TeamVote.ProposalType proposalType,
-            String proposalId
-    );
+            String proposalId);
 
     void deleteVote(String id);
 }

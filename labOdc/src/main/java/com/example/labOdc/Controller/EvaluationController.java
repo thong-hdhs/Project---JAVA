@@ -3,9 +3,12 @@ package com.example.labOdc.Controller;
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.EvaluationDTO;
 import com.example.labOdc.DTO.Response.EvaluationResponse;
+import com.example.labOdc.Model.Evaluation;
 import com.example.labOdc.Service.EvaluationService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,85 +18,112 @@ import java.util.List;
 @AllArgsConstructor
 public class EvaluationController {
 
-    private final EvaluationService service;
+    private final EvaluationService evaluationService;
+//    Tạo evaluation evaluatorType xác định: COMPANY / MENTOR / TALENT / LAB_ADMIN
+    @PostMapping("/{evaluatorId}")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN')")
+    public ApiResponse<EvaluationResponse> createEvaluation(
+            @PathVariable String evaluatorId,
+            @RequestParam Evaluation.EvaluatorType evaluatorType,
+            @Valid @RequestBody EvaluationDTO dto) {
 
-    @PostMapping
-    public ApiResponse<EvaluationResponse> create(@RequestBody EvaluationDTO dto) {
+        Evaluation evaluation = evaluationService.createEvaluation(
+                dto,
+                evaluatorId,
+                evaluatorType);
+
         return ApiResponse.success(
-                EvaluationResponse.fromEntity(service.create(dto)),
+                EvaluationResponse.fromEntity(evaluation),
                 "Tạo đánh giá thành công",
-                HttpStatus.CREATED
-        );
+                HttpStatus.CREATED);
     }
-
-    @GetMapping
+//  * Lấy tất cả evaluation
+    @GetMapping("/")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<List<EvaluationResponse>> getAll() {
         return ApiResponse.success(
-                service.getAll().stream()
+                evaluationService.getAll()
+                        .stream()
                         .map(EvaluationResponse::fromEntity)
                         .toList(),
-                "OK",
-                HttpStatus.OK
-        );
+                "Thành công",
+                HttpStatus.OK);
     }
-
+    //    Lấy evaluation theo ID
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<EvaluationResponse> getById(@PathVariable String id) {
         return ApiResponse.success(
-                EvaluationResponse.fromEntity(service.getById(id)),
-                "OK",
-                HttpStatus.OK
-        );
+                EvaluationResponse.fromEntity(evaluationService.getById(id)),
+                "Thành công",
+                HttpStatus.OK);
     }
-
+    //    Lấy evaluation theo project
     @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<List<EvaluationResponse>> getByProject(@PathVariable String projectId) {
         return ApiResponse.success(
-                service.getByProject(projectId).stream()
+                evaluationService.getByProject(projectId)
+                        .stream()
                         .map(EvaluationResponse::fromEntity)
                         .toList(),
-                "OK",
-                HttpStatus.OK
-        );
+                "Thành công",
+                HttpStatus.OK);
     }
-
-    @GetMapping("/evaluator/{evaluatorId}")
-    public ApiResponse<List<EvaluationResponse>> getByEvaluator(@PathVariable String evaluatorId) {
-        return ApiResponse.success(
-                service.getByEvaluator(evaluatorId).stream()
-                        .map(EvaluationResponse::fromEntity)
-                        .toList(),
-                "OK",
-                HttpStatus.OK
-        );
-    }
-
+//    Lấy evaluation theo người được đánh giá
     @GetMapping("/evaluated/{evaluatedId}")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<List<EvaluationResponse>> getByEvaluated(@PathVariable String evaluatedId) {
         return ApiResponse.success(
-                service.getByEvaluated(evaluatedId).stream()
+                evaluationService.getByEvaluated(evaluatedId)
+                        .stream()
                         .map(EvaluationResponse::fromEntity)
                         .toList(),
-                "OK",
-                HttpStatus.OK
-        );
+                "Thành công",
+                HttpStatus.OK);
     }
-
+//    Lấy evaluation theo người đánh giá
+    @GetMapping("/evaluator/{evaluatorId}")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<EvaluationResponse>> getByEvaluator(@PathVariable String evaluatorId) {
+        return ApiResponse.success(
+                evaluationService.getByEvaluator(evaluatorId)
+                        .stream()
+                        .map(EvaluationResponse::fromEntity)
+                        .toList(),
+                "Thành công",
+                HttpStatus.OK);
+    }
+    @GetMapping("/type/{type}")
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<EvaluationResponse>> byType(@PathVariable Evaluation.EvaluatedType type) {
+        List<Evaluation> list = evaluationService.getByEvaluatedType(type);
+        return ApiResponse.success(list
+                        .stream()
+                        .map(EvaluationResponse::fromEntity)
+                        .toList(),
+                "Thành công",
+                HttpStatus.OK);
+    }
+//    Cập nhật evaluation
     @PutMapping("/{id}")
-    public ApiResponse<EvaluationResponse> update(
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN')")
+    public ApiResponse<EvaluationResponse> updateEvaluation(
             @PathVariable String id,
             @RequestBody EvaluationDTO dto) {
 
-        return ApiResponse.success(
-                EvaluationResponse.fromEntity(service.update(id, dto)),
-                "Cập nhật đánh giá thành công",
-                HttpStatus.OK
-        );
-    }
+        Evaluation evaluation = evaluationService.updateEvaluation(id, dto);
 
+        return ApiResponse.success(
+                EvaluationResponse.fromEntity(evaluation),
+                "Cập nhật thành công",
+                HttpStatus.OK);
+    }
+//    Xóa evaluation
     @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
-        service.delete(id);
+    @PreAuthorize("hasAnyRole('COMPANY','MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<String> deleteEvaluation(@PathVariable String id) {
+        evaluationService.deleteEvaluation(id);
         return ApiResponse.success("Xóa thành công", "OK", HttpStatus.OK);
     }
 }

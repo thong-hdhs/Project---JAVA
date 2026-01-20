@@ -7,21 +7,23 @@ import java.util.List;
 
 public interface ReportService {
 
-    Report create(ReportDTO reportDTO);
+    Report createReport(ReportDTO dto, String mentorId);
 
-    List<Report> getAll();
+    List<Report> getAllReports();
 
-    Report getById(String id);
+    Report getReportById(String id);
 
-    List<Report> getByProject(String projectId);
+    List<Report> getReportsByProject(String projectId);
 
-    List<Report> getByMentor(String mentorId);
+    List<Report> getReportsByMentor(String mentorId);
 
-    Report update(String id, ReportDTO reportDTO);
+    List<Report> getReportsByStatus(Report.Status status);
 
-    void delete(String id);
+    Report updateReport(String id, ReportDTO dto);
 
-    Report submit(String id);
+    void deleteReport(String id);
 
-    Report review(String id, Report.Status status, String reviewer, String notes);
+    Report submitReport(String id);
+
+    Report reviewReport(String id, String adminId, Report.Status status, String reviewNotes);
 }

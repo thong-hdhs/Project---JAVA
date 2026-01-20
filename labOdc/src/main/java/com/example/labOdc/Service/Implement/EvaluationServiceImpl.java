@@ -3,7 +3,9 @@ package com.example.labOdc.Service.Implement;
 import com.example.labOdc.DTO.EvaluationDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Evaluation;
+import com.example.labOdc.Model.Project;
 import com.example.labOdc.Repository.EvaluationRepository;
+import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Service.EvaluationService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,82 +17,100 @@ import java.util.List;
 @AllArgsConstructor
 public class EvaluationServiceImpl implements EvaluationService {
 
-    private final EvaluationRepository repository;
+    private final EvaluationRepository evaluationRepository;
+    private final ProjectRepository projectRepository;
 
     @Override
-    public Evaluation create(EvaluationDTO evaluationDTO) {
+    public Evaluation createEvaluation(
+            EvaluationDTO dto,
+            String evaluatorId,
+            Evaluation.EvaluatorType evaluatorType) {
+
+        Project project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Project"));
 
         Evaluation evaluation = Evaluation.builder()
-                .projectId(evaluationDTO.getProjectId())
-                .evaluatorId(evaluationDTO.getEvaluatorId())
-                .evaluatedId(evaluationDTO.getEvaluatedId())
-                .evaluatorType(evaluationDTO.getEvaluatorType())
-                .evaluatedType(evaluationDTO.getEvaluatedType())
-                .rating(evaluationDTO.getRating())
-                .technicalSkills(evaluationDTO.getTechnicalSkills())
-                .communication(evaluationDTO.getCommunication())
-                .teamwork(evaluationDTO.getTeamwork())
-                .punctuality(evaluationDTO.getPunctuality())
-                .feedback(evaluationDTO.getFeedback())
-                .evaluationDate(
-                        evaluationDTO.getEvaluationDate() != null
-                                ? evaluationDTO.getEvaluationDate()
-                                : LocalDate.now()
-                )
-                .isAnonymous(evaluationDTO.getIsAnonymous() != null && evaluationDTO.getIsAnonymous())
+                .project(project)
+                .evaluatorId(evaluatorId)
+                .evaluatedId(dto.getEvaluatedId())
+                .evaluatorType(evaluatorType)
+                .evaluatedType(dto.getEvaluatedType())
+                .rating(dto.getRating())
+                .technicalSkills(dto.getTechnicalSkills())
+                .communication(dto.getCommunication())
+                .teamwork(dto.getTeamwork())
+                .punctuality(dto.getPunctuality())
+                .feedback(dto.getFeedback())
+                .isAnonymous(dto.getIsAnonymous() != null ? dto.getIsAnonymous() : false)
+                .evaluationDate(LocalDate.now())
                 .build();
 
-        return repository.save(evaluation);
-    }
-
-    @Override
-    public List<Evaluation> getAll() {
-        return repository.findAll();
+        return evaluationRepository.save(evaluation);
     }
 
     @Override
     public Evaluation getById(String id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy evaluation"));
+        return evaluationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Evaluation"));
+    }
+
+    @Override
+    public List<Evaluation> getAll() {
+        return evaluationRepository.findAll();
     }
 
     @Override
     public List<Evaluation> getByProject(String projectId) {
-        return repository.findByProjectId(projectId);
-    }
-
-    @Override
-    public List<Evaluation> getByEvaluator(String evaluatorId) {
-        return repository.findByEvaluatorId(evaluatorId);
+        return evaluationRepository.findByProjectId(projectId);
     }
 
     @Override
     public List<Evaluation> getByEvaluated(String evaluatedId) {
-        return repository.findByEvaluatedId(evaluatedId);
+        return evaluationRepository.findByEvaluatedId(evaluatedId);
     }
 
     @Override
-    public Evaluation update(String id, EvaluationDTO evaluationDTO) {
+    public List<Evaluation> getByEvaluator(String evaluatorId) {
+        return evaluationRepository.findByEvaluatorId(evaluatorId);
+    }
+
+    @Override
+    public List<Evaluation> getByEvaluatedType(Evaluation.EvaluatedType type) {
+        return evaluationRepository.findByEvaluatedType(type);
+    }
+
+    @Override
+    public Evaluation updateEvaluation(String id, EvaluationDTO dto) {
+
         Evaluation evaluation = getById(id);
 
-        if (evaluationDTO.getRating() != null)
-            evaluation.setRating(evaluationDTO.getRating());
-        if (evaluationDTO.getTechnicalSkills() != null)
-            evaluation.setTechnicalSkills(evaluationDTO.getTechnicalSkills());
-        if (evaluationDTO.getCommunication() != null)
-            evaluation.setCommunication(evaluationDTO.getCommunication());
-        if (evaluationDTO.getTeamwork() != null)
-            evaluation.setTeamwork(evaluationDTO.getTeamwork());
-        if (evaluationDTO.getPunctuality() != null)
-            evaluation.setPunctuality(evaluationDTO.getPunctuality());
-        if (evaluationDTO.getFeedback() != null)
-            evaluation.setFeedback(evaluationDTO.getFeedback());
+        if (dto.getRating() != null) {
+            evaluation.setRating(dto.getRating());
+        }
+        if (dto.getTechnicalSkills() != null) {
+            evaluation.setTechnicalSkills(dto.getTechnicalSkills());
+        }
+        if (dto.getCommunication() != null) {
+            evaluation.setCommunication(dto.getCommunication());
+        }
+        if (dto.getTeamwork() != null) {
+            evaluation.setTeamwork(dto.getTeamwork());
+        }
+        if (dto.getPunctuality() != null) {
+            evaluation.setPunctuality(dto.getPunctuality());
+        }
+        if (dto.getFeedback() != null) {
+            evaluation.setFeedback(dto.getFeedback());
+        }
+        if (dto.getIsAnonymous() != null) {
+            evaluation.setIsAnonymous(dto.getIsAnonymous());
+        }
 
-        return repository.save(evaluation);
+        return evaluationRepository.save(evaluation);
     }
 
     @Override
-    public void delete(String id) {
-        repository.deleteById(id);
+    public void deleteEvaluation(String id) {
+        evaluationRepository.deleteById(id);
     }
 }

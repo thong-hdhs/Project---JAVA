@@ -5,8 +5,10 @@ import com.example.labOdc.DTO.Response.TaskCommentResponse;
 import com.example.labOdc.DTO.TaskCommentDTO;
 import com.example.labOdc.Model.TaskComment;
 import com.example.labOdc.Service.TaskCommentService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,81 +18,65 @@ import java.util.List;
 @AllArgsConstructor
 public class TaskCommentController {
 
-    private final TaskCommentService service;
+    private final TaskCommentService taskCommentService;
 
     // Tạo comment
-    @PostMapping
-    public ApiResponse<TaskCommentResponse> create(
-            @RequestBody TaskCommentDTO taskCommentDTO) {
+    @PostMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<TaskCommentResponse> createComment(
+            @PathVariable String userId,
+            @Valid @RequestBody TaskCommentDTO dto) {
 
-        TaskComment comment = service.create(taskCommentDTO);
+        TaskComment comment = taskCommentService.createComment(dto, userId);
         return ApiResponse.success(
                 TaskCommentResponse.fromEntity(comment),
                 "Tạo comment thành công",
-                HttpStatus.CREATED
-        );
+                HttpStatus.CREATED);
     }
-
-    // Lấy tất cả comment
-    @GetMapping
-    public ApiResponse<List<TaskCommentResponse>> getAll() {
-        return ApiResponse.success(
-                service.getAll().stream()
-                        .map(TaskCommentResponse::fromEntity)
-                        .toList(),
-                "OK",
-                HttpStatus.OK
-        );
-    }
-
-    // Lấy comment theo task
     @GetMapping("/task/{taskId}")
-    public ApiResponse<List<TaskCommentResponse>> getByTaskId(
-            @PathVariable String taskId) {
+    @PreAuthorize("hasAnyRole('MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<TaskCommentResponse>> getByTask(@PathVariable String taskId) {
+
+        List<TaskComment> list = taskCommentService.getCommentsByTask(taskId);
 
         return ApiResponse.success(
-                service.getByTaskId(taskId).stream()
-                        .map(TaskCommentResponse::fromEntity)
-                        .toList(),
-                "OK",
-                HttpStatus.OK
-        );
+                list.stream().map(TaskCommentResponse::fromEntity).toList(),
+                "Thành công",
+                HttpStatus.OK);
+    }
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<TaskCommentResponse>> getByUser(@PathVariable String userId) {
+        List<TaskComment> list = taskCommentService.getByUser(userId);
+        return ApiResponse.success(list.stream().map(TaskCommentResponse::fromEntity).toList(), "Thành công", HttpStatus.OK);
     }
 
-    // Lấy chi tiết
     @GetMapping("/{id}")
-    public ApiResponse<TaskCommentResponse> getById(
-            @PathVariable String id) {
-
+    @PreAuthorize("hasAnyRole('MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<TaskCommentResponse> getById(@PathVariable String id) {
+        TaskComment comment = taskCommentService.getById(id);
         return ApiResponse.success(
-                TaskCommentResponse.fromEntity(service.getById(id)),
-                "OK",
-                HttpStatus.OK
-        );
+                TaskCommentResponse.fromEntity(comment),
+                "Thành công",
+                HttpStatus.OK);
     }
-
-    // Update comment
     @PutMapping("/{id}")
-    public ApiResponse<TaskCommentResponse> update(
+    @PreAuthorize("hasAnyRole('MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<TaskCommentResponse> updateComment(
             @PathVariable String id,
-            @RequestBody TaskCommentDTO taskCommentDTO) {
+            @RequestBody TaskCommentDTO dto) {
 
+        TaskComment comment = taskCommentService.updateComment(id, dto);
         return ApiResponse.success(
-                TaskCommentResponse.fromEntity(service.update(id, taskCommentDTO)),
+                TaskCommentResponse.fromEntity(comment),
                 "Cập nhật thành công",
-                HttpStatus.OK
-        );
+                HttpStatus.OK);
     }
-
-    // Xóa comment
     @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
-        service.delete(id);
-        return ApiResponse.success(
-                "Xóa thành công",
-                "OK",
-                HttpStatus.OK
-        );
+    @PreAuthorize("hasAnyRole('MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<String> deleteComment(@PathVariable String id) {
+        taskCommentService.deleteComment(id);
+        return ApiResponse.success("Xóa thành công", "OK", HttpStatus.OK);
     }
 }
 

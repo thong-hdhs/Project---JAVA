@@ -7,16 +7,16 @@ import java.util.List;
 
 public interface TaskCommentService {
 
-    TaskComment create(TaskCommentDTO taskCommentDTO);
+    TaskComment createComment(TaskCommentDTO dto, String userId);
 
-    List<TaskComment> getAll();
+    List<TaskComment> getCommentsByTask(String taskId);
+
+    List<TaskComment> getByUser(String userId);
 
     TaskComment getById(String id);
 
-    List<TaskComment> getByTaskId(String taskId);
+    TaskComment updateComment(String id, TaskCommentDTO dto);
 
-    TaskComment update(String id, TaskCommentDTO taskCommentDTO);
-
-    void delete(String id);
+    void deleteComment(String id);
 }
 

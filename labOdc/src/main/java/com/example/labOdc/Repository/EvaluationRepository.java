@@ -11,9 +11,9 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, String> 
 
     List<Evaluation> findByProjectId(String projectId);
 
-    List<Evaluation> findByEvaluatorId(String evaluatorId);
-
     List<Evaluation> findByEvaluatedId(String evaluatedId);
+
+    List<Evaluation> findByEvaluatorId(String evaluatorId);
 
     List<Evaluation> findByEvaluatedType(Evaluation.EvaluatedType evaluatedType);
 }

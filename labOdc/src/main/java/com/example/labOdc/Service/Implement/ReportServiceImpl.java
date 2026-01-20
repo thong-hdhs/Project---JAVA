@@ -2,7 +2,13 @@ package com.example.labOdc.Service.Implement;
 
 import com.example.labOdc.DTO.ReportDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
+import com.example.labOdc.Model.LabAdmin;
+import com.example.labOdc.Model.Mentor;
+import com.example.labOdc.Model.Project;
 import com.example.labOdc.Model.Report;
+import com.example.labOdc.Repository.LabAdminRepository;
+import com.example.labOdc.Repository.MentorRepository;
+import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.ReportRepository;
 import com.example.labOdc.Service.ReportService;
 import lombok.AllArgsConstructor;
@@ -16,85 +22,121 @@ import java.util.List;
 @AllArgsConstructor
 public class ReportServiceImpl implements ReportService {
 
-    private final ReportRepository repository;
+    private final ReportRepository reportRepository;
+    private final ProjectRepository projectRepository;
+    private final MentorRepository mentorRepository;
+    private final LabAdminRepository labAdminRepository;
 
     @Override
-    public Report create(ReportDTO reportDTO) {
+    public Report createReport(ReportDTO dto, String mentorId) {
+
+        Project project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Project"));
+
+        Mentor mentor = mentorRepository.findById(mentorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Mentor"));
+
         Report report = Report.builder()
-                .projectId(reportDTO.getProjectId())
-                .mentorId(reportDTO.getMentorId())
-                .reportType(reportDTO.getReportType())
-                .title(reportDTO.getTitle())
-                .content(reportDTO.getContent())
-                .reportPeriodStart(reportDTO.getReportPeriodStart())
-                .reportPeriodEnd(reportDTO.getReportPeriodEnd())
-                .attachmentUrl(reportDTO.getAttachmentUrl())
+                .project(project)
+                .mentor(mentor)
+                .reportType(dto.getReportType())
+                .title(dto.getTitle())
+                .content(dto.getContent())
+                .reportPeriodStart(dto.getReportPeriodStart())
+                .reportPeriodEnd(dto.getReportPeriodEnd())
+                .attachmentUrl(dto.getAttachmentUrl())
                 .status(Report.Status.DRAFT)
                 .build();
-        return repository.save(report);
+
+        return reportRepository.save(report);
     }
 
     @Override
-    public List<Report> getAll() {
-        return repository.findAll();
+    public List<Report> getAllReports() {
+        return reportRepository.findAll();
     }
 
     @Override
-    public Report getById(String id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy report"));
+    public Report getReportById(String id) {
+        return reportRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Report"));
     }
 
     @Override
-    public List<Report> getByProject(String projectId) {
-        return repository.findByProjectId(projectId);
+    public List<Report> getReportsByProject(String projectId) {
+        return reportRepository.findByProjectId(projectId);
     }
 
     @Override
-    public List<Report> getByMentor(String mentorId) {
-        return repository.findByMentorId(mentorId);
+    public List<Report> getReportsByMentor(String mentorId) {
+        return reportRepository.findByMentorId(mentorId);
     }
 
     @Override
-    public Report update(String id, ReportDTO reportDTO) {
-        Report report = getById(id);
-
-        if (reportDTO.getTitle() != null)
-            report.setTitle(reportDTO.getTitle());
-        if (reportDTO.getContent() != null)
-            report.setContent(reportDTO.getContent());
-        if (reportDTO.getReportPeriodStart() != null)
-            report.setReportPeriodStart(reportDTO.getReportPeriodStart());
-        if (reportDTO.getReportPeriodEnd() != null)
-            report.setReportPeriodEnd(reportDTO.getReportPeriodEnd());
-        if (reportDTO.getAttachmentUrl() != null)
-            report.setAttachmentUrl(reportDTO.getAttachmentUrl());
-
-        return repository.save(report);
+    public List<Report> getReportsByStatus(Report.Status status) {
+        return reportRepository.findByStatus(status);
     }
 
     @Override
-    public void delete(String id) {
-        repository.deleteById(id);
+    public Report updateReport(String id, ReportDTO dto) {
+
+        Report report = getReportById(id);
+
+        if (dto.getTitle() != null) {
+            report.setTitle(dto.getTitle());
+        }
+
+        if (dto.getContent() != null) {
+            report.setContent(dto.getContent());
+        }
+
+        if (dto.getReportType() != null) {
+            report.setReportType(dto.getReportType());
+        }
+
+        if (dto.getReportPeriodStart() != null) {
+            report.setReportPeriodStart(dto.getReportPeriodStart());
+        }
+
+        if (dto.getReportPeriodEnd() != null) {
+            report.setReportPeriodEnd(dto.getReportPeriodEnd());
+        }
+
+        if (dto.getAttachmentUrl() != null) {
+            report.setAttachmentUrl(dto.getAttachmentUrl());
+        }
+
+        return reportRepository.save(report);
     }
 
-    // Mentor/Student submit report
     @Override
-    public Report submit(String id) {
-        Report report = getById(id);
+    public void deleteReport(String id) {
+        reportRepository.deleteById(id);
+    }
+
+    @Override
+    public Report submitReport(String id) {
+        Report report = getReportById(id);
+
         report.setStatus(Report.Status.SUBMITTED);
         report.setSubmittedDate(LocalDate.now());
-        return repository.save(report);
+
+        return reportRepository.save(report);
     }
 
-    // Admin/Mentor review
     @Override
-    public Report review(String id, Report.Status status, String reviewer, String notes) {
-        Report report = getById(id);
-        report.setStatus(status);
-        report.setReviewedBy(reviewer);
+    public Report reviewReport(String id, String adminId, Report.Status status, String reviewNotes) {
+
+        Report report = getReportById(id);
+
+        LabAdmin admin = labAdminRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy LabAdmin"));
+
+        report.setReviewedBy(admin);
         report.setReviewedAt(LocalDateTime.now());
-        report.setReviewNotes(notes);
-        return repository.save(report);
+        report.setStatus(status);
+        report.setReviewNotes(reviewNotes);
+
+        return reportRepository.save(report);
     }
 }

@@ -10,5 +10,6 @@ import java.util.List;
 public interface TaskCommentRepository extends JpaRepository<TaskComment, String> {
 
     List<TaskComment> findByTaskId(String taskId);
+    List<TaskComment> findByUserId(String userId);
 }
 

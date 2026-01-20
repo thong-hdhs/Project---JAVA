@@ -2,12 +2,16 @@ package com.example.labOdc.Service.Implement;
 
 import com.example.labOdc.DTO.Response.TaskResponse;
 import com.example.labOdc.DTO.TaskDTO;
+import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Task;
 import com.example.labOdc.Repository.TaskRepository;
 import com.example.labOdc.Service.TaskService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -17,73 +21,95 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
 
     @Override
-    public TaskResponse createTask(TaskDTO taskDTO, String creatorId) {
-
+    public Task createTask(TaskDTO dto, String createdBy) {
         Task task = Task.builder()
-                .projectId(taskDTO.getProjectId())
-                .assignedTo(taskDTO.getAssignedTo())
-                .createdBy(creatorId)
-                .taskName(taskDTO.getTaskName())
-                .description(taskDTO.getDescription())
-                .priority(taskDTO.getPriority())
-                .status(taskDTO.getStatus())
-                .startDate(taskDTO.getStartDate())
-                .dueDate(taskDTO.getDueDate())
-                .estimatedHours(taskDTO.getEstimatedHours())
-                .actualHours(taskDTO.getActualHours())
-                .excelTemplateUrl(taskDTO.getExcelTemplateUrl())
-                .attachments(taskDTO.getAttachments())
+                .projectId(dto.getProjectId())
+                .assignedTo(dto.getAssignedTo())
+                .createdBy(createdBy)
+                .taskName(dto.getTaskName())
+                .description(dto.getDescription())
+                .priority(dto.getPriority())
+                .status(Task.Status.TODO)
+                .startDate(dto.getStartDate())
+                .dueDate(dto.getDueDate())
+                .estimatedHours(dto.getEstimatedHours())
+                .excelTemplateUrl(dto.getExcelTemplateUrl())
+                .attachments(dto.getAttachments())
                 .build();
 
-        return TaskResponse.fromEntity(taskRepository.save(task));
+        return taskRepository.save(task);
     }
 
     @Override
-    public TaskResponse updateTask(String id, TaskDTO taskDTO) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+    public Task updateTask(TaskDTO dto, String taskId) {
+        Task task = getTaskById(taskId);
 
-        task.setTaskName(taskDTO.getTaskName());
-        task.setDescription(taskDTO.getDescription());
-        task.setPriority(taskDTO.getPriority());
-        task.setStatus(taskDTO.getStatus());
-        task.setAssignedTo(taskDTO.getAssignedTo());
-        task.setStartDate(taskDTO.getStartDate());
-        task.setDueDate(taskDTO.getDueDate());
-        task.setCompletedDate(taskDTO.getCompletedDate());
-        task.setEstimatedHours(taskDTO.getEstimatedHours());
-        task.setActualHours(taskDTO.getActualHours());
-        task.setExcelTemplateUrl(taskDTO.getExcelTemplateUrl());
-        task.setAttachments(taskDTO.getAttachments());
+        task.setTaskName(dto.getTaskName());
+        task.setDescription(dto.getDescription());
+        task.setPriority(dto.getPriority());
+        task.setStartDate(dto.getStartDate());
+        task.setDueDate(dto.getDueDate());
+        task.setEstimatedHours(dto.getEstimatedHours());
+        task.setExcelTemplateUrl(dto.getExcelTemplateUrl());
+        task.setAttachments(dto.getAttachments());
 
-        return TaskResponse.fromEntity(taskRepository.save(task));
+        return taskRepository.save(task);
     }
 
     @Override
-    public TaskResponse getTaskById(String id) {
-        return taskRepository.findById(id)
-                .map(TaskResponse::fromEntity)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+    public Task updateStatus(String taskId, Task.Status status) {
+        Task task = getTaskById(taskId);
+        task.setStatus(status);
+
+        if (status == Task.Status.DONE) {
+            task.setCompletedDate(LocalDate.now());
+        }
+
+        return taskRepository.save(task);
     }
 
     @Override
-    public List<TaskResponse> getTasksByProject(String projectId) {
-        return taskRepository.findByProjectId(projectId)
-                .stream()
-                .map(TaskResponse::fromEntity)
-                .toList();
+    public Task assignTask(String taskId, String talentId) {
+        Task task = getTaskById(taskId);
+        task.setAssignedTo(talentId);
+        task.setStatus(Task.Status.IN_PROGRESS);
+
+        return taskRepository.save(task);
     }
 
     @Override
-    public List<TaskResponse> getTasksByAssignee(String assignedTo) {
-        return taskRepository.findByAssignedTo(assignedTo)
-                .stream()
-                .map(TaskResponse::fromEntity)
-                .toList();
+    public Task completeTask(String taskId) {
+        Task task = getTaskById(taskId);
+        task.setStatus(Task.Status.DONE);
+        task.setCompletedDate(LocalDate.now());
+
+        return taskRepository.save(task);
     }
 
     @Override
-    public void deleteTask(String id) {
-        taskRepository.deleteById(id);
+    public Task getTaskById(String taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Task"));
+    }
+
+    @Override
+    public List<Task> getTasksByProject(String projectId) {
+        return taskRepository.findByProjectId(projectId);
+    }
+
+    @Override
+    public List<Task> getTasksByAssignee(String talentId) {
+        return taskRepository.findByAssignedTo(talentId);
+    }
+
+    @Override
+    public List<Task> getTasksByCreator(String userId) {
+        return taskRepository.findByCreatedBy(userId);
+    }
+
+    @Override
+    public void deleteTask(String taskId) {
+        Task task = getTaskById(taskId);
+        taskRepository.delete(task);
     }
 }

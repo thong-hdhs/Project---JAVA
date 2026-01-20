@@ -3,14 +3,17 @@ package com.example.labOdc.Controller;
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.Response.TaskResponse;
 import com.example.labOdc.DTO.TaskDTO;
+import com.example.labOdc.Model.Task;
 import com.example.labOdc.Service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -21,66 +24,91 @@ public class TaskController {
     private final TaskService taskService;
 
     @PostMapping("/")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<TaskResponse> createTask(
-            @Valid @RequestBody TaskDTO taskDTO,
-            BindingResult result,
-            @RequestParam String creatorId
+            @Valid @RequestBody TaskDTO dto,
+            Principal principal
     ) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getFieldErrors()
-                    .stream()
-                    .map(FieldError::getDefaultMessage)
-                    .toList();
-            return ApiResponse.error(errors);
-        }
-
-        TaskResponse response = taskService.createTask(taskDTO, creatorId);
-        return ApiResponse.success(response, "Tạo task thành công", HttpStatus.CREATED);
+        Task task = taskService.createTask(dto, principal.getName());
+        return ApiResponse.success(TaskResponse.fromEntity(task), "Tạo task thành công", HttpStatus.CREATED);
     }
-
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<TaskResponse> updateTask(
-            @Valid @RequestBody TaskDTO taskDTO,
-            BindingResult result,
+            @Valid @RequestBody TaskDTO dto,
             @PathVariable String id
     ) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getFieldErrors()
-                    .stream()
-                    .map(FieldError::getDefaultMessage)
-                    .toList();
-            return ApiResponse.error(errors);
-        }
-
-        TaskResponse response = taskService.updateTask(id, taskDTO);
-        return ApiResponse.success(response, "Cập nhật task thành công", HttpStatus.OK);
+        Task task = taskService.updateTask(dto, id);
+        return ApiResponse.success(TaskResponse.fromEntity(task), "Cập nhật task thành công", HttpStatus.OK);
     }
 
-    @DeleteMapping("/{id}")
-    public ApiResponse<Void> deleteTask(@PathVariable String id) {
-        taskService.deleteTask(id);
-        return ApiResponse.success(
-                null,
-                "Xóa thành công",
-                HttpStatus.OK
-        );
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<TaskResponse> updateStatus(
+            @PathVariable String id,
+            @RequestParam Task.Status status
+    ) {
+        Task task = taskService.updateStatus(id, status);
+        return ApiResponse.success(TaskResponse.fromEntity(task), "Cập nhật trạng thái", HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/assign")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<TaskResponse> assignTask(
+            @PathVariable String id,
+            @RequestParam String talentId
+    ) {
+        Task task = taskService.assignTask(id, talentId);
+        return ApiResponse.success(TaskResponse.fromEntity(task), "Giao task thành công", HttpStatus.OK);
+    }
+
+    @PatchMapping("/{id}/complete")
+    @PreAuthorize("hasAnyRole('TALENT','MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<TaskResponse> completeTask(@PathVariable String id) {
+        Task task = taskService.completeTask(id);
+        return ApiResponse.success(TaskResponse.fromEntity(task), "Hoàn thành task", HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TALENT','MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<TaskResponse> getTaskById(@PathVariable String id) {
-        TaskResponse response = taskService.getTaskById(id);
-        return ApiResponse.success(response, "Lấy task thành công", HttpStatus.OK);
+        Task task = taskService.getTaskById(id);
+        return ApiResponse.success(TaskResponse.fromEntity(task), "OK", HttpStatus.OK);
     }
     @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasAnyRole('MENTOR','TALENT','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<List<TaskResponse>> getTasksByProject(@PathVariable String projectId) {
-        List<TaskResponse> list = taskService.getTasksByProject(projectId);
-        return ApiResponse.success(list, "Lấy danh sách task theo project", HttpStatus.OK);
+        List<TaskResponse> responses = taskService.getTasksByProject(projectId)
+                .stream()
+                .map(TaskResponse::fromEntity)
+                .toList();
+
+        return ApiResponse.success(responses, "OK", HttpStatus.OK);
     }
-    @GetMapping("/assignee/{assignedTo}")
-    public ApiResponse<List<TaskResponse>> getTasksByAssignee(@PathVariable String assignedTo) {
-        List<TaskResponse> list = taskService.getTasksByAssignee(assignedTo);
-        return ApiResponse.success(list, "Lấy danh sách task theo người được giao", HttpStatus.OK);
+
+    @GetMapping("/assignee/{talentId}")
+    @PreAuthorize("hasAnyRole('TALENT','MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<TaskResponse>> getTasksByAssignee(@PathVariable String talentId) {
+        List<TaskResponse> responses = taskService.getTasksByAssignee(talentId)
+                .stream()
+                .map(TaskResponse::fromEntity)
+                .toList();
+
+        return ApiResponse.success(responses, "OK", HttpStatus.OK);
+    }
+
+    @GetMapping("/creator/{userId}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<List<TaskResponse>> byCreator(@PathVariable String userId) {
+        List<Task> list = taskService.getTasksByCreator(userId);
+        return ApiResponse.success(list.stream().map(TaskResponse::fromEntity).toList(), "OK", HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MENTOR','LAB_ADMIN','SYSTEM_ADMIN')")
+    public ApiResponse<String> deleteTask(@PathVariable String id) {
+        taskService.deleteTask(id);
+        return ApiResponse.success("Xóa task thành công", "OK", HttpStatus.OK);
     }
 }
-
