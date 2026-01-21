@@ -24,8 +24,11 @@ public class CompanyRiskRecordServiceImpl implements CompanyRiskRecordService {
 
     @Override
     public CompanyRiskRecordResponse createRiskRecord(CompanyRiskRecordDTO dto) {
-        Company company = companyRepository.findById(dto.getCompanyId())
+        Company company = null;
+        if (dto.getCompanyId() != null && !dto.getCompanyId().isBlank()) {
+                company = companyRepository.findById(dto.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Company not found"));
+        }
 
         Project project = null;
         if (dto.getProjectId() != null && !dto.getProjectId().isBlank()) {
@@ -33,8 +36,11 @@ public class CompanyRiskRecordServiceImpl implements CompanyRiskRecordService {
                     .orElseThrow(() -> new RuntimeException("Project not found"));
         }
 
-        User recordedBy = userRepository.findById(dto.getRecordedById())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User recordedBy = null;
+        if (dto.getRecordedById() != null && !dto.getRecordedById().isBlank()) {
+            recordedBy = userRepository.findById(dto.getRecordedById())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        }
 
         CompanyRiskRecord record = CompanyRiskRecord.builder()
                 .company(company)
@@ -88,15 +94,15 @@ public class CompanyRiskRecordServiceImpl implements CompanyRiskRecordService {
     private CompanyRiskRecordResponse mapToResponse(CompanyRiskRecord record) {
         return CompanyRiskRecordResponse.builder()
                 .id(record.getId())
-                .companyName(record.getCompany().getCompanyName())
-                .companyTaxCode(record.getCompany().getTaxCode())
+                .companyName(record.getCompany() != null ? record.getCompany().getCompanyName() : null)
+                .companyTaxCode(record.getCompany() != null ? record.getCompany().getTaxCode() : null)
                 .projectName(record.getProject() != null ? record.getProject().getProjectName() : null)
                 .projectCode(record.getProject() != null ? record.getProject().getProjectCode() : null)
                 .riskType(record.getRiskType())
                 .severity(record.getSeverity())
                 .description(record.getDescription())
-                .recordedByName(record.getRecordedBy().getFullName())
+                .recordedByName(record.getRecordedBy() != null ? record.getRecordedBy().getFullName() : null)
                 .recordedAt(record.getRecordedAt())
                 .build();
-    }
+        }
 }

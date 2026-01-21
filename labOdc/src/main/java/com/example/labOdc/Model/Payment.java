@@ -24,11 +24,11 @@ public class Payment {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", nullable = false)
+    @JoinColumn(name = "company_id", nullable = true)
     private Company company;
 
     @Column(nullable = false, precision = 15, scale = 2)
@@ -52,16 +52,6 @@ public class Payment {
 
     @Column(name = "due_date")
     private LocalDate dueDate;
-
-    @Column(name = "payment_gateway", length = 50)
-    private String paymentGateway;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
-    private PaymentMethod paymentMethod;
-
-    @Column(name = "invoice_number", length = 100)
-    private String invoiceNumber;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

@@ -5,10 +5,19 @@ import com.example.labOdc.DTO.Response.PaymentResponse;
 import com.example.labOdc.Model.*;
 import com.example.labOdc.Repository.*;
 import com.example.labOdc.Service.PaymentService;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,12 +33,19 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponse createPayment(PaymentDTO dto) {
-        Project project = projectRepository.findById(dto.getProjectId())
+
+        
+    Project project = null;
+    if (dto.getProjectId() != null) {
+        project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+    }
 
-        Company company = companyRepository.findById(dto.getCompanyId())
+    Company company = null;
+    if (dto.getCompanyId() != null) {
+        company = companyRepository.findById(dto.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Company not found"));
-
+    }
         Payment payment = Payment.builder()
                 .project(project)
                 .company(company)
@@ -37,18 +53,38 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentType(dto.getPaymentType())
                 .status(PaymentStatus.PENDING)
                 .dueDate(dto.getDueDate())
-                .paymentMethod(dto.getPaymentMethod())
-                .invoiceNumber(dto.getInvoiceNumber())
                 .notes(dto.getNotes())
                 .build();
 
         Payment saved = paymentRepository.save(payment);
-        return mapToResponse(saved);
+
+        // Demo PayOS (giả lập)
+        if (Boolean.TRUE.equals(dto.getUsePayOS())) {
+
+            String fakeCheckoutLink = "https://demo.payos.vn/checkout/"
+                    + saved.getId()
+                    + "?amount=" + saved.getAmount();
+
+            String qrFileName = "payos-qr-" + saved.getId() + ".png";
+            generateQrCodeImage(fakeCheckoutLink, qrFileName);
+
+            saved.setTransactionId(fakeCheckoutLink);
+            saved.setNotes("QR generated: /qr/" + qrFileName);
+
+            saved = paymentRepository.save(saved);
+        }
+
+        return PaymentResponse.fromEntity(saved);
     }
 
     @Override
-    public PaymentResponse updateStatus(String paymentId, String statusStr, String transactionId,
-                                        LocalDate paymentDate, String notes) {
+    public PaymentResponse updateStatus(
+            String paymentId,
+            String statusStr,
+            String transactionId,
+            LocalDate paymentDate,
+            String notes
+    ) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
@@ -65,16 +101,15 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setNotes(notes);
         }
 
-        Payment updated = paymentRepository.save(payment);
-        return mapToResponse(updated);
+        return PaymentResponse.fromEntity(paymentRepository.save(payment));
     }
 
     @Override
     @Transactional(readOnly = true)
     public PaymentResponse getById(String id) {
-        Payment payment = paymentRepository.findById(id)
+        return paymentRepository.findById(id)
+                .map(PaymentResponse::fromEntity)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
-        return mapToResponse(payment);
     }
 
     @Override
@@ -82,7 +117,7 @@ public class PaymentServiceImpl implements PaymentService {
     public List<PaymentResponse> getByProjectId(String projectId) {
         return paymentRepository.findByProjectId(projectId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(PaymentResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -91,28 +126,29 @@ public class PaymentServiceImpl implements PaymentService {
     public List<PaymentResponse> getByCompanyId(String companyId) {
         return paymentRepository.findByCompanyId(companyId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(PaymentResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    private PaymentResponse mapToResponse(Payment payment) {
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .projectName(payment.getProject().getProjectName())
-                .projectCode(payment.getProject().getProjectCode())
-                .companyName(payment.getCompany().getCompanyName())
-                .amount(payment.getAmount())
-                .paymentType(payment.getPaymentType())
-                .status(payment.getStatus())
-                .transactionId(payment.getTransactionId())
-                .paymentDate(payment.getPaymentDate())
-                .dueDate(payment.getDueDate())
-                .paymentGateway(payment.getPaymentGateway())
-                .paymentMethod(payment.getPaymentMethod())
-                .invoiceNumber(payment.getInvoiceNumber())
-                .notes(payment.getNotes())
-                .createdAt(payment.getCreatedAt())
-                .updatedAt(payment.getUpdatedAt())
-                .build();
+    // Sinh QR code (demo)
+    private void generateQrCodeImage(String content, String fileName) {
+        try {
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(
+                    content,
+                    BarcodeFormat.QR_CODE,
+                    350,
+                    350
+            );
+
+            Path qrDir = Paths.get("src/main/resources/static/qr");
+            Files.createDirectories(qrDir);
+
+            Path qrPath = qrDir.resolve(fileName);
+            MatrixToImageWriter.writeToPath(bitMatrix, "PNG", qrPath);
+
+        } catch (WriterException | IOException e) {
+            throw new RuntimeException("Không thể tạo QR code", e);
+        }
     }
 }

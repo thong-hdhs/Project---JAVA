@@ -22,32 +22,30 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
     private final MentorPaymentRepository mentorPaymentRepository;
     private final FundAllocationRepository fundAllocationRepository;
     private final MentorRepository mentorRepository;
-    private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
     @Override
     public MentorPaymentResponse createFromAllocation(MentorPaymentDTO dto) {
 
-        FundAllocation allocation = fundAllocationRepository.findById(dto.getFundAllocationId())
-                .orElseThrow(() -> new RuntimeException("Fund allocation not found"));
+        FundAllocation allocation = null;
+        if (dto.getFundAllocationId() != null) {
+                allocation = fundAllocationRepository
+                        .findById(dto.getFundAllocationId())
+                        .orElse(null); // ❗ KHÔNG throw
+        }
 
-        Mentor mentor = mentorRepository.findById(dto.getMentorId())
-                .orElseThrow(() -> new RuntimeException("Mentor not found"));
-
-        Project project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-
+        // ❗ mentorAmount lấy từ fund allocation (20%)
         MentorPayment payment = MentorPayment.builder()
                 .fundAllocation(allocation)
-                .mentor(mentor)
-                .project(project)
-                .amount(dto.getAmount()) // Usually 20% from fund_allocations.mentor_amount
+                .mentor(allocation != null && allocation.getProject() != null ? allocation.getProject().getMentor() : null)
+                .project(allocation != null ? allocation.getProject() : null)
+                .amount(dto.getTotalAmount())
                 .status(MentorPaymentStatus.PENDING)
                 .notes(dto.getNotes())
                 .build();
 
         MentorPayment saved = mentorPaymentRepository.save(payment);
-        return mapToResponse(saved);
+        return MentorPaymentResponse.fromEntity(saved);
     }
 
     @Override
@@ -63,12 +61,13 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
         payment.setStatus(newStatus);
 
         if (approvedById != null &&
-                (newStatus == MentorPaymentStatus.APPROVED || newStatus == MentorPaymentStatus.PAID)) {
+                (newStatus == MentorPaymentStatus.APPROVED
+                        || newStatus == MentorPaymentStatus.PAID)) {
 
-            User approvedBy = userRepository.findById(approvedById)
+            User approver = userRepository.findById(approvedById)
                     .orElseThrow(() -> new RuntimeException("Approver not found"));
 
-            payment.setApprovedBy(approvedBy);
+            payment.setApprovedBy(approver);
             payment.setApprovedAt(LocalDateTime.now());
         }
 
@@ -77,62 +76,38 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
         }
 
         MentorPayment updated = mentorPaymentRepository.save(payment);
-        return mapToResponse(updated);
+        return MentorPaymentResponse.fromEntity(updated);
     }
 
     @Override
     @Transactional(readOnly = true)
     public MentorPaymentResponse getById(String id) {
         return mentorPaymentRepository.findById(id)
-                .map(this::mapToResponse)
+                .map(MentorPaymentResponse::fromEntity)
                 .orElseThrow(() -> new RuntimeException("Mentor payment not found"));
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<MentorPaymentResponse> getByMentorId(String mentorId) {
-        return mentorPaymentRepository.findByMentorId(mentorId)
+        @Override
+        @Transactional(readOnly = true)
+        public List<MentorPaymentResponse> getByMentorId(String mentorId) {
+                return mentorPaymentRepository.findByMentor_Id(mentorId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(MentorPaymentResponse::fromEntity)
                 .collect(Collectors.toList());
-    }
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<MentorPaymentResponse> getByProjectId(String projectId) {
-        return mentorPaymentRepository.findByProjectId(projectId)
+        @Override
+        @Transactional(readOnly = true)
+        public List<MentorPaymentResponse> getByProjectId(String projectId) {
+                return mentorPaymentRepository.findByProject_Id(projectId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(MentorPaymentResponse::fromEntity)
                 .collect(Collectors.toList());
-    }
+        }
 
     @Override
     @Transactional(readOnly = true)
     public BigDecimal getTotalPaidForMentor(String mentorId) {
         return mentorPaymentRepository.getTotalPaidAmountByMentor(mentorId);
-    }
-
-    private MentorPaymentResponse mapToResponse(MentorPayment payment) {
-        return MentorPaymentResponse.builder()
-                .id(payment.getId())
-                .projectName(payment.getProject().getProjectName())
-                .projectCode(payment.getProject().getProjectCode())
-                .mentorName(payment.getMentor().getUser().getFullName())
-                .mentorEmail(payment.getMentor().getUser().getEmail())
-                .amount(payment.getAmount())
-                .status(payment.getStatus())
-                .approvedByName(
-                        payment.getApprovedBy() != null
-                                ? payment.getApprovedBy().getFullName()
-                                : null
-                )
-                .approvedAt(payment.getApprovedAt())
-                .paidDate(payment.getPaidDate())
-                .paymentMethod(payment.getPaymentMethod())
-                .transactionReference(payment.getTransactionReference())
-                .notes(payment.getNotes())
-                .createdAt(payment.getCreatedAt())
-                .updatedAt(payment.getUpdatedAt())
-                .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.labOdc.DTO;
 
+import com.example.labOdc.Model.PaymentStatus;
 import com.example.labOdc.Model.PaymentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,17 +17,22 @@ import java.time.LocalDate;
 @Builder
 public class PaymentDTO {
 
-    @NotBlank
     private String projectId;
 
-    @NotNull
-    @Positive
+    private String companyId;
+
+    @NotNull(message = "amount is required")
+    @Positive(message = "amount must be greater than 0")
     private BigDecimal amount;
 
-    @NotNull
     private PaymentType paymentType;
+
+    private String transactionId;
 
     private LocalDate dueDate;
 
     private String notes;
+
+    @Builder.Default
+    private Boolean usePayOS = true;
 }
