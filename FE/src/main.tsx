@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Provider } from "react-redux";
 import store from "./store";
 import "react-toastify/dist/ReactToastify.css";
-import "./server";
+// import "./server"; // Disabled mock server to use real backend API
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
@@ -20,5 +20,5 @@ ReactDOM.createRoot(rootElement).render(
         <App />
       </Provider>
     </BrowserRouter>
-  </>
+  </>,
 );

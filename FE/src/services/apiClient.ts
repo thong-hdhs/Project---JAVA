@@ -1,17 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: "http://localhost:8082",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -19,7 +19,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor for error handling
@@ -28,12 +28,12 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/";
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;
