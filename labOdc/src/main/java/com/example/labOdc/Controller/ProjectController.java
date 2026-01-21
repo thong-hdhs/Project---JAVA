@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.ProjectDTO;
+import com.example.labOdc.DTO.Action.RejectRequestDTO;
+import com.example.labOdc.DTO.Action.UpdateProjectStatusDTO;
 import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.Model.Project;
 import com.example.labOdc.Service.ProjectService;
@@ -38,7 +40,7 @@ public class ProjectController {
 
     @GetMapping("/")
     public ApiResponse<List<ProjectResponse>> getAllProject() {
-        List<Project> list = projectService.getAllProjects();
+        List<Project> list = projectService.getAllProject();
         return ApiResponse.success(list.stream().map(ProjectResponse::fromProject).toList(), "Thanh cong",
                 HttpStatus.OK);
     }
@@ -59,5 +61,33 @@ public class ProjectController {
     public ApiResponse<String> deleteProject(@PathVariable String id) {
         projectService.deleteProject(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
+    }
+
+    // ---------- workflow endpoints ----------
+
+    @PutMapping("/{id}/submit")
+    public ApiResponse<ProjectResponse> submit(@PathVariable String id) {
+        Project project = projectService.submitProject(id);
+        return ApiResponse.success(ProjectResponse.fromProject(project), "Submitted", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/approve")
+    public ApiResponse<ProjectResponse> approve(@PathVariable String id, @RequestParam String validatedBy) {
+        Project project = projectService.approveProject(id, validatedBy);
+        return ApiResponse.success(ProjectResponse.fromProject(project), "Approved", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/reject")
+    public ApiResponse<ProjectResponse> reject(@PathVariable String id, @RequestParam String validatedBy,
+            @RequestBody RejectRequestDTO body) {
+        Project project = projectService.rejectProject(id, validatedBy, body.getReason());
+        return ApiResponse.success(ProjectResponse.fromProject(project), "Rejected", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/status")
+    public ApiResponse<ProjectResponse> updateStatus(@PathVariable String id,
+            @RequestBody UpdateProjectStatusDTO body) {
+        Project project = projectService.updateProjectStatus(id, body.getStatus());
+        return ApiResponse.success(ProjectResponse.fromProject(project), "Updated status", HttpStatus.OK);
     }
 }

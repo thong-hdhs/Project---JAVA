@@ -24,6 +24,10 @@ public class MentorServiceImpl implements MentorService {
 
     @Override
     public Mentor createMentor(MentorDTO mentorDTO) {
+        if (mentorDTO.getUserId() == null || mentorDTO.getUserId().isBlank()) {
+            throw new IllegalArgumentException("userId is required");
+        }
+
         User user = userRepository.findById(mentorDTO.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -37,8 +41,7 @@ public class MentorServiceImpl implements MentorService {
                 .status(mentorDTO.getStatus() != null ? mentorDTO.getStatus() : Mentor.Status.AVAILABLE)
                 .build();
 
-        mentorRepository.save(mentor);
-        return mentor;
+        return mentorRepository.save(mentor);
     }
 
     @Override
@@ -68,6 +71,7 @@ public class MentorServiceImpl implements MentorService {
             mentor.setYearsExperience(mentorDTO.getYearsExperience());
         if (mentorDTO.getBio() != null)
             mentor.setBio(mentorDTO.getBio());
+
         if (mentorDTO.getRating() != null)
             mentor.setRating(mentorDTO.getRating());
         if (mentorDTO.getTotalProjects() != null)
@@ -75,8 +79,7 @@ public class MentorServiceImpl implements MentorService {
         if (mentorDTO.getStatus() != null)
             mentor.setStatus(mentorDTO.getStatus());
 
-        mentorRepository.save(mentor);
-        return mentor;
+        return mentorRepository.save(mentor);
     }
 
     @Override

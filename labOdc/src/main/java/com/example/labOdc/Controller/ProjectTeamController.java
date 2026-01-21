@@ -1,5 +1,6 @@
 package com.example.labOdc.Controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.ProjectTeamDTO;
+import com.example.labOdc.DTO.Action.RemoveMemberDTO;
 import com.example.labOdc.DTO.Response.ProjectTeamResponse;
 import com.example.labOdc.Model.ProjectTeam;
 import com.example.labOdc.Service.ProjectTeamService;
@@ -18,7 +20,7 @@ import lombok.AllArgsConstructor;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("api/v1/project-teams")
+@RequestMapping("api/project-teams")
 public class ProjectTeamController {
 
     private final ProjectTeamService projectTeamService;
@@ -59,5 +61,28 @@ public class ProjectTeamController {
     public ApiResponse<String> delete(@PathVariable String id) {
         projectTeamService.deleteProjectTeam(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
+    }
+
+    // --------- workflow chuẩn ---------
+
+    @GetMapping("/by-project/{projectId}")
+    public ApiResponse<List<ProjectTeamResponse>> getByProject(@PathVariable String projectId) {
+        List<ProjectTeam> list = projectTeamService.getProjectTeamsByProjectId(projectId);
+        return ApiResponse.success(list.stream().map(ProjectTeamResponse::fromProjectTeam).toList(),
+                "Thanh cong", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/set-leader")
+    public ApiResponse<ProjectTeamResponse> setLeader(@PathVariable String id) {
+        ProjectTeam pt = projectTeamService.setLeader(id);
+        return ApiResponse.success(ProjectTeamResponse.fromProjectTeam(pt), "Set leader", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/remove")
+    public ApiResponse<ProjectTeamResponse> remove(@PathVariable String id,
+            @RequestBody(required = false) RemoveMemberDTO body) {
+        LocalDate leftDate = body != null ? body.getLeftDate() : null;
+        ProjectTeam pt = projectTeamService.removeMember(id, leftDate);
+        return ApiResponse.success(ProjectTeamResponse.fromProjectTeam(pt), "Removed", HttpStatus.OK);
     }
 }

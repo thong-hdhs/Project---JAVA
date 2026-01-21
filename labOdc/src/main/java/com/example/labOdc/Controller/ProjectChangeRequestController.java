@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.ProjectChangeRequestDTO;
+import com.example.labOdc.DTO.Action.ReviewNotesDTO;
 import com.example.labOdc.DTO.Response.ProjectChangeRequestResponse;
 import com.example.labOdc.Model.ProjectChangeRequest;
 import com.example.labOdc.Service.ProjectChangeRequestService;
@@ -18,7 +19,7 @@ import lombok.AllArgsConstructor;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("api/v1/project-change-requests")
+@RequestMapping("api/project-change-requests")
 public class ProjectChangeRequestController {
 
     private final ProjectChangeRequestService projectChangeRequestService;
@@ -66,5 +67,45 @@ public class ProjectChangeRequestController {
     public ApiResponse<String> delete(@PathVariable String id) {
         projectChangeRequestService.deleteProjectChangeRequest(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
+    }
+
+    // --------- workflow chuẩn ---------
+
+    @GetMapping("/by-project/{projectId}")
+    public ApiResponse<List<ProjectChangeRequestResponse>> getByProject(@PathVariable String projectId) {
+        List<ProjectChangeRequest> list = projectChangeRequestService.getByProjectId(projectId);
+        return ApiResponse.success(
+                list.stream().map(ProjectChangeRequestResponse::fromProjectChangeRequest).toList(),
+                "Thanh cong",
+                HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/approve")
+    public ApiResponse<ProjectChangeRequestResponse> approve(
+            @PathVariable String id,
+            @RequestBody(required = false) ReviewNotesDTO body) {
+
+        String notes = body != null ? body.getReviewNotes() : null;
+        ProjectChangeRequest pcr = projectChangeRequestService.approve(id, notes);
+
+        return ApiResponse.success(ProjectChangeRequestResponse.fromProjectChangeRequest(pcr), "Approved",
+                HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/reject")
+    public ApiResponse<ProjectChangeRequestResponse> reject(
+            @PathVariable String id,
+            @RequestBody ReviewNotesDTO body) {
+
+        ProjectChangeRequest pcr = projectChangeRequestService.reject(id, body.getReviewNotes());
+        return ApiResponse.success(ProjectChangeRequestResponse.fromProjectChangeRequest(pcr), "Rejected",
+                HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/cancel")
+    public ApiResponse<ProjectChangeRequestResponse> cancel(@PathVariable String id) {
+        ProjectChangeRequest pcr = projectChangeRequestService.cancel(id);
+        return ApiResponse.success(ProjectChangeRequestResponse.fromProjectChangeRequest(pcr), "Cancelled",
+                HttpStatus.OK);
     }
 }

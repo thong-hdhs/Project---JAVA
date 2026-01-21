@@ -1,5 +1,6 @@
 package com.example.labOdc.Controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.MilestoneDTO;
+import com.example.labOdc.DTO.Action.CompleteMilestoneDTO;
 import com.example.labOdc.DTO.Response.MilestoneResponse;
 import com.example.labOdc.Model.Milestone;
 import com.example.labOdc.Service.MilestoneService;
@@ -18,7 +20,7 @@ import lombok.AllArgsConstructor;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("api/v1/milestones")
+@RequestMapping("api/milestones")
 public class MilestoneController {
 
     private final MilestoneService milestoneService;
@@ -59,5 +61,22 @@ public class MilestoneController {
     public ApiResponse<String> delete(@PathVariable String id) {
         milestoneService.deleteMilestone(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
+    }
+
+    // --------- workflow chuẩn ---------
+
+    @GetMapping("/by-project/{projectId}")
+    public ApiResponse<List<MilestoneResponse>> getByProject(@PathVariable String projectId) {
+        List<Milestone> list = milestoneService.getMilestonesByProjectId(projectId);
+        return ApiResponse.success(list.stream().map(MilestoneResponse::fromMilestone).toList(),
+                "Thanh cong", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/complete")
+    public ApiResponse<MilestoneResponse> complete(@PathVariable String id,
+            @RequestBody(required = false) CompleteMilestoneDTO body) {
+        LocalDate completedDate = body != null ? body.getCompletedDate() : null;
+        Milestone m = milestoneService.completeMilestone(id, completedDate);
+        return ApiResponse.success(MilestoneResponse.fromMilestone(m), "Completed", HttpStatus.OK);
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.MentorInvitationDTO;
+import com.example.labOdc.DTO.Action.UpdateProposedFeeDTO;
 import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.Model.MentorInvitation;
 import com.example.labOdc.Service.MentorInvitationService;
@@ -18,7 +19,7 @@ import lombok.AllArgsConstructor;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("api/v1/mentor-invitations")
+@RequestMapping("api/mentor-invitations")
 public class MentorInvitationController {
 
     private final MentorInvitationService mentorInvitationService;
@@ -32,7 +33,6 @@ public class MentorInvitationController {
                     .map(FieldError::getDefaultMessage).toList();
             return ApiResponse.error(errorMessages);
         }
-
         MentorInvitation mi = mentorInvitationService.createMentorInvitation(dto);
         return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Thanh cong", HttpStatus.CREATED);
     }
@@ -50,16 +50,38 @@ public class MentorInvitationController {
         return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Thanh cong", HttpStatus.OK);
     }
 
-    @PutMapping("/{id}")
-    public ApiResponse<MentorInvitationResponse> update(@Valid @RequestBody MentorInvitationDTO dto,
-            @PathVariable String id) {
-        MentorInvitation mi = mentorInvitationService.updateMentorInvitation(dto, id);
-        return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Thanh cong", HttpStatus.OK);
+    // ---- workflow ----
+
+    @GetMapping("/by-mentor/{mentorId}")
+    public ApiResponse<List<MentorInvitationResponse>> getByMentor(@PathVariable String mentorId) {
+        List<MentorInvitation> list = mentorInvitationService.getInvitationsByMentor(mentorId);
+        return ApiResponse.success(list.stream().map(MentorInvitationResponse::fromMentorInvitation).toList(),
+                "Thanh cong", HttpStatus.OK);
     }
 
-    @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
-        mentorInvitationService.deleteMentorInvitation(id);
-        return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
+    @GetMapping("/by-project/{projectId}")
+    public ApiResponse<List<MentorInvitationResponse>> getByProject(@PathVariable String projectId) {
+        List<MentorInvitation> list = mentorInvitationService.getInvitationsByProject(projectId);
+        return ApiResponse.success(list.stream().map(MentorInvitationResponse::fromMentorInvitation).toList(),
+                "Thanh cong", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/accept")
+    public ApiResponse<MentorInvitationResponse> accept(@PathVariable String id) {
+        MentorInvitation mi = mentorInvitationService.acceptInvitation(id);
+        return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Accepted", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/reject")
+    public ApiResponse<MentorInvitationResponse> reject(@PathVariable String id) {
+        MentorInvitation mi = mentorInvitationService.rejectInvitation(id);
+        return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Rejected", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/fee")
+    public ApiResponse<MentorInvitationResponse> updateFee(@PathVariable String id,
+            @RequestBody UpdateProposedFeeDTO body) {
+        MentorInvitation mi = mentorInvitationService.updateProposedFee(id, body.getProposedFeePercentage());
+        return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Updated fee", HttpStatus.OK);
     }
 }

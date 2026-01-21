@@ -18,7 +18,7 @@ import lombok.AllArgsConstructor;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("api/v1/project-mentors")
+@RequestMapping("api/project-mentors")
 public class ProjectMentorController {
 
     private final ProjectMentorService projectMentorService;
@@ -60,5 +60,26 @@ public class ProjectMentorController {
     public ApiResponse<String> delete(@PathVariable String id) {
         projectMentorService.deleteProjectMentor(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
+    }
+
+    // --------- THÊM CHO CHUẨN NGHIỆP VỤ ---------
+
+    @GetMapping("/by-project/{projectId}")
+    public ApiResponse<List<ProjectMentorResponse>> getByProject(@PathVariable String projectId) {
+        List<ProjectMentor> list = projectMentorService.getProjectMentorsByProjectId(projectId);
+        return ApiResponse.success(list.stream().map(ProjectMentorResponse::fromProjectMentor).toList(),
+                "Thanh cong", HttpStatus.OK);
+    }
+
+    @GetMapping("/by-project/{projectId}/main")
+    public ApiResponse<ProjectMentorResponse> getMainMentor(@PathVariable String projectId) {
+        ProjectMentor pm = projectMentorService.getMainMentorByProjectId(projectId);
+        return ApiResponse.success(ProjectMentorResponse.fromProjectMentor(pm), "Thanh cong", HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/set-main")
+    public ApiResponse<ProjectMentorResponse> setMainMentor(@PathVariable String id) {
+        ProjectMentor pm = projectMentorService.setMainMentor(id);
+        return ApiResponse.success(ProjectMentorResponse.fromProjectMentor(pm), "Set main mentor", HttpStatus.OK);
     }
 }

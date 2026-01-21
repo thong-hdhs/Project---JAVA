@@ -1,5 +1,6 @@
 package com.example.labOdc.Service.Implement;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -7,7 +8,10 @@ import org.springframework.stereotype.Service;
 import com.example.labOdc.DTO.MilestoneDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Milestone;
+import com.example.labOdc.Model.MilestoneStatus;
+import com.example.labOdc.Model.Project;
 import com.example.labOdc.Repository.MilestoneRepository;
+import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Service.MilestoneService;
 
 import lombok.AllArgsConstructor;
@@ -17,22 +21,31 @@ import lombok.AllArgsConstructor;
 public class MilestoneServiceImpl implements MilestoneService {
 
     private final MilestoneRepository milestoneRepository;
+    private final ProjectRepository projectRepository;
 
     @Override
     public Milestone createMilestone(MilestoneDTO dto) {
+        if (dto.getProjectId() == null || dto.getProjectId().isBlank()) {
+            throw new IllegalArgumentException("projectId is required");
+        }
+        if (dto.getMilestoneName() == null || dto.getMilestoneName().isBlank()) {
+            throw new IllegalArgumentException("milestoneName is required");
+        }
+
+        Project project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", "id", dto.getProjectId()));
+
         Milestone m = Milestone.builder()
-                .projectId(dto.getProjectId())
+                .project(project)
                 .milestoneName(dto.getMilestoneName())
                 .description(dto.getDescription())
                 .dueDate(dto.getDueDate())
-                .completedDate(dto.getCompletedDate())
-                .status(dto.getStatus()) // null -> default PENDING
+                // completedDate/status không lấy từ DTO create (complete qua workflow)
                 .paymentPercentage(dto.getPaymentPercentage())
                 .deliverables(dto.getDeliverables())
                 .build();
 
-        milestoneRepository.save(m);
-        return m;
+        return milestoneRepository.save(m);
     }
 
     @Override
@@ -48,32 +61,65 @@ public class MilestoneServiceImpl implements MilestoneService {
 
     @Override
     public Milestone updateMilestone(MilestoneDTO dto, String id) {
-        Milestone m = milestoneRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Milestone", "id", id));
+        Milestone m = getMilestoneById(id);
 
-        if (dto.getProjectId() != null)
-            m.setProjectId(dto.getProjectId());
+        // chuẩn: milestone COMPLETED rồi thì không cho sửa các field chính
+        if (m.getStatus() == MilestoneStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot update a COMPLETED milestone");
+        }
+
+        // Nếu muốn cho đổi project thì map id -> entity
+        if (dto.getProjectId() != null && !dto.getProjectId().isBlank()) {
+            Project project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project", "id", dto.getProjectId()));
+            m.setProject(project);
+        }
+
         if (dto.getMilestoneName() != null)
             m.setMilestoneName(dto.getMilestoneName());
         if (dto.getDescription() != null)
             m.setDescription(dto.getDescription());
         if (dto.getDueDate() != null)
             m.setDueDate(dto.getDueDate());
-        if (dto.getCompletedDate() != null)
-            m.setCompletedDate(dto.getCompletedDate());
-        if (dto.getStatus() != null)
-            m.setStatus(dto.getStatus());
         if (dto.getPaymentPercentage() != null)
             m.setPaymentPercentage(dto.getPaymentPercentage());
         if (dto.getDeliverables() != null)
             m.setDeliverables(dto.getDeliverables());
 
-        milestoneRepository.save(m);
-        return m;
+        // status không update ở đây; completed chỉ qua completeMilestone()
+
+        return milestoneRepository.save(m);
     }
 
     @Override
     public void deleteMilestone(String id) {
         milestoneRepository.deleteById(id);
+    }
+
+    // ---------- workflow ----------
+
+    @Override
+    public List<Milestone> getMilestonesByProjectId(String projectId) {
+        return milestoneRepository.findByProjectIdOrderByDueDateAsc(projectId);
+    }
+
+    @Override
+    public Milestone completeMilestone(String milestoneId, LocalDate completedDate) {
+        Milestone m = getMilestoneById(milestoneId);
+
+        if (m.getStatus() == MilestoneStatus.COMPLETED) {
+            return m; // idempotent
+        }
+
+        LocalDate doneDate = completedDate != null ? completedDate : LocalDate.now();
+
+        if (m.getDueDate() != null && doneDate.isBefore(m.getDueDate())) {
+            throw new IllegalArgumentException("completedDate cannot be before dueDate");
+        }
+
+        m.setCompletedDate(doneDate);
+        m.setStatus(MilestoneStatus.COMPLETED);
+
+        return milestoneRepository.save(m);
     }
 }
