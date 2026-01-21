@@ -105,9 +105,13 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
                 .collect(Collectors.toList());
         }
 
-    @Override
-    @Transactional(readOnly = true)
-    public BigDecimal getTotalPaidForMentor(String mentorId) {
-        return mentorPaymentRepository.getTotalPaidAmountByMentor(mentorId);
-    }
+        @Override
+        @Transactional(readOnly = true)
+        public BigDecimal getTotalPaidForMentor(String mentorId) {
+                return mentorPaymentRepository
+            .sumAmountByMentor_IdAndStatus(
+                mentorId,
+                MentorPaymentStatus.PAID
+            );
+        }
 }
