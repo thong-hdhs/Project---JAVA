@@ -5,6 +5,8 @@ import useDarkMode from "@/hooks/useDarkMode";
 import useSidebar from "@/hooks/useSidebar";
 import useSemiDark from "@/hooks/useSemiDark";
 import useSkin from "@/hooks/useSkin";
+import { useSelector } from "react-redux";
+import { getDashboardLink } from "@/hooks/useMenuItems";
 
 // import images
 import MobileLogo from "@/assets/images/logo/logo_UTH.png";
@@ -13,6 +15,8 @@ import MobileLogoWhite from "@/assets/images/logo/logo_UTH.png";
 const SidebarLogo = ({ menuHover }) => {
   const [isDark] = useDarkMode();
   const [collapsed, setMenuCollapsed] = useSidebar();
+  const { user } = useSelector((state) => state.auth);
+  const dashboardLink = user?.role ? `/${getDashboardLink(user.role)}` : "/";
   // semi dark
   const [isSemiDark] = useSemiDark();
   // skin
@@ -29,7 +33,7 @@ const SidebarLogo = ({ menuHover }) => {
       
       `}
     >
-      <Link to="/dashboard">
+      <Link to={dashboardLink}>
         <div className="flex items-center space-x-4">
           <div className="logo-icon">
             {!isDark && !isSemiDark ? (

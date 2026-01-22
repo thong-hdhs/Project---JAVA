@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import MetricCard from '@/components/ui/MetricCard';
 import Button from '@/components/ui/Button';
-import StatusBadge from '@/components/ui/StatusBadge';
 import { Link } from 'react-router-dom';
 // Using emoji icons
 
 const LabAdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState({
-    pendingCompanies: 3,
+  const [stats] = useState({
     pendingProjects: 5,
     totalPayments: 250000,
     activeProjects: 12,
@@ -33,12 +31,6 @@ const LabAdminDashboard: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Pending Companies"
-          value={stats.pendingCompanies.toString()}
-          icon={<span className="text-yellow-600">🏢</span>}
-        />
-
-        <MetricCard
           title="Pending Projects"
           value={stats.pendingProjects.toString()}
           icon={<span className="text-orange-600">📄</span>}
@@ -59,7 +51,7 @@ const LabAdminDashboard: React.FC = () => {
 
       {/* Alerts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {(stats.pendingCompanies > 0 || stats.pendingProjects > 0) && (
+        {stats.pendingProjects > 0 && (
           <Card className="border-l-4 border-yellow-400">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -72,13 +64,10 @@ const LabAdminDashboard: React.FC = () => {
                   Validation Required
                 </h3>
                 <div className="mt-2 text-sm text-gray-700">
-                  <p>{stats.pendingCompanies} companies and {stats.pendingProjects} projects awaiting validation.</p>
+                  <p>{stats.pendingProjects} projects awaiting validation.</p>
                 </div>
                 <div className="mt-4">
                   <div className="-mx-2 -my-1.5 flex">
-                    <Link to="/lab-admin/validate-companies">
-                      <Button text="Review Companies" className="bg-yellow-600 text-white text-xs" />
-                    </Link>
                     <Link to="/lab-admin/validate-projects" className="ml-3">
                       <Button text="Review Projects" className="bg-yellow-600 text-white text-xs" />
                     </Link>
@@ -88,6 +77,25 @@ const LabAdminDashboard: React.FC = () => {
             </div>
           </Card>
         )}
+
+        <Card className="border-l-4 border-purple-400">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <span className="text-purple-500">🏢</span>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-gray-800">Company Verification</h3>
+              <div className="mt-2 text-sm text-gray-700">
+                <p>Review and approve company registration requests.</p>
+              </div>
+              <div className="mt-4">
+                <Link to="/lab-admin/company-approvals">
+                  <Button text="Review Companies" className="bg-purple-600 text-white text-xs" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         <Card className="border-l-4 border-blue-400">
           <div className="flex">
@@ -114,9 +122,9 @@ const LabAdminDashboard: React.FC = () => {
       {/* Quick Actions */}
       <Card title="Quick Actions">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <Link to="/lab-admin/validate-companies" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <span className="text-2xl text-primary-600 mx-auto mb-2 block">🏢</span>
-            <span className="text-sm font-medium text-gray-900">Validate Companies</span>
+          <Link to="/lab-admin/company-approvals" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-purple-600 mx-auto mb-2 block">🏢</span>
+            <span className="text-sm font-medium text-gray-900">Company Approvals</span>
           </Link>
 
           <Link to="/lab-admin/validate-projects" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">

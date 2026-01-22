@@ -1,6 +1,18 @@
 import { useSelector } from "react-redux";
 import { UserRole } from "../types";
 
+export const getDashboardLink = (role: UserRole): string => {
+  const roleDashboards: Record<string, string> = {
+    SYSTEM_ADMIN: "system-admin/dashboard",
+    LAB_ADMIN: "lab-admin/dashboard",
+    COMPANY: "enterprise/dashboard",
+    MENTOR: "mentor/dashboard",
+    TALENT: "candidate/dashboard",
+    TALENT_LEADER: "candidate/dashboard",
+  };
+  return roleDashboards[role] || "candidate/dashboard";
+};
+
 export const useMenuItems = () => {
   const { user } = useSelector((state: any) => state.auth);
 
@@ -36,6 +48,11 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
+            title: "Mentor Role Requests",
+            icon: "heroicons-outline:user-plus",
+            link: "system-admin/mentor-role-requests",
+          },
+          {
             title: "User Management",
             icon: "heroicons-outline:users",
             link: "system-admin/users",
@@ -65,6 +82,11 @@ export const useMenuItems = () => {
       case "LAB_ADMIN":
         return [
           ...baseMenuItems,
+          {
+            title: "Company Approvals",
+            icon: "heroicons-outline:building-office-2",
+            link: "lab-admin/company-approvals",
+          },
           {
             title: "Validate Projects",
             icon: "heroicons-outline:document-check",
@@ -180,6 +202,11 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
+            title: "Company Verification",
+            icon: "heroicons-outline:building-office",
+            link: "candidate/company-verification",
+          },
+          {
             title: "Browse Projects",
             icon: "heroicons-outline:magnifying-glass",
             link: "candidate/browse-projects",
@@ -209,18 +236,6 @@ export const useMenuItems = () => {
       default:
         return baseMenuItems;
     }
-  };
-
-  const getDashboardLink = (role: UserRole): string => {
-    const roleDashboards = {
-      SYSTEM_ADMIN: "system-admin/dashboard",
-      LAB_ADMIN: "lab-admin/dashboard",
-      COMPANY: "enterprise/dashboard",
-      MENTOR: "mentor/dashboard",
-      TALENT: "candidate/dashboard",
-      TALENT_LEADER: "candidate/dashboard",
-    };
-    return roleDashboards[role] || "candidate/dashboard";
   };
 
   return getMenuItems();

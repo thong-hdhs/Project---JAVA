@@ -22,7 +22,9 @@ export interface AuthState {
 }
 
 export interface LoginRequest {
-  email: string;
+  // Backend uses `username`. Keep `email` optional for backward compatibility.
+  username?: string;
+  email?: string;
   password: string;
 }
 

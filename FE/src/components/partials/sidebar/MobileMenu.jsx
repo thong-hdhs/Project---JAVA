@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import Icon from "@/components/ui/Icon";
 import { useMenuItems } from "@/hooks/useMenuItems";
+import { getDashboardLink } from "@/hooks/useMenuItems";
+import { useSelector } from "react-redux";
 
 // import images
 import MobileLogo from "@/assets/images/logo/logo_UTH.png";
@@ -19,14 +21,21 @@ const MobileMenu = ({ className = "custom-class" }) => {
   const scrollableNodeRef = useRef();
   const [scroll, setScroll] = useState(false);
   useEffect(() => {
+    const node = scrollableNodeRef.current;
+    if (!node) return;
+
     const handleScroll = () => {
-      if (scrollableNodeRef.current.scrollTop > 0) {
+      if (node.scrollTop > 0) {
         setScroll(true);
       } else {
         setScroll(false);
       }
     };
-    scrollableNodeRef.current.addEventListener("scroll", handleScroll);
+    node.addEventListener("scroll", handleScroll);
+
+    return () => {
+      node.removeEventListener("scroll", handleScroll);
+    };
   }, [scrollableNodeRef]);
 
   const [isSemiDark] = useSemiDark();
@@ -34,13 +43,15 @@ const MobileMenu = ({ className = "custom-class" }) => {
   const [skin] = useSkin();
   const [isDark] = useDarkMode();
   const [mobileMenu, setMobileMenu] = useMobileMenu();
+  const { user } = useSelector((state) => state.auth);
   const menuItems = useMenuItems();
+  const dashboardLink = user?.role ? `/${getDashboardLink(user.role)}` : "/";
   return (
     <div
       className={`${className} fixed  top-0 bg-white dark:bg-slate-800 shadow-lg  h-full   w-[248px]`}
     >
       <div className="logo-segment flex justify-between items-center bg-white dark:bg-slate-800 z-[9] h-[85px]  px-4 ">
-        <Link to="/dashboard">
+        <Link to={dashboardLink}>
           <div className="flex items-center space-x-4">
             <div className="logo-icon">
               {!isDark && !isSemiDark ? (
@@ -71,8 +82,9 @@ const MobileMenu = ({ className = "custom-class" }) => {
         }`}
       ></div>
       <SimpleBar
-        className="sidebar-menu px-4 h-[calc(100%-80px)]"
-        scrollableNodeProps={{ ref: scrollableNodeRef }}
+        className="h-[calc(100%-80px)]"
+        scrollableNodeProps={{ ref: scrollableNodeRef, className: "sidebar-menu-container" }}
+        contentNodeProps={{ className: "sidebar-menu-content px-4" }}
       >
         <Navmenu menus={menuItems} />
       </SimpleBar>

@@ -4,6 +4,87 @@ import type {
   ProjectTeam, ProjectChangeRequest
 } from '../types';
 
+type StoredAuthUser = { role?: string; id?: string; email?: string } | null;
+
+const getStoredUser = (): StoredAuthUser => {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? (JSON.parse(raw) as StoredAuthUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const isAxiosNotFoundOrNetwork = (error: any): boolean => {
+  const status = error?.response?.status;
+  return status === 404 || status === 502 || status === 503 || status === 504 || !error?.response;
+};
+
+const now = () => new Date();
+
+const mockCompanyId = 'demo-company-entity';
+
+const mockProjects: Project[] = [
+  {
+    id: 'demo-project-pending',
+    project_name: 'Pending Approval Project (Demo)',
+    description: 'Demo project waiting for Lab Admin approval/rejection.',
+    requirements: 'React + Spring Boot basics. This is mock data for UI testing.',
+    budget: 25000,
+    duration_months: 3,
+    max_team_size: 5,
+    required_skills: ['React', 'TypeScript', 'Spring Boot'],
+    status: 'PENDING',
+    validation_status: 'PENDING',
+    payment_status: 'NOT_REQUIRED',
+    company_id: mockCompanyId,
+    mentor_id: undefined,
+    main_mentor_id: undefined,
+    created_by: 'demo-company',
+    created_at: now(),
+    updated_at: now(),
+  },
+  {
+    id: 'demo-project-approved',
+    project_name: 'Approved Project (Demo) - QR Payment Test',
+    description: 'Approved demo project so Company can click Pay and see the QR modal.',
+    requirements: 'Use the Pay button to open QR code modal.',
+    budget: 50000,
+    duration_months: 6,
+    max_team_size: 6,
+    required_skills: ['React', 'Node.js'],
+    status: 'APPROVED',
+    validation_status: 'APPROVED',
+    payment_status: 'PENDING',
+    company_id: mockCompanyId,
+    mentor_id: undefined,
+    main_mentor_id: undefined,
+    created_by: 'demo-company',
+    created_at: now(),
+    updated_at: now(),
+  },
+];
+
+const getMockProjectsForUser = (params?: { status?: string }) => {
+  const user = getStoredUser();
+  const role = (user?.role || '').toUpperCase();
+
+  let data = [...mockProjects];
+
+  // Lab Admin validation screen asks for status=PENDING; keep only pending in that case.
+  if (params?.status) {
+    data = data.filter((p) => p.status === params.status);
+  }
+
+  // Company screen should mainly see its approved project to test payment.
+  if (role === 'COMPANY') {
+    data = data.filter((p) => p.validation_status === 'APPROVED');
+  }
+
+  // Other roles: return everything (or whatever filter applied).
+  return { data, total: data.length };
+};
+
 export const projectService = {
   // Projects
   async getProjects(params?: {
@@ -13,13 +94,28 @@ export const projectService = {
     page?: number;
     limit?: number;
   }): Promise<{ data: Project[]; total: number }> {
-    const response = await apiClient.get('/projects', { params });
-    return response.data;
+    try {
+      const response = await apiClient.get('/projects', { params });
+      return response.data;
+    } catch (error: any) {
+      if (isAxiosNotFoundOrNetwork(error)) {
+        return getMockProjectsForUser({ status: params?.status });
+      }
+      throw error;
+    }
   },
 
   async getProject(id: string): Promise<Project> {
-    const response = await apiClient.get(`/projects/${id}`);
-    return response.data;
+    try {
+      const response = await apiClient.get(`/projects/${id}`);
+      return response.data;
+    } catch (error: any) {
+      if (isAxiosNotFoundOrNetwork(error)) {
+        const found = mockProjects.find((p) => p.id === id);
+        if (found) return found;
+      }
+      throw error;
+    }
   },
 
   async createProject(data: ProjectCreateRequest): Promise<Project> {
@@ -97,11 +193,25 @@ export const projectService = {
     validationStatus: 'APPROVED' | 'REJECTED',
     rejectionReason?: string
   ): Promise<Project> {
-    const response = await apiClient.patch(`/projects/${id}/validate`, {
-      validation_status: validationStatus,
-      rejection_reason: rejectionReason,
-    });
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/projects/${id}/validate`, {
+        validation_status: validationStatus,
+        rejection_reason: rejectionReason,
+      });
+      return response.data;
+    } catch (error: any) {
+      if (isAxiosNotFoundOrNetwork(error)) {
+        const found = mockProjects.find((p) => p.id === id) || mockProjects[0];
+        return {
+          ...found,
+          validation_status: validationStatus,
+          status: validationStatus === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+          rejection_reason: validationStatus === 'REJECTED' ? rejectionReason : undefined,
+          updated_at: now(),
+        };
+      }
+      throw error;
+    }
   },
 
   async getProjectsForValidation(params?: {

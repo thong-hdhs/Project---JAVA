@@ -1,6 +1,24 @@
 import React from "react";
 import { Icon } from "@iconify/react";
-const Icons = ({ icon, className = "", width, rotate, hFlip, vFlip }) => {
+
+/**
+ * @param {{
+ *  icon: any;
+ *  className?: string;
+ *  width?: string | number;
+ *  rotate?: string | number;
+ *  hFlip?: boolean;
+ *  vFlip?: boolean;
+ * }} props
+ */
+const Icons = ({
+  icon,
+  className = "",
+  width,
+  rotate,
+  hFlip,
+  vFlip,
+}) => {
   return (
     <>
       <Icon

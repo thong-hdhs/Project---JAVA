@@ -1,4 +1,4 @@
-import Profile from '../../utility/profile';
+import Profile from "../../profile";
 
 const MentorProfile = () => <Profile />;
 

@@ -1,7 +1,6 @@
 import React from "react";
 import Icon from "@/components/ui/Icon";
 import SwitchDark from "./Tools/SwitchDark";
-import HorizentalMenu from "./Tools/HorizentalMenu";
 import useWidth from "@/hooks/useWidth";
 import useSidebar from "@/hooks/useSidebar";
 import useNavbarType from "@/hooks/useNavbarType";
@@ -10,8 +9,6 @@ import useSkin from "@/hooks/useSkin";
 import Logo from "./Tools/Logo";
 import SearchModal from "./Tools/SearchModal";
 import Profile from "./Tools/Profile";
-import Notification from "./Tools/Notification";
-import Message from "./Tools/Message";
 import Language from "./Tools/Language";
 import useRtl from "@/hooks/useRtl";
 import useMobileMenu from "@/hooks/useMobileMenu";
@@ -100,7 +97,6 @@ const Header = ({ className = "custom-class" }) => {
           {menuType === "horizontal" && (
             <div className="flex items-center space-x-4 rtl:space-x-reverse">
               <Logo />
-              {/* open mobile menu handlaer*/}
               {width <= breakpoints.xl && (
                 <div
                   className="cursor-pointer text-slate-900 dark:text-white text-2xl"
@@ -111,17 +107,11 @@ const Header = ({ className = "custom-class" }) => {
               )}
             </div>
           )}
-          {/*  Horizontal  Main Menu */}
-          {menuType === "horizontal" && width >= breakpoints.xl ? (
-            <HorizentalMenu />
-          ) : null}
           {/* Nav Tools  */}
           <div className="nav-tools flex items-center lg:space-x-6 space-x-3 rtl:space-x-reverse">
             <Language />
             <SwitchDark />
             <MonoChrome />
-            {width >= breakpoints.md && <Message />}
-            {width >= breakpoints.md && <Notification />}
             {width >= breakpoints.md && <Profile />}
             {width <= breakpoints.md && (
               <div

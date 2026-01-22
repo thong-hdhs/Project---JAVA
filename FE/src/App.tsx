@@ -37,6 +37,9 @@ const FundDistributions = lazy(
   () => import("./pages/labodc/candidate/fund-distributions")
 );
 const TeamVotes = lazy(() => import("./pages/labodc/candidate/team-votes"));
+const CompanyVerification = lazy(
+  () => import("./pages/labodc/candidate/company-verification")
+);
 
 // Company/Enterprise pages
 const EnterpriseDashboard = lazy(
@@ -104,6 +107,9 @@ const ChangeRequestApprovals = lazy(
   () => import("./pages/labodc/lab-admin/change-request-approvals")
 );
 const RiskRecords = lazy(() => import("./pages/labodc/lab-admin/risk-records"));
+const CompanyApprovals = lazy(
+  () => import("./pages/labodc/lab-admin/company-approvals")
+);
 
 // System Admin pages
 const SystemAdminDashboard = lazy(
@@ -120,6 +126,9 @@ const EmailTemplates = lazy(
   () => import("./pages/labodc/system-admin/email-templates")
 );
 const AuditLogs = lazy(() => import("./pages/labodc/system-admin/audit-logs"));
+const MentorRoleRequests = lazy(
+  () => import("./pages/labodc/system-admin/mentor-role-requests")
+);
 
 // Common pages
 const Profile = lazy(() => import("./pages/profile"));
@@ -162,6 +171,10 @@ function App() {
             element={<FundDistributions />}
           />
           <Route path="candidate/team-votes" element={<TeamVotes />} />
+          <Route
+            path="candidate/company-verification"
+            element={<CompanyVerification />}
+          />
 
           {/* Company/Enterprise routes */}
           <Route
@@ -236,23 +249,68 @@ function App() {
             element={<ChangeRequestApprovals />}
           />
           <Route path="lab-admin/risk-records" element={<RiskRecords />} />
+          <Route
+            path="lab-admin/company-approvals"
+            element={<CompanyApprovals />}
+          />
 
           {/* System Admin routes */}
           <Route
             path="system-admin/dashboard"
-            element={<SystemAdminDashboard />}
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <SystemAdminDashboard />
+              </AuthGuard>
+            }
           />
-          <Route path="system-admin/users" element={<UserManagement />} />
-          <Route path="system-admin/settings" element={<Settings />} />
+          <Route
+            path="system-admin/users"
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <UserManagement />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="system-admin/settings"
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <Settings />
+              </AuthGuard>
+            }
+          />
           <Route
             path="system-admin/excel-templates"
-            element={<ExcelTemplates />}
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <ExcelTemplates />
+              </AuthGuard>
+            }
           />
           <Route
             path="system-admin/email-templates"
-            element={<EmailTemplates />}
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <EmailTemplates />
+              </AuthGuard>
+            }
           />
-          <Route path="system-admin/audit-logs" element={<AuditLogs />} />
+          <Route
+            path="system-admin/audit-logs"
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <AuditLogs />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="system-admin/mentor-role-requests"
+            element={
+              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
+                <MentorRoleRequests />
+              </AuthGuard>
+            }
+          />
 
           {/* Common routes */}
           <Route path="profile" element={<Profile />} />

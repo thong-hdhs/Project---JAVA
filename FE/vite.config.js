@@ -15,6 +15,21 @@ export default defineConfig({
     ],
   },
 
+  server: {
+    proxy: {
+      // Auth endpoints (e.g. /auth/token)
+      "/auth": {
+        target: "http://localhost:8082",
+        changeOrigin: true,
+      },
+      // Forward API calls to Spring Boot during local dev
+      "/api": {
+        target: "http://localhost:8082",
+        changeOrigin: true,
+      },
+    },
+  },
+
   plugins: [
     rollupReplace({
       preventAssignment: true,

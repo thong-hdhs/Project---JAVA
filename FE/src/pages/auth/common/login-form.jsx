@@ -8,13 +8,13 @@ import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { setUser } from "@/store/api/auth/authSlice";
+import { setAuth } from "@/store/api/auth/authSlice";
 import { authService } from "@/services/auth.service";
 import { toast } from "react-toastify";
 
 const schema = yup
   .object({
-    email: yup.string().email("Invalid email").required("Email is Required"),
+    username: yup.string().required("Username is Required"),
     password: yup.string().required("Password is Required"),
   })
   .required();
@@ -38,10 +38,13 @@ const LoginForm = () => {
   const onSubmit = async (data) => {
     try {
       setIsLoading(true);
-      const response = await authService.login(data);
+      const response = await authService.login({
+        username: data.username,
+        password: data.password,
+      });
 
       // Dispatch user data to Redux store
-      dispatch(setUser({
+      dispatch(setAuth({
         user: response.user,
         token: response.token
       }));
@@ -76,12 +79,11 @@ const LoginForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 ">
       <Textinput
-        name="email"
-        label="Email"
-        placeholder="Enter your email"
-        type="email"
+        name="username"
+        label="Username"
+        placeholder="Enter your username"
         register={register}
-        error={errors.email}
+        error={errors.username}
         className="h-[48px]"
       />
       <Textinput

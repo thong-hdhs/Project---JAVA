@@ -17,7 +17,6 @@ const statusConfig = {
   ON_HOLD: { color: 'orange', label: 'On Hold' },
 
   // Payment statuses
-  COMPLETED: { color: 'green', label: 'Completed' },
   FAILED: { color: 'red', label: 'Failed' },
   REFUNDED: { color: 'orange', label: 'Refunded' },
 

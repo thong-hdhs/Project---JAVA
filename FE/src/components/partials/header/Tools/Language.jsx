@@ -2,10 +2,8 @@ import { Fragment, useState } from "react";
 import { Listbox, Transition } from "@headlessui/react";
 
 import Usa from "@/assets/images/flags/usa.png";
-import Vn from "@/assets/images/flags/vn.svg";
 const months = [
   { name: "En", image: Usa },
-  { name: "Vi", image: Vn },
 ];
 
 const Language = () => {

@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 import { Server, Model, Factory, belongsTo, hasMany } from 'miragejs';
 import type {
   User, Company, Talent, Mentor, Project, ProjectApplication, ProjectTeam,

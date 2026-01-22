@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import MetricCard from '@/components/ui/MetricCard';
-import Button from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
 // Using emoji icons
 
 const SystemAdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalUsers: 125,
     activeUsers: 98,
     totalSettings: 15,
@@ -59,6 +58,11 @@ const SystemAdminDashboard: React.FC = () => {
       {/* Quick Actions */}
       <Card title="Quick Actions">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/system-admin/mentor-role-requests" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-purple-600 mx-auto mb-2 block">🧑‍🏫</span>
+            <span className="text-sm font-medium text-gray-900">Mentor Requests</span>
+          </Link>
+
           <Link to="/system-admin/users" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <span className="text-2xl text-primary-600 mx-auto mb-2 block">👥</span>
             <span className="text-sm font-medium text-gray-900">Manage Users</span>

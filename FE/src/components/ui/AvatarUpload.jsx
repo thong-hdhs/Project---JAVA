@@ -5,8 +5,6 @@ import React, {
   useState,
 } from "react";
 
-// This component is headless: it exposes a `openFileDialog()` method via ref.
-// When a file is selected it immediately calls `onUpload(file)`.
 const AvatarUpload = forwardRef(({ onUpload }, ref) => {
   const inputRef = useRef(null);
   const [loading, setLoading] = useState(false);

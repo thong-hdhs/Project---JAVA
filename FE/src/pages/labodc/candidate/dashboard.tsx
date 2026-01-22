@@ -198,6 +198,11 @@ const CandidateDashboard: React.FC = () => {
       {/* Quick Actions */}
       <Card title="Quick Actions">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/candidate/company-verification" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-purple-600 mx-auto mb-2 block">🏢</span>
+            <span className="text-sm font-medium text-gray-900">Verify Company</span>
+          </Link>
+
           <Link to="/candidate/browse-projects" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <span className="text-2xl text-primary-600 mx-auto mb-2 block">🔍</span>
             <span className="text-sm font-medium text-gray-900">Browse Projects</span>

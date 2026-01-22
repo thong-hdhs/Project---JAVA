@@ -12,14 +12,21 @@ const Sidebar = () => {
   const [scroll, setScroll] = useState(false);
 
   useEffect(() => {
+    const node = scrollableNodeRef.current;
+    if (!node) return;
+
     const handleScroll = () => {
-      if (scrollableNodeRef.current.scrollTop > 0) {
+      if (node.scrollTop > 0) {
         setScroll(true);
       } else {
         setScroll(false);
       }
     };
-    scrollableNodeRef.current.addEventListener("scroll", handleScroll);
+    node.addEventListener("scroll", handleScroll);
+
+    return () => {
+      node.removeEventListener("scroll", handleScroll);
+    };
   }, [scrollableNodeRef]);
 
   const [collapsed, setMenuCollapsed] = useSidebar();
@@ -60,8 +67,9 @@ const Sidebar = () => {
         ></div>
 
         <SimpleBar
-          className="sidebar-menu px-4 h-[calc(100%-80px)]"
-          scrollableNodeProps={{ ref: scrollableNodeRef }}
+          className="h-[calc(100%-80px)]"
+          scrollableNodeProps={{ ref: scrollableNodeRef, className: "sidebar-menu-container" }}
+          contentNodeProps={{ className: "sidebar-menu-content px-4" }}
         >
           <Navmenu menus={menuItems} />
           {/* bottom area intentionally left empty */}

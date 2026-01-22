@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Collapse } from "react-collapse";
 import Icon from "@/components/ui/Icon";
-import { toggleActiveChat } from "@/pages/app/chat/store";
-import { useDispatch } from "react-redux";
 import useMobileMenu from "@/hooks/useMobileMenu";
 import Submenu from "./Submenu";
 
@@ -22,7 +20,6 @@ const Navmenu = ({ menus }) => {
   const locationName = location.pathname.replace("/", "");
   const [mobileMenu, setMobileMenu] = useMobileMenu();
   const [activeMultiMenu, setMultiMenu] = useState(null);
-  const dispatch = useDispatch();
 
   const toggleMultiMenu = (j) => {
     if (activeMultiMenu === j) {
@@ -68,7 +65,6 @@ const Navmenu = ({ menus }) => {
 
     setActiveSubmenu(submenuIndex);
     setMultiMenu(multiMenuIndex);
-    dispatch(toggleActiveChat(false));
     if (mobileMenu) {
       setMobileMenu(false);
     }

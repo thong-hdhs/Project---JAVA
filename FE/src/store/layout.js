@@ -29,8 +29,7 @@ const initialSkin = () => {
 };
 
 const initialType = () => {
-  const item = window.localStorage.getItem("type");
-  return item ? JSON.parse(item) : themeConfig.layout.type;
+  return themeConfig.layout.type;
 };
 
 const initialMonochrome = () => {
@@ -92,8 +91,10 @@ export const layoutSlice = createSlice({
     },
     // handle type
     handleType: (state, action) => {
-      state.type = action.payload;
-      window.localStorage.setItem("type", JSON.stringify(action.payload));
+      // Clamp to vertical to keep navigation consistent with the sidebar.
+      const nextType = action.payload === "horizontal" ? "vertical" : action.payload;
+      state.type = nextType;
+      window.localStorage.setItem("type", JSON.stringify(nextType));
     },
     // handle menu hidden
     handleMenuHidden: (state, action) => {
