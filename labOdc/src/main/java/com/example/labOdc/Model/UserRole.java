@@ -1,7 +1,10 @@
 package com.example.labOdc.Model;
 
 public enum UserRole {
-    ADMIN,
+    SYSTEM_ADMIN,
     USER,
-    MENTOR
+    MENTOR,
+    LAB_ADMIN,
+    TALENT,
+    COMPANY
 }

@@ -1,8 +1,7 @@
 package com.example.labOdc.DTO;
 
 import java.time.LocalDateTime;
-
-import com.example.labOdc.Model.UserRole;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,9 +16,10 @@ public class UserDTO {
     private String email;
     private String password;
     private String fullName;
+    private Set<String> roles;
+    private String username;
     private String phone;
     private String avatarUrl;
-    private UserRole role;
     private Boolean isActive;
     private Boolean emailVerified;
     private LocalDateTime emailVerifiedAt;
