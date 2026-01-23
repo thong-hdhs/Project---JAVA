@@ -20,7 +20,6 @@ const schema = yup
       .min(6, "Password must be at least 6 characters")
       .max(20, "Password shouldn't be more than 20 characters")
       .required("Please enter password"),
-    role: yup.string().required("Role is Required"),
   })
   .required();
 
@@ -47,11 +46,18 @@ const RegForm = () => {
     }
 
     try {
+      // Backend expects UserDTO with `roles` (Set<String>) and optionally `username`.
+      // We derive `username` from email so the user can login immediately.
       const payload = {
-        ...data,
+        email: data.email,
+        password: data.password,
+        fullName: data.fullName,
+        phone: data.phone,
+        username: data.email,
+        // Do not send roles on signup; backend will assign default USER.
+        avatarUrl: null,
         isActive: true,
         emailVerified: false,
-        avatarUrl: null,
       };
 
       const response = await registerUser(payload);
@@ -110,21 +116,6 @@ const RegForm = () => {
         error={errors.password}
         className="h-[48px]"
       />
-      <div>
-        <label className="block text-sm font-medium mb-2">Role</label>
-        <select
-          {...register("role")}
-          className="w-full h-[48px] px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Select Role</option>
-          <option value="TALENT">Talent (Student)</option>
-          <option value="COMPANY">Company</option>
-          <option value="MENTOR">Mentor</option>
-        </select>
-        {errors.role && (
-          <p className="text-red-500 text-sm mt-1">{errors.role.message}</p>
-        )}
-      </div>
       <Checkbox
         label="You accept our Terms and Conditions and Privacy Policy"
         value={checked}

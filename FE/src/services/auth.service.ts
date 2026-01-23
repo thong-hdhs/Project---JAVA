@@ -151,6 +151,38 @@ const tryDemoLogin = (credentials: LoginRequest): AuthResponse | null => {
 };
 
 export const authService = {
+  async loginForRoles(
+    credentials: LoginRequest,
+    allowedRoles: UserRole[],
+  ): Promise<AuthResponse> {
+    const result = await this.login(credentials);
+    if (!allowedRoles.includes(result.user.role)) {
+      throw new Error("Account does not have required role");
+    }
+    return result;
+  },
+
+  loginSystemAdmin(credentials: LoginRequest): Promise<AuthResponse> {
+    return this.loginForRoles(credentials, ["SYSTEM_ADMIN"]);
+  },
+
+  loginLabAdmin(credentials: LoginRequest): Promise<AuthResponse> {
+    return this.loginForRoles(credentials, ["LAB_ADMIN"]);
+  },
+
+  loginCompany(credentials: LoginRequest): Promise<AuthResponse> {
+    return this.loginForRoles(credentials, ["COMPANY"]);
+  },
+
+  loginMentor(credentials: LoginRequest): Promise<AuthResponse> {
+    return this.loginForRoles(credentials, ["MENTOR"]);
+  },
+
+  loginUser(credentials: LoginRequest): Promise<AuthResponse> {
+    // Accept both TALENT and TALENT_LEADER; backend may also return USER.
+    return this.loginForRoles(credentials, ["TALENT", "TALENT_LEADER"]);
+  },
+
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
       // Spring Boot endpoint: POST /auth/token

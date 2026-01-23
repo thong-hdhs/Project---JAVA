@@ -12,6 +12,11 @@ const Error = lazy(() => import("./pages/404"));
 import Layout from "./layout/Layout";
 import AuthLayout from "./layout/AuthLayout";
 import AuthGuard from "./components/auth/AuthGuard";
+import AdminRoute from "./Routes/AdminRoute";
+import LabAdminRoute from "./Routes/LabAdminRoute";
+import CompanyRoute from "./Routes/CompanyRoute";
+import MentorRoute from "./Routes/MentorRoute";
+import UserRoute from "./Routes/UserRoute";
 
 // Loading component
 import Loading from "@/components/Loading";
@@ -155,162 +160,135 @@ function App() {
             </AuthGuard>
           }
         >
-          {/* Candidate/Talent routes */}
-          <Route path="candidate/dashboard" element={<CandidateDashboard />} />
-          <Route path="candidate/profile" element={<CandidateProfile />} />
-          <Route
-            path="candidate/browse-projects"
-            element={<BrowseProjects />}
-          />
-          <Route path="candidate/project/:id" element={<ProjectDetail />} />
-          <Route path="candidate/applications" element={<MyApplications />} />
-          <Route path="candidate/my-projects" element={<MyProjects />} />
-          <Route path="candidate/task/:id" element={<TaskDetail />} />
-          <Route
-            path="candidate/fund-distributions"
-            element={<FundDistributions />}
-          />
-          <Route path="candidate/team-votes" element={<TeamVotes />} />
-          <Route
-            path="candidate/company-verification"
-            element={<CompanyVerification />}
-          />
+          {/* Candidate/Talent (Users) routes */}
+          <Route element={<UserRoute />}>
+            <Route path="candidate/dashboard" element={<CandidateDashboard />} />
+            <Route path="candidate/profile" element={<CandidateProfile />} />
+            <Route
+              path="candidate/browse-projects"
+              element={<BrowseProjects />}
+            />
+            <Route path="candidate/project/:id" element={<ProjectDetail />} />
+            <Route path="candidate/applications" element={<MyApplications />} />
+            <Route path="candidate/my-projects" element={<MyProjects />} />
+            <Route path="candidate/task/:id" element={<TaskDetail />} />
+            <Route
+              path="candidate/fund-distributions"
+              element={<FundDistributions />}
+            />
+            <Route path="candidate/team-votes" element={<TeamVotes />} />
+            <Route
+              path="candidate/company-verification"
+              element={<CompanyVerification />}
+            />
+          </Route>
 
           {/* Company/Enterprise routes */}
-          <Route
-            path="enterprise/dashboard"
-            element={<EnterpriseDashboard />}
-          />
-          <Route path="enterprise/projects" element={<ProjectList />} />
-          <Route
-            path="enterprise/projects/create"
-            element={<CreateProject />}
-          />
-          <Route
-            path="enterprise/projects/:id/edit"
-            element={<EditProject />}
-          />
-          <Route
-            path="enterprise/projects/:id"
-            element={<ProjectDetailEnterprise />}
-          />
-          <Route path="enterprise/payments" element={<Payments />} />
-          <Route
-            path="enterprise/change-requests"
-            element={<ChangeRequests />}
-          />
-          <Route
-            path="enterprise/evaluations"
-            element={<CompanyEvaluations />}
-          />
+          <Route element={<CompanyRoute />}>
+            <Route
+              path="enterprise/dashboard"
+              element={<EnterpriseDashboard />}
+            />
+            <Route path="enterprise/projects" element={<ProjectList />} />
+            <Route
+              path="enterprise/projects/create"
+              element={<CreateProject />}
+            />
+            <Route
+              path="enterprise/projects/:id/edit"
+              element={<EditProject />}
+            />
+            <Route
+              path="enterprise/projects/:id"
+              element={<ProjectDetailEnterprise />}
+            />
+            <Route path="enterprise/payments" element={<Payments />} />
+            <Route
+              path="enterprise/change-requests"
+              element={<ChangeRequests />}
+            />
+            <Route
+              path="enterprise/evaluations"
+              element={<CompanyEvaluations />}
+            />
+          </Route>
 
           {/* Mentor routes */}
-          <Route path="mentor/dashboard" element={<MentorDashboard />} />
-          <Route path="mentor/invitations" element={<MentorInvitations />} />
-          <Route
-            path="mentor/candidate-reviews"
-            element={<CandidateReviews />}
-          />
-          <Route
-            path="mentor/project/:id"
-            element={<MentorProjectWorkspace />}
-          />
-          <Route path="mentor/reports" element={<MentorReports />} />
-          <Route path="mentor/fund-approvals" element={<FundApprovals />} />
+          <Route element={<MentorRoute />}>
+            <Route path="mentor/dashboard" element={<MentorDashboard />} />
+            <Route path="mentor/invitations" element={<MentorInvitations />} />
+            <Route
+              path="mentor/candidate-reviews"
+              element={<CandidateReviews />}
+            />
+            <Route
+              path="mentor/project/:id"
+              element={<MentorProjectWorkspace />}
+            />
+            <Route path="mentor/reports" element={<MentorReports />} />
+            <Route path="mentor/fund-approvals" element={<FundApprovals />} />
+          </Route>
 
           {/* Lab Admin routes */}
-          <Route path="lab-admin/dashboard" element={<LabAdminDashboard />} />
-          <Route
-            path="lab-admin/validate-projects"
-            element={<ValidateProjects />}
-          />
-          <Route
-            path="lab-admin/payments-overview"
-            element={<PaymentsOverview />}
-          />
-          <Route
-            path="lab-admin/fund-allocations"
-            element={<FundAllocations />}
-          />
-          <Route
-            path="lab-admin/fund-distributions"
-            element={<FundDistributionsAdmin />}
-          />
-          <Route
-            path="lab-admin/lab-fund-advances"
-            element={<LabFundAdvances />}
-          />
-          <Route
-            path="lab-admin/transparency-report"
-            element={<TransparencyReport />}
-          />
-          <Route
-            path="lab-admin/change-request-approvals"
-            element={<ChangeRequestApprovals />}
-          />
-          <Route path="lab-admin/risk-records" element={<RiskRecords />} />
-          <Route
-            path="lab-admin/company-approvals"
-            element={<CompanyApprovals />}
-          />
+          <Route element={<LabAdminRoute />}>
+            <Route path="lab-admin/dashboard" element={<LabAdminDashboard />} />
+            <Route
+              path="lab-admin/validate-projects"
+              element={<ValidateProjects />}
+            />
+            <Route
+              path="lab-admin/payments-overview"
+              element={<PaymentsOverview />}
+            />
+            <Route
+              path="lab-admin/fund-allocations"
+              element={<FundAllocations />}
+            />
+            <Route
+              path="lab-admin/fund-distributions"
+              element={<FundDistributionsAdmin />}
+            />
+            <Route
+              path="lab-admin/lab-fund-advances"
+              element={<LabFundAdvances />}
+            />
+            <Route
+              path="lab-admin/transparency-report"
+              element={<TransparencyReport />}
+            />
+            <Route
+              path="lab-admin/change-request-approvals"
+              element={<ChangeRequestApprovals />}
+            />
+            <Route path="lab-admin/risk-records" element={<RiskRecords />} />
+            <Route
+              path="lab-admin/company-approvals"
+              element={<CompanyApprovals />}
+            />
+          </Route>
 
           {/* System Admin routes */}
-          <Route
-            path="system-admin/dashboard"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <SystemAdminDashboard />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="system-admin/users"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <UserManagement />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="system-admin/settings"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <Settings />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="system-admin/excel-templates"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <ExcelTemplates />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="system-admin/email-templates"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <EmailTemplates />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="system-admin/audit-logs"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <AuditLogs />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="system-admin/mentor-role-requests"
-            element={
-              <AuthGuard allowedRoles={["SYSTEM_ADMIN"]} requireAuth={true}>
-                <MentorRoleRequests />
-              </AuthGuard>
-            }
-          />
+          <Route element={<AdminRoute />}>
+            <Route
+              path="system-admin/dashboard"
+              element={<SystemAdminDashboard />}
+            />
+            <Route path="system-admin/users" element={<UserManagement />} />
+            <Route path="system-admin/settings" element={<Settings />} />
+            <Route
+              path="system-admin/excel-templates"
+              element={<ExcelTemplates />}
+            />
+            <Route
+              path="system-admin/email-templates"
+              element={<EmailTemplates />}
+            />
+            <Route path="system-admin/audit-logs" element={<AuditLogs />} />
+            <Route
+              path="system-admin/mentor-role-requests"
+              element={<MentorRoleRequests />}
+            />
+          </Route>
 
           {/* Common routes */}
           <Route path="profile" element={<Profile />} />
