@@ -1,9 +1,9 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { useEffect } from 'react';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { useEffect } from "react";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -13,15 +13,17 @@ const Landing: React.FC = () => {
     if (isAuth && user) {
       // Redirect authenticated users to their dashboard
       const roleRoutes = {
-        SYSTEM_ADMIN: '/system-admin/dashboard',
-        LAB_ADMIN: '/lab-admin/dashboard',
-        COMPANY: '/enterprise/dashboard',
-        MENTOR: '/mentor/dashboard',
-        TALENT: '/candidate/dashboard',
-        TALENT_LEADER: '/candidate/dashboard',
+        SYSTEM_ADMIN: "/system-admin/dashboard",
+        LAB_ADMIN: "/lab-admin/dashboard",
+        COMPANY: "/enterprise/dashboard",
+        MENTOR: "/mentor/dashboard",
+        TALENT: "/candidate/dashboard",
+        TALENT_LEADER: "/candidate/dashboard",
       };
 
-      const redirectPath = roleRoutes[user.role as keyof typeof roleRoutes] || '/candidate/dashboard';
+      const redirectPath =
+        roleRoutes[user.role as keyof typeof roleRoutes] ||
+        "/candidate/dashboard";
       navigate(redirectPath, { replace: true });
     }
   }, [isAuth, user, navigate]);
@@ -41,10 +43,16 @@ const Landing: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login">
-                <Button text="Sign In" className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50" />
+                <Button
+                  text="Sign In"
+                  className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                />
               </Link>
               <Link to="/register">
-                <Button text="Get Started" className="bg-primary-500 text-white hover:bg-primary-600" />
+                <Button
+                  text="Get Started"
+                  className="bg-primary-500 text-white hover:bg-primary-600"
+                />
               </Link>
             </div>
           </div>
@@ -60,8 +68,9 @@ const Landing: React.FC = () => {
               <span className="text-primary-600 block">Top Student Talent</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              LabOdc bridges the gap between businesses and skilled students through structured
-              ODC (Offshore Development Center) projects, fostering innovation and professional growth.
+              LabOdc bridges the gap between businesses and skilled students
+              through structured ODC (Offshore Development Center) projects,
+              fostering innovation and professional growth.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">
@@ -96,40 +105,73 @@ const Landing: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center p-8">
               <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                <svg
+                  className="w-8 h-8 text-primary-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-4">Project Submission</h3>
               <p className="text-gray-600">
-                Companies submit detailed project proposals with requirements, budget, and timeline.
-                Our lab validates and matches with suitable student talent.
+                Companies submit detailed project proposals with requirements,
+                budget, and timeline. Our lab validates and matches with
+                suitable student talent.
               </p>
             </Card>
 
             <Card className="text-center p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-4">Talent Matching</h3>
               <p className="text-gray-600">
-                Students apply and get matched based on skills, experience, and project requirements.
-                Expert mentors guide the development process.
+                Students apply and get matched based on skills, experience, and
+                project requirements. Expert mentors guide the development
+                process.
               </p>
             </Card>
 
             <Card className="text-center p-8">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-8 h-8 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-4">Delivery & Funding</h3>
               <p className="text-gray-600">
-                Transparent fund distribution (70/20/10 split), regular reporting, and successful
-                project delivery with performance evaluation.
+                Transparent fund distribution (70/20/10 split), regular
+                reporting, and successful project delivery with performance
+                evaluation.
               </p>
             </Card>
           </div>
@@ -141,19 +183,27 @@ const Landing: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-primary-600 mb-2">500+</div>
+              <div className="text-3xl font-bold text-primary-600 mb-2">
+                500+
+              </div>
               <div className="text-gray-600">Projects Completed</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary-600 mb-2">1000+</div>
+              <div className="text-3xl font-bold text-primary-600 mb-2">
+                1000+
+              </div>
               <div className="text-gray-600">Student Talents</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary-600 mb-2">200+</div>
+              <div className="text-3xl font-bold text-primary-600 mb-2">
+                200+
+              </div>
               <div className="text-gray-600">Partner Companies</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary-600 mb-2">95%</div>
+              <div className="text-3xl font-bold text-primary-600 mb-2">
+                95%
+              </div>
               <div className="text-gray-600">Success Rate</div>
             </div>
           </div>
@@ -167,7 +217,8 @@ const Landing: React.FC = () => {
             Ready to Start Your Next Project?
           </h2>
           <p className="text-xl text-primary-100 mb-8">
-            Join LabOdc today and connect with top student talent for your development needs.
+            Join LabOdc today and connect with top student talent for your
+            development needs.
           </p>
           <Link to="/register">
             <Button
@@ -184,11 +235,10 @@ const Landing: React.FC = () => {
           <div className="text-center">
             <h3 className="text-2xl font-bold mb-4">LabOdc</h3>
             <p className="text-gray-400 mb-4">
-              Connecting enterprises with exceptional student talent through structured ODC projects.
+              Connecting enterprises with exceptional student talent through
+              structured ODC projects.
             </p>
-            <p className="text-sm text-gray-500">
-              © 2024 LabOdc. All rights reserved.
-            </p>
+            <p className="text-sm text-gray-500"></p>
           </div>
         </div>
       </footer>

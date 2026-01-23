@@ -72,9 +72,7 @@ const LockScreen = () => {
                 </Link>
               </div>
             </div>
-            <div className="auth-footer text-center">
-              Copyright 2021, LabOdc All Rights Reserved.
-            </div>
+            <div className="auth-footer text-center"></div>
           </div>
         </div>
       </div>
