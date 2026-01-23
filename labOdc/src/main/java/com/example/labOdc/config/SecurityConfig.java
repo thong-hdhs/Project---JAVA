@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .securityMatcher("/api/**")
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users/").permitAll()
 
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

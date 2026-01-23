@@ -13,6 +13,12 @@ import { useRegisterUserMutation } from "@/store/api/auth/authApiSlice";
 const schema = yup
   .object({
     fullName: yup.string().required("Full Name is Required"),
+    username: yup
+      .string()
+      .trim()
+      .min(3, "Username must be at least 3 characters")
+      .max(50, "Username shouldn't be more than 50 characters")
+      .required("Username is Required"),
     email: yup.string().email("Invalid email").required("Email is Required"),
     phone: yup.string().required("Phone is Required"),
     password: yup
@@ -47,13 +53,13 @@ const RegForm = () => {
 
     try {
       // Backend expects UserDTO with `roles` (Set<String>) and optionally `username`.
-      // We derive `username` from email so the user can login immediately.
+      // Prefer explicit username from the form; fallback to email.
       const payload = {
         email: data.email,
         password: data.password,
         fullName: data.fullName,
         phone: data.phone,
-        username: data.email,
+        username: data.username,
         // Do not send roles on signup; backend will assign default USER.
         avatarUrl: null,
         isActive: true,
@@ -87,6 +93,15 @@ const RegForm = () => {
         placeholder="Enter your full name"
         register={register}
         error={errors.fullName}
+        className="h-[48px]"
+      />
+      <Textinput
+        name="username"
+        label="Username"
+        type="text"
+        placeholder="Enter your username"
+        register={register}
+        error={errors.username}
         className="h-[48px]"
       />
       <Textinput
