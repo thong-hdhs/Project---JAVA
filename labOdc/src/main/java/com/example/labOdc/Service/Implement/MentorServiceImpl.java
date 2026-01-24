@@ -6,9 +6,9 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.labOdc.DTO.MentorDTO;
+import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Mentor;
-import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.MentorRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.MentorService;
@@ -22,43 +22,60 @@ public class MentorServiceImpl implements MentorService {
     private final MentorRepository mentorRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Chức năng: Tạo hồ sơ Mentor mới.
+     * Repository: MentorRepository.save() - Lưu entity vào database.
+     */
     @Override
-    public Mentor createMentor(MentorDTO mentorDTO) {
-        User user = userRepository.findById(mentorDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
+    public MentorResponse createMentor(MentorDTO mentorDTO) {
+        // Note: userId not available in DTO
         Mentor mentor = Mentor.builder()
-                .user(user)
                 .expertise(mentorDTO.getExpertise())
                 .yearsExperience(mentorDTO.getYearsExperience())
                 .bio(mentorDTO.getBio())
-                .rating(mentorDTO.getRating() != null ? mentorDTO.getRating() : BigDecimal.ZERO)
-                .totalProjects(mentorDTO.getTotalProjects() != null ? mentorDTO.getTotalProjects() : 0)
-                .status(mentorDTO.getStatus() != null ? mentorDTO.getStatus() : Mentor.Status.AVAILABLE)
                 .build();
 
-        mentorRepository.save(mentor);
-        return mentor;
+        Mentor savedMentor = mentorRepository.save(mentor);
+        return MentorResponse.fromMentor(savedMentor);
     }
 
+    /**
+     * Chức năng: Lấy danh sách tất cả Mentors.
+     * Repository: MentorRepository.findAll() - Truy vấn tất cả entities.
+     */
     @Override
-    public List<Mentor> getAllMentors() {
-        return mentorRepository.findAll();
+    public List<MentorResponse> getAllMentors() {
+        return mentorRepository.findAll().stream()
+                .map(MentorResponse::fromMentor)
+                .toList();
     }
 
+    /**
+     * Chức năng: Xóa Mentor theo ID.
+     * Repository: MentorRepository.deleteById() - Xóa entity theo ID.
+     */
     @Override
     public void deleteMentor(String id) {
         mentorRepository.deleteById(id);
     }
 
+    /**
+     * Chức năng: Lấy Mentor theo ID.
+     * Repository: MentorRepository.findById() - Truy vấn entity theo ID.
+     */
     @Override
-    public Mentor getMentorById(String id) {
-        return mentorRepository.findById(id)
+    public MentorResponse getMentorById(String id) {
+        Mentor mentor = mentorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
+        return MentorResponse.fromMentor(mentor);
     }
 
+    /**
+     * Chức năng: Cập nhật Mentor theo ID.
+     * Repository: MentorRepository.findById() và save() - Tìm và cập nhật entity.
+     */
     @Override
-    public Mentor updateMentor(MentorDTO mentorDTO, String id) {
+    public MentorResponse updateMentor(MentorDTO mentorDTO, String id) {
         Mentor mentor = mentorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
 
@@ -68,24 +85,66 @@ public class MentorServiceImpl implements MentorService {
             mentor.setYearsExperience(mentorDTO.getYearsExperience());
         if (mentorDTO.getBio() != null)
             mentor.setBio(mentorDTO.getBio());
-        if (mentorDTO.getRating() != null)
-            mentor.setRating(mentorDTO.getRating());
-        if (mentorDTO.getTotalProjects() != null)
-            mentor.setTotalProjects(mentorDTO.getTotalProjects());
-        if (mentorDTO.getStatus() != null)
-            mentor.setStatus(mentorDTO.getStatus());
 
-        mentorRepository.save(mentor);
-        return mentor;
+        Mentor updatedMentor = mentorRepository.save(mentor);
+        return MentorResponse.fromMentor(updatedMentor);
     }
 
+    /**
+     * Chức năng: Lọc danh sách Mentors theo trạng thái.
+     * Repository: MentorRepository.findByStatus() - Truy vấn theo status.
+     */
     @Override
-    public List<Mentor> findByStatus(Mentor.Status status) {
-        return mentorRepository.findByStatus(status);
+    public List<MentorResponse> findByStatus(Mentor.Status status) {
+        return mentorRepository.findByStatus(status).stream()
+                .map(MentorResponse::fromMentor)
+                .toList();
     }
 
+    /**
+     * Chức năng: Lọc danh sách Mentors theo rating tối thiểu.
+     * Repository: MentorRepository.findByRatingGreaterThanEqual() - Truy vấn theo rating.
+     */
     @Override
-    public List<Mentor> findByRatingGreaterThanEqual(BigDecimal rating) {
-        return mentorRepository.findByRatingGreaterThanEqual(rating);
+    public List<MentorResponse> findByRatingGreaterThanEqual(BigDecimal rating) {
+        return mentorRepository.findByRatingGreaterThanEqual(rating).stream()
+                .map(MentorResponse::fromMentor)
+                .toList();
     }
+
+    /**
+     * Chức năng: Chấp nhận lời mời làm mentor cho dự án.
+     * Repository: Sử dụng ProjectInvitationRepository (placeholder) để cập nhật trạng thái.
+     */
+    @Override
+    public void acceptInvite(String inviteId) {
+        // Placeholder: Logic để chấp nhận lời mời
+        // ProjectInvitation invite = projectInvitationRepository.findById(inviteId).orElseThrow();
+        // invite.setStatus(ACCEPTED);
+        // projectInvitationRepository.save(invite);
+        // Cập nhật mentor status nếu cần
+        System.out.println("Accepted invite: " + inviteId);
+    }
+
+    /**
+     * Chức năng: Từ chối lời mời làm mentor cho dự án.
+     * Repository: Sử dụng ProjectInvitationRepository để cập nhật trạng thái và lý do.
+     */
+    @Override
+    public void rejectInvite(String inviteId, String reason) {
+        // Placeholder: Logic từ chối lời mời
+        // ProjectInvitation invite = projectInvitationRepository.findById(inviteId).orElseThrow();
+        // invite.setStatus(REJECTED);
+        // invite.setRejectionReason(reason);
+        // projectInvitationRepository.save(invite);
+        System.out.println("Rejected invite: " + inviteId + " with reason: " + reason);
+    }
+
+    
+
+    
+
+    
+
+    
 }

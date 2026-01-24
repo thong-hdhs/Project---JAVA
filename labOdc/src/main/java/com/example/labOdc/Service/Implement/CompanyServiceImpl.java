@@ -4,13 +4,19 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.example.labOdc.DTO.CompanyDTO;
+import com.example.labOdc.DTO.Response.CompanyResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Company;
+import com.example.labOdc.Model.RoleEntity;
 import com.example.labOdc.Model.User;
+import com.example.labOdc.Model.UserRole;
 import com.example.labOdc.Repository.CompanyRepository;
+import com.example.labOdc.Repository.RoleRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.CompanyService;
 
@@ -24,47 +30,76 @@ public class CompanyServiceImpl implements CompanyService {
     private static final Logger logger = LoggerFactory.getLogger(CompanyServiceImpl.class);
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
-    @Override
-    @Transactional
-    public Company createCompany(CompanyDTO companyDTO) {
-        logger.info("Creating company: {}", companyDTO.getCompanyName());
-        
-        User user = userRepository.findById(companyDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    /**
+     * Chức năng: Tạo hồ sơ công ty mới.
+     * Repository: CompanyRepository.save() - Lưu entity vào database.
+     */
+    
+@Override
+@Transactional
+public CompanyResponse createCompany(CompanyDTO companyDTO) {
 
-        Company company = Company.builder()
-                .user(user)
-                .companyName(companyDTO.getCompanyName())
-                .taxCode(companyDTO.getTaxCode())
-                .address(companyDTO.getAddress())
-                .industry(companyDTO.getIndustry())
-                .description(companyDTO.getDescription())
-                .website(companyDTO.getWebsite())
-                .companySize(companyDTO.getCompanySize())
-                .status(companyDTO.getStatus())
-                .rejectionReason(companyDTO.getRejectionReason())
-                .build();
-
-        if (companyDTO.getApprovedById() != null) {
-            User approver = userRepository.findById(companyDTO.getApprovedById())
-                    .orElseThrow(() -> new ResourceNotFoundException("Approver not found"));
-            company.setApprovedBy(approver);
-            company.setApprovedAt(companyDTO.getApprovedAt());
-        }
-
-        Company savedCompany = companyRepository.save(company);
-        logger.info("Company created successfully with ID: {}", savedCompany.getId());
-        return savedCompany;
+    //  Lấy user đang đăng nhập
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null || !auth.isAuthenticated()) {
+        throw new RuntimeException("Unauthenticated user");
     }
 
+    String username = auth.getName();
+
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    //  Tạo company
+    Company company = Company.builder()
+            .companyName(companyDTO.getCompanyName())
+            .taxCode(companyDTO.getTaxCode())
+            .address(companyDTO.getAddress())
+            .industry(companyDTO.getIndustry())
+            .description(companyDTO.getDescription())
+            .website(companyDTO.getWebsite())
+            .companySize(companyDTO.getCompanySize())
+            .user(user)
+            .status(Company.Status.PENDING)
+            .build();
+
+    companyRepository.save(company);
+
+    //  Gán role COMPANY cho user (nếu chưa có)
+    RoleEntity companyRole = roleRepository.findByRole(UserRole.COMPANY)
+            .orElseThrow(() -> new ResourceNotFoundException("COMPANY role not found"));
+
+    boolean hasCompanyRole = user.getRoles().stream()
+            .anyMatch(r -> r.getRole() == UserRole.COMPANY);
+
+    if (!hasCompanyRole) {
+        user.getRoles().add(companyRole);
+        userRepository.save(user);
+    }
+
+    return CompanyResponse.fromCompany(company);
+}
+
+
+    /**
+     * Chức năng: Lấy danh sách tất cả công ty.
+     * Repository: CompanyRepository.findAll() - Truy vấn tất cả entities.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<Company> getAllCompanies() {
+    public List<CompanyResponse> getAllCompanies() {
         logger.debug("Fetching all companies");
-        return companyRepository.findAll();
+        return companyRepository.findAll().stream()
+                .map(CompanyResponse::fromCompany)
+                .toList();
     }
 
+    /**
+     * Chức năng: Xóa công ty theo ID.
+     * Repository: CompanyRepository.findById() và delete() - Tìm và xóa entity.
+     */
     @Override
     @Transactional
     public void deleteCompany(String id) {
@@ -75,17 +110,26 @@ public class CompanyServiceImpl implements CompanyService {
         logger.info("Company deleted successfully");
     }
 
+    /**
+     * Chức năng: Lấy công ty theo ID.
+     * Repository: CompanyRepository.findById() - Truy vấn entity theo ID.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Company getCompanyById(String id) {
+    public CompanyResponse getCompanyById(String id) {
         logger.debug("Fetching company with ID: {}", id);
-        return companyRepository.findById(id)
+        Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        return CompanyResponse.fromCompany(company);
     }
 
+    /**
+     * Chức năng: Cập nhật công ty theo ID.
+     * Repository: CompanyRepository.findById() và save() - Tìm và cập nhật entity.
+     */
     @Override
     @Transactional
-    public Company updateCompany(CompanyDTO companyDTO, String id) {
+    public CompanyResponse updateCompany(CompanyDTO companyDTO, String id) {
         logger.info("Updating company with ID: {}", id);
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
@@ -93,16 +137,45 @@ public class CompanyServiceImpl implements CompanyService {
         // Update only non-null fields
         updateCompanyFields(company, companyDTO);
 
-        if (companyDTO.getApprovedById() != null) {
-            User approver = userRepository.findById(companyDTO.getApprovedById())
-                    .orElseThrow(() -> new ResourceNotFoundException("Approver not found"));
-            company.setApprovedBy(approver);
-            company.setApprovedAt(companyDTO.getApprovedAt());
-        }
-
         Company updatedCompany = companyRepository.save(company);
         logger.info("Company updated successfully");
-        return updatedCompany;
+        return CompanyResponse.fromCompany(updatedCompany);
+    }
+
+    /**
+     * Chức năng: Phê duyệt hồ sơ công ty.
+     * Repository: CompanyRepository.findById() và save() - Tìm và cập nhật status thành APPROVED.
+     */
+    @Override
+    @Transactional
+    public CompanyResponse approveCompany(String id) {
+        logger.info("Approving company with ID: {}", id);
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        company.setStatus(Company.Status.APPROVED);
+        // Giả định set approvedBy từ current user, approvedAt từ now
+        // company.setApprovedBy(currentUser);
+        company.setApprovedAt(java.time.LocalDateTime.now());
+        Company updatedCompany = companyRepository.save(company);
+        logger.info("Company approved successfully");
+        return CompanyResponse.fromCompany(updatedCompany);
+    }
+
+    /**
+     * Chức năng: Từ chối hồ sơ công ty với lý do.
+     * Repository: CompanyRepository.findById() và save() - Tìm và cập nhật status thành REJECTED.
+     */
+    @Override
+    @Transactional
+    public CompanyResponse rejectCompany(String id, String reason) {
+        logger.info("Rejecting company with ID: {} for reason: {}", id, reason);
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        company.setStatus(Company.Status.REJECTED);
+        company.setRejectionReason(reason);
+        Company updatedCompany = companyRepository.save(company);
+        logger.info("Company rejected successfully");
+        return CompanyResponse.fromCompany(updatedCompany);
     }
 
     /**
@@ -124,9 +197,5 @@ public class CompanyServiceImpl implements CompanyService {
             company.setWebsite(dto.getWebsite());
         if (dto.getCompanySize() != null)
             company.setCompanySize(dto.getCompanySize());
-        if (dto.getStatus() != null)
-            company.setStatus(dto.getStatus());
-        if (dto.getRejectionReason() != null)
-            company.setRejectionReason(dto.getRejectionReason());
     }
 }

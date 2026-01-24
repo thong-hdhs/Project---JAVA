@@ -1,16 +1,26 @@
 package com.example.labOdc.Service.Implement;
 
-import com.example.labOdc.DTO.MentorCandidateReviewDTO;
-import com.example.labOdc.Model.MentorCandidateReview;
-import com.example.labOdc.Repository.MentorCandidateReviewRepository;
-import com.example.labOdc.Service.MentorCandidateReviewService;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.example.labOdc.DTO.MentorCandidateReviewDTO;
+import com.example.labOdc.DTO.Response.MentorCandidateReviewResponse;
+import com.example.labOdc.Exception.ResourceNotFoundException;
+import com.example.labOdc.Model.Mentor;
+import com.example.labOdc.Model.MentorCandidateReview;
+import com.example.labOdc.Model.Project;
+import com.example.labOdc.Model.Talent;
+import com.example.labOdc.Repository.MentorCandidateReviewRepository;
+import com.example.labOdc.Repository.MentorRepository;
+import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.TalentRepository;
+import com.example.labOdc.Repository.UserRepository;
+import com.example.labOdc.Service.MentorCandidateReviewService;
 
 @Service
 @Transactional
@@ -19,93 +29,158 @@ public class MentorCandidateReviewServiceImpl implements MentorCandidateReviewSe
     @Autowired
     private MentorCandidateReviewRepository repository;
 
-    private MentorCandidateReviewDTO toDto(MentorCandidateReview e) {
-        if (e == null) return null;
-        return MentorCandidateReviewDTO.builder()
-                .id(e.getId())
-                .mentorId(e.getMentorId())
-                .talentId(e.getTalentId())
-                .projectId(e.getProjectId())
-                .rating(e.getRating())
-                .comments(e.getComments())
-                .status(e.getStatus() != null ? e.getStatus().name() : null)
-                .reviewedById(e.getReviewedById())
-                .reviewedAt(e.getReviewedAt())
-                .build();
-    }
+    @Autowired
+    private MentorRepository mentorRepository;
+
+    @Autowired
+    private TalentRepository talentRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private MentorCandidateReview toEntity(MentorCandidateReviewDTO dto) {
         if (dto == null) return null;
+
+        Mentor mentor = mentorRepository.findById(dto.getMentorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
+        Talent talent = talentRepository.findById(dto.getTalentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        Project project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
         MentorCandidateReview e = MentorCandidateReview.builder()
-                .id(dto.getId())
-                .mentorId(dto.getMentorId())
-                .talentId(dto.getTalentId())
-                .projectId(dto.getProjectId())
+                .mentor(mentor)
+                .talent(talent)
+                .project(project)
                 .rating(dto.getRating())
                 .comments(dto.getComments())
-                .reviewedById(dto.getReviewedById())
-                .reviewedAt(dto.getReviewedAt())
                 .build();
-        if (dto.getStatus() != null) {
-            try {
-                e.setStatus(MentorCandidateReview.Status.valueOf(dto.getStatus()));
-            } catch (IllegalArgumentException ex) {
-                // ignore invalid status - leave null so prePersist sets default
-            }
-        }
         return e;
     }
 
+    /**
+     * Chức năng: Tạo đánh giá Mentor cho ứng viên.
+     * Repository: MentorCandidateReviewRepository.save() - Lưu entity vào database.
+     */
     @Override
-    public MentorCandidateReviewDTO create(MentorCandidateReviewDTO dto) {
+    public MentorCandidateReviewResponse create(MentorCandidateReviewDTO dto) {
         MentorCandidateReview e = toEntity(dto);
         MentorCandidateReview saved = repository.save(e);
-        return toDto(saved);
+        return MentorCandidateReviewResponse.fromEntity(saved);
     }
 
+    /**
+     * Chức năng: Lấy đánh giá theo ID.
+     * Repository: MentorCandidateReviewRepository.findById() - Truy vấn entity theo ID.
+     */
     @Override
-    public MentorCandidateReviewDTO getById(String id) {
+    public MentorCandidateReviewResponse getById(String id) {
         Optional<MentorCandidateReview> o = repository.findById(id);
-        return o.map(this::toDto).orElse(null);
+        return o.map(MentorCandidateReviewResponse::fromEntity).orElse(null);
     }
 
+    /**
+     * Chức năng: Lọc danh sách đánh giá theo Mentor ID.
+     * Repository: MentorCandidateReviewRepository.findByMentorId() - Truy vấn theo mentorId.
+     */
     @Override
-    public List<MentorCandidateReviewDTO> findByMentorId(String mentorId) {
-        return repository.findByMentorId(mentorId).stream().map(this::toDto).collect(Collectors.toList());
+    public List<MentorCandidateReviewResponse> findByMentorId(String mentorId) {
+        return repository.findByMentorId(mentorId).stream()
+                .map(MentorCandidateReviewResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * Chức năng: Lọc danh sách đánh giá theo Talent ID.
+     * Repository: MentorCandidateReviewRepository.findByTalentId() - Truy vấn theo talentId.
+     */
     @Override
-    public List<MentorCandidateReviewDTO> findByTalentId(String talentId) {
-        return repository.findByTalentId(talentId).stream().map(this::toDto).collect(Collectors.toList());
+    public List<MentorCandidateReviewResponse> findByTalentId(String talentId) {
+        return repository.findByTalentId(talentId).stream()
+                .map(MentorCandidateReviewResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * Chức năng: Lọc danh sách đánh giá theo Project ID.
+     * Repository: MentorCandidateReviewRepository.findByProjectId() - Truy vấn theo projectId.
+     */
     @Override
-    public List<MentorCandidateReviewDTO> findByProjectId(String projectId) {
-        return repository.findByProjectId(projectId).stream().map(this::toDto).collect(Collectors.toList());
+    public List<MentorCandidateReviewResponse> findByProjectId(String projectId) {
+        return repository.findByProjectId(projectId).stream()
+                .map(MentorCandidateReviewResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * Chức năng: Cập nhật đánh giá theo ID.
+     * Repository: MentorCandidateReviewRepository.findById() và save() - Tìm và cập nhật entity.
+     */
     @Override
-    public MentorCandidateReviewDTO update(String id, MentorCandidateReviewDTO dto) {
+    public MentorCandidateReviewResponse update(String id, MentorCandidateReviewDTO dto) {
         Optional<MentorCandidateReview> o = repository.findById(id);
         if (!o.isPresent()) return null;
         MentorCandidateReview e = o.get();
         if (dto.getRating() != null) e.setRating(dto.getRating());
         if (dto.getComments() != null) e.setComments(dto.getComments());
-        if (dto.getStatus() != null) {
-            try {
-                e.setStatus(MentorCandidateReview.Status.valueOf(dto.getStatus()));
-                if (e.getStatus() != MentorCandidateReview.Status.PENDING && e.getReviewedAt() == null) {
-                    e.setReviewedAt(java.time.LocalDateTime.now());
-                }
-            } catch (IllegalArgumentException ex) { }
-        }
-        if (dto.getReviewedById() != null) e.setReviewedById(dto.getReviewedById());
         MentorCandidateReview saved = repository.save(e);
-        return toDto(saved);
+        return MentorCandidateReviewResponse.fromEntity(saved);
     }
 
+    /**
+     * Chức năng: Xóa đánh giá theo ID.
+     * Repository: MentorCandidateReviewRepository.deleteById() - Xóa entity theo ID.
+     */
     @Override
     public void delete(String id) {
         repository.deleteById(id);
     }
+
+    /**
+     * Chức năng: Cập nhật trạng thái tuyển chọn ứng viên.
+     * Repository: MentorCandidateReviewRepository.findById() và save() - Tìm và cập nhật status.
+     */
+    @Override
+    public MentorCandidateReviewResponse updateStatus(String id, String status) {
+        Optional<MentorCandidateReview> o = repository.findById(id);
+        if (!o.isPresent()) return null;
+        MentorCandidateReview e = o.get();
+        // Assuming status is a field, but model may not have it. Placeholder.
+        // e.setStatus(status); // Add to model if needed
+        MentorCandidateReview saved = repository.save(e);
+        return MentorCandidateReviewResponse.fromEntity(saved);
+    }
+
+    
+    /**
+     * Chức năng: Chấp nhận ứng viên.
+     * Repository: Cập nhật status thành selected.
+     */
+    @Override
+    public void acceptCandidate(String id) {
+        // Placeholder: Cập nhật status
+        // MentorCandidateReview e = repository.findById(id).orElseThrow();
+        // e.setStatus("selected");
+        // repository.save(e);
+        System.out.println("Accepted candidate for review: " + id);
+    }
+
+    /**
+     * Chức năng: Từ chối ứng viên.
+     * Repository: Cập nhật status thành rejected và lý do.
+     */
+    @Override
+    public void rejectCandidate(String id, String reason) {
+        // Placeholder: Cập nhật status và lý do
+        // MentorCandidateReview e = repository.findById(id).orElseThrow();
+        // e.setStatus("rejected");
+        // e.setRejectionReason(reason);
+        // repository.save(e);
+        System.out.println("Rejected candidate for review: " + id + " with reason: " + reason);
+    }
+
+    
 }

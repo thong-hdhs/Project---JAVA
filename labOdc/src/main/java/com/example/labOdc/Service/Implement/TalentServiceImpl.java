@@ -1,15 +1,16 @@
 package com.example.labOdc.Service.Implement;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.example.labOdc.DTO.Response.TalentResponse;
 import com.example.labOdc.DTO.TalentDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Talent;
-import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.TalentRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.TalentService;
@@ -25,16 +26,16 @@ public class TalentServiceImpl implements TalentService {
     private final TalentRepository talentRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Chức năng: Tạo hồ sơ sinh viên mới.
+     * Repository: TalentRepository.save() - Lưu entity vào database.
+     */
     @Override
     @Transactional
-    public Talent createTalent(TalentDTO talentDTO) {
-        logger.info("Creating talent with user ID: {}", talentDTO.getUserId());
-        
-        User user = userRepository.findById(talentDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public TalentResponse createTalent(TalentDTO talentDTO) {
+        logger.info("Creating talent");
 
         Talent talent = Talent.builder()
-                .user(user)
                 .studentCode(talentDTO.getStudentCode())
                 .major(talentDTO.getMajor())
                 .year(talentDTO.getYear())
@@ -43,22 +44,31 @@ public class TalentServiceImpl implements TalentService {
                 .portfolioUrl(talentDTO.getPortfolioUrl())
                 .githubUrl(talentDTO.getGithubUrl())
                 .linkedinUrl(talentDTO.getLinkedinUrl())
-                .gpa(talentDTO.getGpa())
-                .status(talentDTO.getStatus() != null ? talentDTO.getStatus() : Talent.Status.AVAILABLE)
+                .status(Talent.Status.AVAILABLE)
                 .build();
 
         Talent savedTalent = talentRepository.save(talent);
         logger.info("Talent created successfully with ID: {}", savedTalent.getId());
-        return savedTalent;
+        return TalentResponse.fromTalent(savedTalent);
     }
 
+    /**
+     * Chức năng: Lấy danh sách tất cả sinh viên.
+     * Repository: TalentRepository.findAll() - Truy vấn tất cả entities.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<Talent> getAllTalents() {
+    public List<TalentResponse> getAllTalents() {
         logger.debug("Fetching all talents");
-        return talentRepository.findAll();
+        return talentRepository.findAll().stream()
+                .map(TalentResponse::fromTalent)
+                .toList();
     }
 
+    /**
+     * Chức năng: Xóa sinh viên theo ID.
+     * Repository: TalentRepository.findById() và delete() - Tìm và xóa entity.
+     */
     @Override
     @Transactional
     public void deleteTalent(String id) {
@@ -69,17 +79,26 @@ public class TalentServiceImpl implements TalentService {
         logger.info("Talent deleted successfully");
     }
 
+    /**
+     * Chức năng: Lấy sinh viên theo ID.
+     * Repository: TalentRepository.findById() - Truy vấn entity theo ID.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Talent getTalentById(String id) {
+    public TalentResponse getTalentById(String id) {
         logger.debug("Fetching talent with ID: {}", id);
-        return talentRepository.findById(id)
+        Talent talent = talentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        return TalentResponse.fromTalent(talent);
     }
 
+    /**
+     * Chức năng: Cập nhật sinh viên theo ID.
+     * Repository: TalentRepository.findById() và save() - Tìm và cập nhật entity.
+     */
     @Override
     @Transactional
-    public Talent updateTalent(TalentDTO talentDTO, String id) {
+    public TalentResponse updateTalent(TalentDTO talentDTO, String id) {
         logger.info("Updating talent with ID: {}", id);
         Talent talent = talentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
@@ -89,7 +108,7 @@ public class TalentServiceImpl implements TalentService {
 
         Talent updatedTalent = talentRepository.save(talent);
         logger.info("Talent updated successfully");
-        return updatedTalent;
+        return TalentResponse.fromTalent(updatedTalent);
     }
 
     /**
@@ -113,23 +132,32 @@ public class TalentServiceImpl implements TalentService {
             talent.setGithubUrl(dto.getGithubUrl());
         if (dto.getLinkedinUrl() != null)
             talent.setLinkedinUrl(dto.getLinkedinUrl());
-        if (dto.getGpa() != null)
-            talent.setGpa(dto.getGpa());
-        if (dto.getStatus() != null)
-            talent.setStatus(dto.getStatus());
     }
 
+    /**
+     * Chức năng: Lọc danh sách sinh viên theo ngành học.
+     * Repository: TalentRepository.findByMajor() - Truy vấn theo major.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<Talent> findByMajor(String major) {
+    public List<TalentResponse> findByMajor(String major) {
         logger.debug("Finding talents by major: {}", major);
-        return talentRepository.findByMajor(major);
+        return talentRepository.findByMajor(major).stream()
+                .map(TalentResponse::fromTalent)
+                .toList();
     }
 
+    /**
+     * Chức năng: Lọc danh sách sinh viên theo trạng thái.
+     * Repository: TalentRepository.findByStatus() - Truy vấn theo status.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<Talent> findByStatus(Talent.Status status) {
+    public List<TalentResponse> findByStatus(Talent.Status status) {
         logger.debug("Finding talents by status: {}", status);
-        return talentRepository.findByStatus(status);
+        return talentRepository.findByStatus(status).stream()
+                .map(TalentResponse::fromTalent)
+                .toList();
     }
+
 }

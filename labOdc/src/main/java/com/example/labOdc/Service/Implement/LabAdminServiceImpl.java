@@ -4,15 +4,19 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.example.labOdc.DTO.LabAdminDTO;
+import com.example.labOdc.DTO.Response.LabAdminResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.LabAdmin;
 import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.LabAdminRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.LabAdminService;
+import org.springframework.security.core.Authentication;
+
 
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -25,32 +29,44 @@ public class LabAdminServiceImpl implements LabAdminService {
     private final LabAdminRepository labAdminRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Chức năng: Tạo hồ sơ Lab Admin mới.
+     * Repository: LabAdminRepository.save() - Lưu entity vào database.
+     */
     @Override
     @Transactional
-    public LabAdmin createLabAdmin(LabAdminDTO dto) {
-        logger.info("Creating lab admin with user ID: {}", dto.getUserId());
-        
-        User user = userRepository.findById(dto.getUserId())
+    public LabAdminResponse createLabAdmin(LabAdminDTO dto) {
+
+        // Lấy SYSTEM_ADMIN đang đăng nhập
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        // Tạo LabAdmin
         LabAdmin labAdmin = LabAdmin.builder()
-                .user(user)
+                .user(user)                
                 .department(dto.getDepartment())
                 .position(dto.getPosition())
                 .build();
 
-        LabAdmin savedLabAdmin = labAdminRepository.save(labAdmin);
-        logger.info("Lab admin created successfully with ID: {}", savedLabAdmin.getId());
-        return savedLabAdmin;
+        LabAdmin saved = labAdminRepository.save(labAdmin);
+
+        return LabAdminResponse.fromLabAdmin(saved);
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<LabAdmin> getAllLabAdmins() {
-        logger.debug("Fetching all lab admins");
-        return labAdminRepository.findAll();
+    public List<LabAdminResponse> getAllLabAdmins() {
+        return labAdminRepository.findAll().stream()
+                .map(LabAdminResponse::fromLabAdmin)
+                .toList();
     }
 
+    /**
+     * Chức năng: Xóa Lab Admin theo ID.
+     * Repository: LabAdminRepository.findById() và delete() - Tìm và xóa entity.
+     */
     @Override
     @Transactional
     public void deleteLabAdmin(String id) {
@@ -61,17 +77,26 @@ public class LabAdminServiceImpl implements LabAdminService {
         logger.info("Lab admin deleted successfully");
     }
 
+    /**
+     * Chức năng: Lấy Lab Admin theo ID.
+     * Repository: LabAdminRepository.findById() - Truy vấn entity theo ID.
+     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public LabAdmin getLabAdminById(String id) {
+    public LabAdminResponse getLabAdminById(String id) {
         logger.debug("Fetching lab admin with ID: {}", id);
-        return labAdminRepository.findById(id)
+        LabAdmin labAdmin = labAdminRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("LabAdmin not found"));
+        return LabAdminResponse.fromLabAdmin(labAdmin);
     }
 
+    /**
+     * Chức năng: Cập nhật Lab Admin theo ID.
+     * Repository: LabAdminRepository.findById() và save() - Tìm và cập nhật entity.
+     */
     @Override
     @Transactional
-    public LabAdmin updateLabAdmin(LabAdminDTO dto, String id) {
+    public LabAdminResponse updateLabAdmin(LabAdminDTO dto, String id) {
         logger.info("Updating lab admin with ID: {}", id);
         LabAdmin labAdmin = labAdminRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("LabAdmin not found"));
@@ -81,9 +106,11 @@ public class LabAdminServiceImpl implements LabAdminService {
 
         LabAdmin updatedLabAdmin = labAdminRepository.save(labAdmin);
         logger.info("Lab admin updated successfully");
-        return updatedLabAdmin;
+        return LabAdminResponse.fromLabAdmin(updatedLabAdmin);
     }
 
+   
+    
     /**
      * Helper method to update lab admin fields from DTO
      * Only updates non-null fields to support partial updates
