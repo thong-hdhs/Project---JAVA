@@ -14,10 +14,8 @@ import java.math.BigDecimal;
 @Builder
 public class FundDistributionDTO {
 
-    @NotBlank(message = "fundAllocationId is required")
     private String fundAllocationId;
 
-    @NotBlank(message = "talentId is required")
     private String talentId;
 
     @NotNull(message = "amount is required")

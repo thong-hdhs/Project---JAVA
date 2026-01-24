@@ -3,7 +3,6 @@ package com.example.labOdc.Repository;
 import com.example.labOdc.Model.MentorPayment;
 import com.example.labOdc.Model.MentorPaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -18,10 +17,9 @@ public interface MentorPaymentRepository extends JpaRepository<MentorPayment, St
     List<MentorPayment> findByProjectId(String projectId);
 
     List<MentorPayment> findByStatus(MentorPaymentStatus status);
+    BigDecimal sumAmountByMentor_IdAndStatus(String mentorId, MentorPaymentStatus status);
 
     Optional<MentorPayment> findByFundAllocationId(String fundAllocationId);
 
-    @Query("SELECT COALESCE(SUM(mp.amount), 0) FROM MentorPayment mp " +
-           "WHERE mp.mentor.id = :mentorId AND mp.status = 'PAID'")
-    BigDecimal getTotalPaidAmountByMentor(String mentorId);
+
 }

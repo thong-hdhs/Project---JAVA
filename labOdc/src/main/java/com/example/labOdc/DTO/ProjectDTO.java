@@ -10,8 +10,13 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-
 public class ProjectDTO {
+
+    @NotBlank
+    private String companyId; // NEW: bắt buộc cho create
+
+    private String mentorId; // NEW: optional
+
     @NotBlank
     private String projectName;
 
@@ -25,7 +30,8 @@ public class ProjectDTO {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    private LocalDate actualEndDate; // NEW: optional
+
     private Integer maxTeamSize;
     private String requiredSkills;
-
 }
