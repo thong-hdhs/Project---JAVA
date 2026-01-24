@@ -13,7 +13,10 @@ import lombok.*;
 @Builder
 public class CompanyRiskRecordDTO {
 
+<<<<<<< HEAD
     @NotBlank
+=======
+>>>>>>> feature/big-update
     private String companyId;
 
     private String projectId;
@@ -26,4 +29,9 @@ public class CompanyRiskRecordDTO {
 
     @NotBlank
     private String description;
+<<<<<<< HEAD
+=======
+
+    private String recordedById;
+>>>>>>> feature/big-update
 }

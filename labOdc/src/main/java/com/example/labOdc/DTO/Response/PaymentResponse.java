@@ -1,7 +1,10 @@
 package com.example.labOdc.DTO.Response;
 
 import com.example.labOdc.Model.Payment;
+<<<<<<< HEAD
 import com.example.labOdc.Model.PaymentMethod;
+=======
+>>>>>>> feature/big-update
 import com.example.labOdc.Model.PaymentStatus;
 import com.example.labOdc.Model.PaymentType;
 import lombok.*;
@@ -33,10 +36,13 @@ public class PaymentResponse {
     private LocalDate paymentDate;
     private LocalDate dueDate;
 
+<<<<<<< HEAD
     private String paymentGateway;
     private PaymentMethod paymentMethod;
 
     private String invoiceNumber;
+=======
+>>>>>>> feature/big-update
     private String notes;
 
     private LocalDateTime createdAt;
@@ -60,12 +66,19 @@ public class PaymentResponse {
                 .transactionId(p.getTransactionId())
                 .paymentDate(p.getPaymentDate())
                 .dueDate(p.getDueDate())
+<<<<<<< HEAD
                 .paymentGateway(p.getPaymentGateway())
                 .paymentMethod(p.getPaymentMethod())
                 .invoiceNumber(p.getInvoiceNumber())
+=======
+>>>>>>> feature/big-update
                 .notes(p.getNotes())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
                 .build();
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feature/big-update

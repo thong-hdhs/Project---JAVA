@@ -23,12 +23,12 @@ public class LabFundAdvance {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id")
-    private Payment payment;  // Tùy chọn, liên kết với thanh toán nếu cần
+    @JoinColumn(name = "payment_id", nullable = true)
+    private Payment payment;  
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal advanceAmount;

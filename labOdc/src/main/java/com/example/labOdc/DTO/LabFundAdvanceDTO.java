@@ -14,10 +14,13 @@ import java.math.BigDecimal;
 @Builder
 public class LabFundAdvanceDTO {
 
-    @NotBlank(message = "projectId is required")
     private String projectId;
 
+<<<<<<< HEAD
     private String paymentId; // nullable: có thể ứng trước hoặc gắn với payment
+=======
+    private String paymentId; 
+>>>>>>> feature/big-update
 
     @NotNull(message = "advanceAmount is required")
     @Positive(message = "advanceAmount must be positive")

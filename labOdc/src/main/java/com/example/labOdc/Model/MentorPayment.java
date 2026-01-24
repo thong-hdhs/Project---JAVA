@@ -25,18 +25,18 @@ public class MentorPayment {
     private String id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fund_allocation_id", nullable = false, unique = true)
+    @JoinColumn(name = "fund_allocation_id", nullable = true, unique = true)
     private FundAllocation fundAllocation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mentor_id", nullable = false)
+    @JoinColumn(name = "mentor_id", nullable = true)
     private Mentor mentor;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
-    @Column(nullable = false, precision = 15, scale = 2)
+    @Column(nullable = true, precision = 15, scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
