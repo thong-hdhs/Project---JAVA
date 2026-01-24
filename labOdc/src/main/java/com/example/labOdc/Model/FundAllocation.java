@@ -22,11 +22,11 @@ public class FundAllocation {
     private String id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id", nullable = false, unique = true)
+    @JoinColumn(name = "payment_id", nullable = true, unique = true)
     private Payment payment;  
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
     @Column(nullable = false, precision = 15, scale = 2)

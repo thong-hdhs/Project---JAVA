@@ -20,5 +20,7 @@ public interface FundDistributionService {
 
     List<FundDistributionResponse> getByTalentId(String talentId);
 
+    List<FundDistributionResponse> getByStatus(String status);
+
     BigDecimal getTotalPaidForTalent(String talentId);
 }

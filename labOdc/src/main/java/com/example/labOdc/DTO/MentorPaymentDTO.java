@@ -1,5 +1,7 @@
 package com.example.labOdc.DTO;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.NotBlank;
 
 import lombok.*;
@@ -11,8 +13,11 @@ import lombok.*;
 @Builder
 public class MentorPaymentDTO {
 
-    @NotBlank(message = "mentorPayment.fundAllocationId.required")
     private String fundAllocationId;
+
+    private String mentorId;
+    
+    private BigDecimal totalAmount;
 
     private String notes;
 }

@@ -21,11 +21,11 @@ public class CompanyRiskRecord {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", nullable = false)
+    @JoinColumn(name = "company_id", nullable = true)
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
     @Enumerated(EnumType.STRING)
@@ -40,7 +40,7 @@ public class CompanyRiskRecord {
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recorded_by", nullable = false)
+    @JoinColumn(name = "recorded_by", nullable = true)
     private User recordedBy;
 
     @CreationTimestamp

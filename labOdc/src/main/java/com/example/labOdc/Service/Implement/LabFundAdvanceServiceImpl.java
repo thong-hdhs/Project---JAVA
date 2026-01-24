@@ -24,13 +24,17 @@ public class LabFundAdvanceServiceImpl implements LabFundAdvanceService {
 
     @Override
     public LabFundAdvanceResponse createAdvance(LabFundAdvanceDTO dto) {
-        Project project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        Project project = null;
+        if (dto.getProjectId() != null) {
+                project = projectRepository.findById(dto.getProjectId())
+                        .orElse(null);
+        }
 
         Payment payment = null;
         if (dto.getPaymentId() != null) {
-            payment = paymentRepository.findById(dto.getPaymentId())
-                    .orElseThrow(() -> new RuntimeException("Payment not found"));
+                payment = paymentRepository.findById(dto.getPaymentId())
+                        .orElse(null);
         }
 
         LabFundAdvance advance = LabFundAdvance.builder()
@@ -42,15 +46,20 @@ public class LabFundAdvanceServiceImpl implements LabFundAdvanceService {
                 .build();
 
         LabFundAdvance saved = labFundAdvanceRepository.save(advance);
-        return mapToResponse(saved);
+        return LabFundAdvanceResponse.fromEntity(saved);
     }
 
     @Override
-    public LabFundAdvanceResponse updateStatus(String advanceId, String statusStr, String approvedById) {
+    public LabFundAdvanceResponse updateStatus(
+            String advanceId,
+            String statusStr,
+            String approvedById) {
+
         LabFundAdvance advance = labFundAdvanceRepository.findById(advanceId)
                 .orElseThrow(() -> new RuntimeException("Lab fund advance not found"));
 
-        LabFundAdvanceStatus status = LabFundAdvanceStatus.valueOf(statusStr.toUpperCase());
+        LabFundAdvanceStatus status =
+                LabFundAdvanceStatus.valueOf(statusStr.toUpperCase());
         advance.setStatus(status);
 
         if (approvedById != null) {
@@ -60,15 +69,15 @@ public class LabFundAdvanceServiceImpl implements LabFundAdvanceService {
         }
 
         LabFundAdvance updated = labFundAdvanceRepository.save(advance);
-        return mapToResponse(updated);
+        return LabFundAdvanceResponse.fromEntity(updated);
     }
 
     @Override
     @Transactional(readOnly = true)
     public LabFundAdvanceResponse getById(String id) {
-        LabFundAdvance advance = labFundAdvanceRepository.findById(id)
+        return labFundAdvanceRepository.findById(id)
+                .map(LabFundAdvanceResponse::fromEntity)
                 .orElseThrow(() -> new RuntimeException("Lab fund advance not found"));
-        return mapToResponse(advance);
     }
 
     @Override
@@ -76,22 +85,7 @@ public class LabFundAdvanceServiceImpl implements LabFundAdvanceService {
     public List<LabFundAdvanceResponse> getByProjectId(String projectId) {
         return labFundAdvanceRepository.findByProjectId(projectId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(LabFundAdvanceResponse::fromEntity)
                 .collect(Collectors.toList());
-    }
-
-    private LabFundAdvanceResponse mapToResponse(LabFundAdvance advance) {
-        return LabFundAdvanceResponse.builder()
-                .id(advance.getId())
-                .projectName(advance.getProject().getProjectName())
-                .projectCode(advance.getProject().getProjectCode())
-                .paymentTransactionId(advance.getPayment() != null ? advance.getPayment().getTransactionId() : null)
-                .advanceAmount(advance.getAdvanceAmount())
-                .advanceReason(advance.getAdvanceReason())
-                .status(advance.getStatus())
-                .approvedByName(advance.getApprovedBy() != null ? advance.getApprovedBy().getFullName() : null)
-                .createdAt(advance.getCreatedAt())
-                .updatedAt(advance.getUpdatedAt())
-                .build();
     }
 }

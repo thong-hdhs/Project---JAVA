@@ -25,15 +25,22 @@ public class FundAllocationServiceImpl implements FundAllocationService {
 
     @Override
     public FundAllocationResponse allocateFund(FundAllocationDTO dto) {
-        Payment payment = paymentRepository.findById(dto.getPaymentId())
+
+        Payment payment = null;
+    if (dto.getPaymentId() != null) {
+        payment = paymentRepository.findById(dto.getPaymentId())
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
         if (!payment.getStatus().equals(PaymentStatus.COMPLETED)) {
             throw new RuntimeException("Payment must be COMPLETED to allocate fund");
         }
+    }
 
-        Project project = projectRepository.findById(dto.getProjectId())
+    Project project = null;
+    if (dto.getProjectId() != null) {
+        project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+    }
 
         BigDecimal total = dto.getTotalAmount() != null ? dto.getTotalAmount() : payment.getAmount();
 
@@ -98,9 +105,9 @@ public class FundAllocationServiceImpl implements FundAllocationService {
     private FundAllocationResponse mapToResponse(FundAllocation allocation) {
         return FundAllocationResponse.builder()
                 .id(allocation.getId())
-                .paymentId(allocation.getPayment().getId())
-                .projectName(allocation.getProject().getProjectName())
-                .projectCode(allocation.getProject().getProjectCode())
+                .paymentId(allocation.getPayment() != null ? allocation.getPayment().getId() : null)
+                .projectName(allocation.getProject() != null ? allocation.getProject().getProjectName() : null)
+                .projectCode(allocation.getProject() != null ? allocation.getProject().getProjectCode() : null)
                 .totalAmount(allocation.getTotalAmount())
                 .teamAmount(allocation.getTeamAmount())
                 .mentorAmount(allocation.getMentorAmount())
@@ -108,7 +115,11 @@ public class FundAllocationServiceImpl implements FundAllocationService {
                 .teamPercentage(allocation.getTeamPercentage())
                 .mentorPercentage(allocation.getMentorPercentage())
                 .labPercentage(allocation.getLabPercentage())
-                .status(allocation.getStatus())
+                .status(
+                    allocation.getStatus() != null
+                        ? allocation.getStatus().name()
+                        : null
+                )
                 .allocatedByName(allocation.getAllocatedBy() != null ? allocation.getAllocatedBy().getFullName() : null)
                 .allocatedAt(allocation.getAllocatedAt())
                 .notes(allocation.getNotes())
