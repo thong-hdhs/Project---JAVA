@@ -13,15 +13,15 @@ import java.util.Optional;
 @Repository
 public interface MentorPaymentRepository extends JpaRepository<MentorPayment, String> {
 
-    List<MentorPayment> findByMentor_Id(String mentorId);
+    List<MentorPayment> findByMentorId(String mentorId);
 
-    List<MentorPayment> findByProject_Id(String projectId);
+    List<MentorPayment> findByProjectId(String projectId);
 
     List<MentorPayment> findByStatus(MentorPaymentStatus status);
 
-    Optional<MentorPayment> findByFundAllocation_Id(String fundAllocationId);
+    Optional<MentorPayment> findByFundAllocationId(String fundAllocationId);
 
-    BigDecimal sumAmountByMentor_IdAndStatus(String mentorId, MentorPaymentStatus status);
+    BigDecimal sumAmountByMentorIdAndStatus(String mentorId, MentorPaymentStatus status);
 
     BigDecimal getTotalPaidAmountByMentor(String mentorId);
 }

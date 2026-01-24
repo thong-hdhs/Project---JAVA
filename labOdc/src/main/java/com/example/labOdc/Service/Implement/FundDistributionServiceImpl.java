@@ -97,7 +97,7 @@ public class FundDistributionServiceImpl implements FundDistributionService {
     @Override
     @Transactional(readOnly = true)
     public List<FundDistributionResponse> getByFundAllocationId(String fundAllocationId) {
-        return fundDistributionRepository.findByFundAllocation_Id(fundAllocationId)
+        return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
                 .stream()
                 .map(FundDistributionResponse::fromEntity)
                 .toList();
@@ -107,7 +107,7 @@ public class FundDistributionServiceImpl implements FundDistributionService {
     @Override
     @Transactional(readOnly = true)
     public List<FundDistributionResponse> getByTalentId(String talentId) {
-        return fundDistributionRepository.findByTalent_Id(talentId)
+        return fundDistributionRepository.findByTalentId(talentId)
                 .stream()
                 .map(FundDistributionResponse::fromEntity)
                 .toList();
@@ -128,7 +128,7 @@ public class FundDistributionServiceImpl implements FundDistributionService {
     @Override
     @Transactional(readOnly = true)
     public BigDecimal getTotalPaidForTalent(String talentId) {
-        return fundDistributionRepository.findByTalent_Id(talentId)
+        return fundDistributionRepository.findByTalentId(talentId)
                 .stream()
                 .filter(d -> d.getStatus() == FundDistributionStatus.PAID)
                 .map(FundDistribution::getAmount)

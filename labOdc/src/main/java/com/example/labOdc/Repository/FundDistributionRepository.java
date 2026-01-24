@@ -13,9 +13,9 @@ import java.util.Optional;
 @Repository
 public interface FundDistributionRepository extends JpaRepository<FundDistribution, String> {    
 
-    List<FundDistribution> findByFundAllocation_Id(String fundAllocationId);
+    List<FundDistribution> findByFundAllocationId(String fundAllocationId);
 
-    List<FundDistribution> findByTalent_Id(String talentId);
+    List<FundDistribution> findByTalentId(String talentId);
 
     List<FundDistribution> findByStatus(FundDistributionStatus status);
 }

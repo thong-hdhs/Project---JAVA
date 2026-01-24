@@ -90,7 +90,7 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
         @Override
         @Transactional(readOnly = true)
         public List<MentorPaymentResponse> getByMentorId(String mentorId) {
-                return mentorPaymentRepository.findByMentor_Id(mentorId)
+                return mentorPaymentRepository.findByMentorId(mentorId)
                 .stream()
                 .map(MentorPaymentResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -99,7 +99,7 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
         @Override
         @Transactional(readOnly = true)
         public List<MentorPaymentResponse> getByProjectId(String projectId) {
-                return mentorPaymentRepository.findByProject_Id(projectId)
+                return mentorPaymentRepository.findByProjectId(projectId)
                 .stream()
                 .map(MentorPaymentResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -109,7 +109,7 @@ public class MentorPaymentServiceImpl implements MentorPaymentService {
         @Transactional(readOnly = true)
         public BigDecimal getTotalPaidForMentor(String mentorId) {
                 return mentorPaymentRepository
-            .sumAmountByMentor_IdAndStatus(
+            .sumAmountByMentorIdAndStatus(
                 mentorId,
                 MentorPaymentStatus.PAID
             );
