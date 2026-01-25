@@ -33,7 +33,9 @@ public class PaymentResponse {
     private LocalDate dueDate;
 
     private String notes;
+  private String orderCode;
 
+    private String qrUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

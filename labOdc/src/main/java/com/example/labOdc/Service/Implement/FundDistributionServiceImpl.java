@@ -9,11 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,14 +23,16 @@ public class FundDistributionServiceImpl implements FundDistributionService {
     private final TalentRepository talentRepository;
     private final UserRepository userRepository;
 
-    // ========== CREATE ==========
     @Override
     public FundDistributionResponse createDistribution(FundDistributionDTO dto) {
 
-        FundAllocation allocation = dto.getFundAllocationId() != null
-                ? fundAllocationRepository.findById(dto.getFundAllocationId()).orElse(null)
-                : null;
+        FundAllocation allocation = null;
 
+        if (dto.getFundAllocationId() != null && !dto.getFundAllocationId().isBlank()) {
+                allocation = fundAllocationRepository
+                        .findById(dto.getFundAllocationId())
+                        .orElse(null); // ❗ KHÔNG throw khi test
+        }
         Talent talent = dto.getTalentId() != null
                 ? talentRepository.findById(dto.getTalentId()).orElse(null)
                 : null;
@@ -51,21 +51,21 @@ public class FundDistributionServiceImpl implements FundDistributionService {
         );
     }
 
-    // ========== UPDATE STATUS ==========
     @Override
     public FundDistributionResponse updateStatus(
             String distributionId,
-            String statusStr,
+            String status,
             String approvedById,
-            LocalDate paidDate,
-            String paymentMethod,
-            String transactionRef,
-            String notes) {
+            String notes
+    ) {
 
         FundDistribution distribution = fundDistributionRepository.findById(distributionId)
                 .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
 
-        distribution.setStatus(FundDistributionStatus.valueOf(statusStr.toUpperCase()));
+        FundDistributionStatus newStatus =
+                FundDistributionStatus.valueOf(status.toUpperCase());
+
+        distribution.setStatus(newStatus);
 
         if (approvedById != null) {
             User approvedBy = userRepository.findById(approvedById)
@@ -74,17 +74,35 @@ public class FundDistributionServiceImpl implements FundDistributionService {
             distribution.setApprovedAt(LocalDateTime.now());
         }
 
-        if (paidDate != null) distribution.setPaidDate(paidDate);
-        if (paymentMethod != null) distribution.setPaymentMethod(paymentMethod);
-        if (transactionRef != null) distribution.setTransactionReference(transactionRef);
-        if (notes != null) distribution.setNotes(notes);
+        if (notes != null) {
+            distribution.setNotes(notes);
+        }
 
         return FundDistributionResponse.fromEntity(
                 fundDistributionRepository.save(distribution)
         );
     }
 
-    // ========== GET BY ID ==========
+    @Override
+    public FundDistributionResponse markAsPaid(
+            String distributionId,
+            String paymentMethod,
+            String transactionReference
+    ) {
+
+        FundDistribution distribution = fundDistributionRepository.findById(distributionId)
+                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
+
+        distribution.setStatus(FundDistributionStatus.PAID);
+        distribution.setPaidDate(LocalDate.now());
+        distribution.setPaymentMethod(paymentMethod);
+        distribution.setTransactionReference(transactionReference);
+
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
+    }
+
     @Override
     @Transactional(readOnly = true)
     public FundDistributionResponse getById(String id) {
@@ -93,7 +111,6 @@ public class FundDistributionServiceImpl implements FundDistributionService {
                 .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
     }
 
-    // ========== GET BY FUND ALLOCATION ==========
     @Override
     @Transactional(readOnly = true)
     public List<FundDistributionResponse> getByFundAllocationId(String fundAllocationId) {
@@ -103,7 +120,6 @@ public class FundDistributionServiceImpl implements FundDistributionService {
                 .toList();
     }
 
-    // ========== GET BY TALENT ==========
     @Override
     @Transactional(readOnly = true)
     public List<FundDistributionResponse> getByTalentId(String talentId) {
@@ -113,25 +129,15 @@ public class FundDistributionServiceImpl implements FundDistributionService {
                 .toList();
     }
 
-    // ========== GET BY STATUS ==========
     @Override
     @Transactional(readOnly = true)
-    public List<FundDistributionResponse> getByStatus(String status) {
-        return fundDistributionRepository
-                .findByStatus(FundDistributionStatus.valueOf(status.toUpperCase()))
-                .stream()
-                .map(FundDistributionResponse::fromEntity)
-                .toList();
-    }
+    public boolean isFullyDistributed(String fundAllocationId) {
 
-    // ========== TOTAL PAID ==========
-    @Override
-    @Transactional(readOnly = true)
-    public BigDecimal getTotalPaidForTalent(String talentId) {
-        return fundDistributionRepository.findByTalentId(talentId)
+        FundAllocation allocation = fundAllocationRepository.findById(fundAllocationId)
+                .orElseThrow(() -> new RuntimeException("Fund allocation not found"));
+
+        return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
                 .stream()
-                .filter(d -> d.getStatus() == FundDistributionStatus.PAID)
-                .map(FundDistribution::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .allMatch(d -> d.getStatus() == FundDistributionStatus.PAID);
     }
 }

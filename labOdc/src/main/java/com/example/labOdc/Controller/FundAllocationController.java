@@ -3,6 +3,7 @@ package com.example.labOdc.Controller;
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.FundAllocationDTO;
 import com.example.labOdc.DTO.Response.FundAllocationResponse;
+import com.example.labOdc.Model.FundAllocationStatus;
 import com.example.labOdc.Service.FundAllocationService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -22,21 +23,24 @@ public class FundAllocationController {
 
     private final FundAllocationService fundAllocationService;
 
+    /* ================= CREATE ================= */
+
     @PostMapping("/")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<FundAllocationResponse> allocateFund(
+    public ApiResponse<FundAllocationResponse> createAllocation(
             @Valid @RequestBody FundAllocationDTO dto,
             BindingResult result) {
 
         if (result.hasErrors()) {
-            List<String> errorMessages = result.getFieldErrors()
+            List<String> errors = result.getFieldErrors()
                     .stream()
                     .map(FieldError::getDefaultMessage)
                     .collect(Collectors.toList());
-            return ApiResponse.error(errorMessages);
+            return ApiResponse.error(errors);
         }
 
-        FundAllocationResponse response = fundAllocationService.allocateFund(dto);
+        FundAllocationResponse response =
+                fundAllocationService.createAllocation(dto);
 
         return ApiResponse.success(
                 response,
@@ -45,15 +49,20 @@ public class FundAllocationController {
         );
     }
 
+    /* ================= UPDATE STATUS ================= */
+
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<FundAllocationResponse> updateAllocationStatus(
+    public ApiResponse<FundAllocationResponse> updateStatus(
             @PathVariable String id,
             @RequestParam String status,
-            @RequestParam(required = false) String allocatedById,
             @RequestParam(required = false) String notes) {
 
-        FundAllocationResponse response = fundAllocationService.updateStatus(id, status, allocatedById, notes);
+        FundAllocationStatus allocationStatus =
+                FundAllocationStatus.valueOf(status.toUpperCase());
+
+        FundAllocationResponse response =
+                fundAllocationService.updateStatus(id, allocationStatus, notes);
 
         return ApiResponse.success(
                 response,
@@ -62,17 +71,42 @@ public class FundAllocationController {
         );
     }
 
+    /* ================= QUERY ================= */
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundAllocationResponse> getById(@PathVariable String id) {
-        FundAllocationResponse response = fundAllocationService.getById(id);
-        return ApiResponse.success(response, "Fund allocation retrieved successfully", HttpStatus.OK);
+        return ApiResponse.success(
+                fundAllocationService.getById(id),
+                "Fund allocation retrieved successfully",
+                HttpStatus.OK
+        );
     }
 
     @GetMapping("/payment/{paymentId}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<FundAllocationResponse> getByPaymentId(@PathVariable String paymentId) {
-        FundAllocationResponse response = fundAllocationService.getByPaymentId(paymentId);
-        return ApiResponse.success(response, "Fund allocation by payment retrieved successfully", HttpStatus.OK);
+    public ApiResponse<FundAllocationResponse> getByPaymentId(
+            @PathVariable String paymentId) {
+
+        return ApiResponse.success(
+                fundAllocationService.getByPaymentId(paymentId),
+                "Fund allocation by payment retrieved successfully",
+                HttpStatus.OK
+        );
+    }
+
+        @GetMapping("/project/{projectId}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
+    public ApiResponse<List<FundAllocationResponse>> getByProject(
+            @PathVariable String projectId) {
+
+        List<FundAllocationResponse> list =
+                fundAllocationService.getByProjectId(projectId);
+
+        return ApiResponse.success(
+                list,
+                "Fund allocations by project retrieved successfully",
+                HttpStatus.OK
+        );
     }
 }

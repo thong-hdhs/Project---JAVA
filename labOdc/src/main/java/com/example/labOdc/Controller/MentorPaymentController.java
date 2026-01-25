@@ -2,7 +2,7 @@ package com.example.labOdc.Controller;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.MentorPaymentDTO;
-import com.example.labOdc.DTO.Response.MentorPaymentResponse;
+import com.example.labOdc.Model.MentorPayment;
 import com.example.labOdc.Model.MentorPaymentStatus;
 import com.example.labOdc.Service.MentorPaymentService;
 import jakarta.validation.Valid;
@@ -26,69 +26,126 @@ public class MentorPaymentController {
 
     @PostMapping("/")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<MentorPaymentResponse> createMentorPayment(
+    public ApiResponse<MentorPayment> createMentorPayment(
             @Valid @RequestBody MentorPaymentDTO dto,
             BindingResult result) {
 
         if (result.hasErrors()) {
-            List<String> errorMessages = result.getFieldErrors()
+            List<String> errors = result.getFieldErrors()
                     .stream()
                     .map(FieldError::getDefaultMessage)
                     .collect(Collectors.toList());
-            return ApiResponse.error(errorMessages);
+            return ApiResponse.error(errors);
         }
 
-        MentorPaymentResponse response = mentorPaymentService.createFromAllocation(dto);
-
+        MentorPayment payment = mentorPaymentService.createMentorPayment(dto);
         return ApiResponse.success(
-                response,
+                payment,
                 "Mentor payment created successfully",
                 HttpStatus.CREATED
         );
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<MentorPaymentResponse> updatePaymentStatus(
+    public ApiResponse<MentorPayment> approveMentorPayment(
             @PathVariable String id,
-            @RequestParam MentorPaymentStatus status,
-            @RequestParam(required = false) String approvedById,
-            @RequestParam(required = false) String notes) {
+            @RequestParam String approvedByUserId) {
 
-        MentorPaymentResponse response = mentorPaymentService.updateStatus(id, status, approvedById, notes);
+        MentorPayment payment =
+                mentorPaymentService.approveMentorPayment(id, approvedByUserId);
 
         return ApiResponse.success(
-                response,
-                "Mentor payment status updated successfully",
+                payment,
+                "Mentor payment approved successfully",
+                HttpStatus.OK
+        );
+    }
+
+    @PatchMapping("/{id}/paid")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
+    public ApiResponse<MentorPayment> markAsPaid(
+            @PathVariable String id,
+            @RequestParam String paymentMethod,
+            @RequestParam(required = false) String transactionReference) {
+
+        MentorPayment payment =
+                mentorPaymentService.markAsPaid(id, paymentMethod, transactionReference);
+
+        return ApiResponse.success(
+                payment,
+                "Mentor payment marked as PAID",
+                HttpStatus.OK
+        );
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
+    public ApiResponse<MentorPayment> cancelMentorPayment(
+            @PathVariable String id,
+            @RequestParam(required = false) String reason) {
+
+        MentorPayment payment =
+                mentorPaymentService.cancelMentorPayment(id, reason);
+
+        return ApiResponse.success(
+                payment,
+                "Mentor payment cancelled successfully",
                 HttpStatus.OK
         );
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'MENTOR')")
-    public ApiResponse<MentorPaymentResponse> getMentorPaymentById(@PathVariable String id) {
-        MentorPaymentResponse response = mentorPaymentService.getById(id);
-        return ApiResponse.success(response, "Mentor payment retrieved successfully", HttpStatus.OK);
+    public ApiResponse<MentorPayment> getById(@PathVariable String id) {
+        return ApiResponse.success(
+                mentorPaymentService.getById(id),
+                "Mentor payment retrieved successfully",
+                HttpStatus.OK
+        );
     }
 
     @GetMapping("/mentor/{mentorId}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'MENTOR')")
-    public ApiResponse<List<MentorPaymentResponse>> getPaymentsByMentor(@PathVariable String mentorId) {
-        List<MentorPaymentResponse> list = mentorPaymentService.getByMentorId(mentorId);
-        return ApiResponse.success(list, "Mentor payments retrieved successfully", HttpStatus.OK);
+    public ApiResponse<List<MentorPayment>> getByMentor(@PathVariable String mentorId) {
+        return ApiResponse.success(
+                mentorPaymentService.getByMentor(mentorId),
+                "Mentor payments retrieved successfully",
+                HttpStatus.OK
+        );
     }
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<List<MentorPaymentResponse>> getPaymentsByProject(@PathVariable String projectId) {
-        List<MentorPaymentResponse> list = mentorPaymentService.getByProjectId(projectId);
-        return ApiResponse.success(list, "Project mentor payments retrieved successfully", HttpStatus.OK);
+    public ApiResponse<List<MentorPayment>> getByProject(@PathVariable String projectId) {
+        return ApiResponse.success(
+                mentorPaymentService.getByProject(projectId),
+                "Project mentor payments retrieved successfully",
+                HttpStatus.OK
+        );
     }
 
-    @GetMapping("/mentor/{mentorId}/total-paid")
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
+    public ApiResponse<List<MentorPayment>> getByStatus(
+            @PathVariable MentorPaymentStatus status) {
+
+        return ApiResponse.success(
+                mentorPaymentService.getByStatus(status),
+                "Mentor payments by status retrieved successfully",
+                HttpStatus.OK
+        );
+    }
+
+    @GetMapping("/mentor/{mentorId}/total")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'MENTOR')")
-    public ApiResponse<BigDecimal> getTotalPaidForMentor(@PathVariable String mentorId) {
-        BigDecimal total = mentorPaymentService.getTotalPaidForMentor(mentorId);
-        return ApiResponse.success(total, "Total paid amount retrieved successfully", HttpStatus.OK);
+    public ApiResponse<BigDecimal> getTotalAmountByMentor(
+            @PathVariable String mentorId) {
+
+        return ApiResponse.success(
+                mentorPaymentService.getTotalAmountByMentor(mentorId),
+                "Total mentor payment amount retrieved successfully",
+                HttpStatus.OK
+        );
     }
 }

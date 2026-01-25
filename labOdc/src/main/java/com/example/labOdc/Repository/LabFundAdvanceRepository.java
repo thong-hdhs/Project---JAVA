@@ -12,5 +12,7 @@ public interface LabFundAdvanceRepository extends JpaRepository<LabFundAdvance, 
 
     List<LabFundAdvance> findByProjectId(String projectId);
 
+    List<LabFundAdvance> findByPaymentId(String paymentId);
+
     List<LabFundAdvance> findByStatus(LabFundAdvanceStatus status);
 }
