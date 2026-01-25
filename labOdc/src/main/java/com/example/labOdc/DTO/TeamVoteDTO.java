@@ -27,14 +27,4 @@ public class TeamVoteDTO {
 
     @NotNull
     private TeamVote.Vote vote;
-
-    @NotBlank
-    private String content;
-
-    private LocalDateTime endTime;
-
-    private Double approveRatio;
-
-    private Boolean anonymous;
-
 }
