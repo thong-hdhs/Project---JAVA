@@ -35,6 +35,19 @@ public class MilestoneServiceImpl implements MilestoneService {
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", dto.getProjectId()));
 
+        // Validate total payment percentage
+        if (dto.getPaymentPercentage() != null) {
+            java.math.BigDecimal total = milestoneRepository.findByProjectIdOrderByDueDateAsc(project.getId())
+                    .stream()
+                    .map(Milestone::getPaymentPercentage)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            if (total.add(dto.getPaymentPercentage()).compareTo(new java.math.BigDecimal("100")) > 0) {
+                throw new IllegalArgumentException("Total payment percentage cannot exceed 100%");
+            }
+        }
+
         Milestone m = Milestone.builder()
                 .project(project)
                 .milestoneName(dto.getMilestoneName())
@@ -81,8 +94,21 @@ public class MilestoneServiceImpl implements MilestoneService {
             m.setDescription(dto.getDescription());
         if (dto.getDueDate() != null)
             m.setDueDate(dto.getDueDate());
-        if (dto.getPaymentPercentage() != null)
+        if (dto.getPaymentPercentage() != null) {
+            // Validate new total percentage
+            java.math.BigDecimal totalExcludingCurrent = milestoneRepository
+                    .findByProjectIdOrderByDueDateAsc(m.getProject().getId())
+                    .stream()
+                    .filter(item -> !item.getId().equals(id)) // Exclude current milestone
+                    .map(Milestone::getPaymentPercentage)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            if (totalExcludingCurrent.add(dto.getPaymentPercentage()).compareTo(new java.math.BigDecimal("100")) > 0) {
+                throw new IllegalArgumentException("Total payment percentage cannot exceed 100%");
+            }
             m.setPaymentPercentage(dto.getPaymentPercentage());
+        }
         if (dto.getDeliverables() != null)
             m.setDeliverables(dto.getDeliverables());
 
@@ -113,9 +139,9 @@ public class MilestoneServiceImpl implements MilestoneService {
 
         LocalDate doneDate = completedDate != null ? completedDate : LocalDate.now();
 
-        if (m.getDueDate() != null && doneDate.isBefore(m.getDueDate())) {
-            throw new IllegalArgumentException("completedDate cannot be before dueDate");
-        }
+        // if (m.getDueDate() != null && doneDate.isBefore(m.getDueDate())) {
+        // throw new IllegalArgumentException("completedDate cannot be before dueDate");
+        // }
 
         m.setCompletedDate(doneDate);
         m.setStatus(MilestoneStatus.COMPLETED);

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
@@ -25,6 +26,7 @@ public class ProjectChangeRequestController {
     private final ProjectChangeRequestService projectChangeRequestService;
 
     @PostMapping("/")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<ProjectChangeRequestResponse> create(@Valid @RequestBody ProjectChangeRequestDTO dto,
             BindingResult result) {
         if (result.hasErrors()) {
@@ -56,6 +58,7 @@ public class ProjectChangeRequestController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<ProjectChangeRequestResponse> update(@Valid @RequestBody ProjectChangeRequestDTO dto,
             @PathVariable String id) {
         ProjectChangeRequest pcr = projectChangeRequestService.updateProjectChangeRequest(dto, id);
@@ -64,6 +67,7 @@ public class ProjectChangeRequestController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<String> delete(@PathVariable String id) {
         projectChangeRequestService.deleteProjectChangeRequest(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
@@ -81,6 +85,7 @@ public class ProjectChangeRequestController {
     }
 
     @PutMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectChangeRequestResponse> approve(
             @PathVariable String id,
             @RequestBody(required = false) ReviewNotesDTO body) {
@@ -93,6 +98,7 @@ public class ProjectChangeRequestController {
     }
 
     @PutMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectChangeRequestResponse> reject(
             @PathVariable String id,
             @RequestBody ReviewNotesDTO body) {
@@ -103,6 +109,7 @@ public class ProjectChangeRequestController {
     }
 
     @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<ProjectChangeRequestResponse> cancel(@PathVariable String id) {
         ProjectChangeRequest pcr = projectChangeRequestService.cancel(id);
         return ApiResponse.success(ProjectChangeRequestResponse.fromProjectChangeRequest(pcr), "Cancelled",

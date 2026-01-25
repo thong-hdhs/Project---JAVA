@@ -53,6 +53,7 @@ public class UserServiceImpl implements UserService {
                 .fullName(userDTO.getFullName())
                 .phone(userDTO.getPhone())
                 .avatarUrl(userDTO.getAvatarUrl())
+                .username(userDTO.getUsername())
                 .roles(roles)
                 .isActive(userDTO.getIsActive() != null ? userDTO.getIsActive() : true)
                 .emailVerified(userDTO.getEmailVerified())
