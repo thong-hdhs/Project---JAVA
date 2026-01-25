@@ -13,7 +13,6 @@ import lombok.*;
 @Builder
 public class CompanyRiskRecordDTO {
 
-    @NotBlank
     private String companyId;
 
     private String projectId;
@@ -26,4 +25,6 @@ public class CompanyRiskRecordDTO {
 
     @NotBlank
     private String description;
+
+    private String recordedById;
 }

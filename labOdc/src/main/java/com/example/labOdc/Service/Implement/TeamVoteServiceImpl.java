@@ -25,15 +25,13 @@ public class TeamVoteServiceImpl implements TeamVoteService {
     private final TalentRepository talentRepository;
 
     @Override
-    public TeamVote  vote(TeamVoteDTO dto, String talentId) {
-
+    public TeamVote vote(TeamVoteDTO dto, String talentId) {
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Project"));
 
         Talent talent = talentRepository.findById(talentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Talent"));
 
-        // 1 talent chỉ được vote 1 lần cho 1 proposal (unique constraint)
         TeamVote vote = teamVoteRepository
                 .findByProjectIdAndTalentIdAndProposalTypeAndProposalId(
                         dto.getProjectId(),
@@ -48,6 +46,7 @@ public class TeamVoteServiceImpl implements TeamVoteService {
                         .build());
 
         vote.setVote(dto.getVote());
+        vote.setVotedAt(LocalDateTime.now());
 
         return teamVoteRepository.save(vote);
     }
@@ -93,10 +92,81 @@ public class TeamVoteServiceImpl implements TeamVoteService {
                         proposalType,
                         proposalId);
     }
+    @Override
+    public TeamVote getMyVote(String projectId, String talentId,
+                              TeamVote.ProposalType proposalType, String proposalId) {
 
+        return teamVoteRepository
+                .findByProjectIdAndTalentIdAndProposalTypeAndProposalId(
+                        projectId, talentId, proposalType, proposalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent chưa vote proposal này"));
+    }
+
+    @Override
+    public boolean hasVoted(String projectId, String talentId,
+                            TeamVote.ProposalType proposalType, String proposalId) {
+
+        return teamVoteRepository
+                .existsByProjectIdAndTalentIdAndProposalTypeAndProposalId(
+                        projectId, talentId, proposalType, proposalId);
+    }
+
+    @Override
+    public long countVote(String projectId,
+                          TeamVote.ProposalType proposalType,
+                          String proposalId,
+                          TeamVote.Vote vote) {
+
+        return teamVoteRepository
+                .countByProjectIdAndProposalTypeAndProposalIdAndVote(
+                        projectId, proposalType, proposalId, vote);
+    }
     @Override
     public void deleteVote(String id) {
 
         teamVoteRepository.deleteById(id);
+    }
+    @Override
+    public long countTotalVote(String projectId,
+                               TeamVote.ProposalType proposalType,
+                               String proposalId) {
+
+        return teamVoteRepository
+                .countByProjectIdAndProposalTypeAndProposalId(
+                        projectId, proposalType, proposalId);
+    }
+
+    @Override
+    public boolean isApproved(String projectId,
+                              TeamVote.ProposalType proposalType,
+                              String proposalId,
+                              double approveRatio) {
+
+        long yes = countVote(projectId, proposalType, proposalId, TeamVote.Vote.YES);
+        long total = countTotalVote(projectId, proposalType, proposalId);
+
+        if (total == 0) return false;
+
+        return ((double) yes / total) >= approveRatio;
+    }
+
+    @Override
+    public void deleteByProposal(String projectId,
+                                 TeamVote.ProposalType proposalType,
+                                 String proposalId) {
+
+        teamVoteRepository
+                .deleteByProjectIdAndProposalTypeAndProposalId(
+                        projectId, proposalType, proposalId);
+    }
+
+    @Override
+    public boolean canVote(String projectId,
+                           String talentId,
+                           TeamVote.ProposalType proposalType,
+                           String proposalId) {
+
+        // Hook nghiệp vụ – hiện tại chỉ kiểm tra đã vote chưa
+        return !hasVoted(projectId, talentId, proposalType, proposalId);
     }
 }

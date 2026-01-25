@@ -15,4 +15,12 @@ public interface ProjectChangeRequestService {
     ProjectChangeRequest updateProjectChangeRequest(ProjectChangeRequestDTO dto, String id);
 
     void deleteProjectChangeRequest(String id);
+
+    List<ProjectChangeRequest> getByProjectId(String projectId);
+
+    ProjectChangeRequest approve(String id, String reviewNotes);
+
+    ProjectChangeRequest reject(String id, String reviewNotes);
+
+    ProjectChangeRequest cancel(String id);
 }

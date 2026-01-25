@@ -20,5 +20,5 @@ public interface MentorPaymentService {
 
     List<MentorPaymentResponse> getByProjectId(String projectId);
 
-    BigDecimal getTotalPaidForMentor(String mentorId);
+    BigDecimal getTotalPaidForMentor(String mentorId);//Mentor mentor
 }

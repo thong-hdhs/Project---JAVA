@@ -1,7 +1,6 @@
 package com.example.labOdc.DTO.Response;
 
 import com.example.labOdc.Model.Payment;
-import com.example.labOdc.Model.PaymentMethod;
 import com.example.labOdc.Model.PaymentStatus;
 import com.example.labOdc.Model.PaymentType;
 import lombok.*;
@@ -33,10 +32,6 @@ public class PaymentResponse {
     private LocalDate paymentDate;
     private LocalDate dueDate;
 
-    private String paymentGateway;
-    private PaymentMethod paymentMethod;
-
-    private String invoiceNumber;
     private String notes;
 
     private LocalDateTime createdAt;
@@ -60,9 +55,6 @@ public class PaymentResponse {
                 .transactionId(p.getTransactionId())
                 .paymentDate(p.getPaymentDate())
                 .dueDate(p.getDueDate())
-                .paymentGateway(p.getPaymentGateway())
-                .paymentMethod(p.getPaymentMethod())
-                .invoiceNumber(p.getInvoiceNumber())
                 .notes(p.getNotes())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())

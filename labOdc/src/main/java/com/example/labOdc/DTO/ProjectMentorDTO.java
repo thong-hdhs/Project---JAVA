@@ -17,4 +17,5 @@ public class ProjectMentorDTO {
     private String mentorId;
 
     private ProjectMentorRole role;
+    private String status;
 }

@@ -1,22 +1,25 @@
 package com.example.labOdc.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
+import com.example.labOdc.DTO.Response.TalentResponse;
 import com.example.labOdc.DTO.TalentDTO;
 import com.example.labOdc.Model.Talent;
 
 public interface TalentService {
-    Talent createTalent(TalentDTO talentDTO);
+    TalentResponse createTalent(TalentDTO talentDTO);
 
-    List<Talent> getAllTalents();
+    List<TalentResponse> getAllTalents();
 
     void deleteTalent(String id);
 
-    Talent getTalentById(String id);
+    TalentResponse getTalentById(String id);
 
-    Talent updateTalent(TalentDTO talentDTO, String id);
+    TalentResponse updateTalent(TalentDTO talentDTO, String id);
 
-    List<Talent> findByMajor(String major);
+    List<TalentResponse> findByMajor(String major);
 
-    List<Talent> findByStatus(Talent.Status status);
+    List<TalentResponse> findByStatus(Talent.Status status);
+
 }

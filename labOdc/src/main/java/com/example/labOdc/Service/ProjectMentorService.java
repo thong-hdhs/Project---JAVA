@@ -15,4 +15,12 @@ public interface ProjectMentorService {
     ProjectMentor updateProjectMentor(ProjectMentorDTO dto, String id);
 
     void deleteProjectMentor(String id);
+
+    // query theo nghiệp vụ
+    List<ProjectMentor> getProjectMentorsByProjectId(String projectId);
+
+    // enforce 1 MAIN_MENTOR
+    ProjectMentor getMainMentorByProjectId(String projectId);
+
+    ProjectMentor setMainMentor(String projectMentorId);
 }

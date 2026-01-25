@@ -21,7 +21,11 @@ public interface MentorPaymentRepository extends JpaRepository<MentorPayment, St
 
     Optional<MentorPayment> findByFundAllocationId(String fundAllocationId);
 
-    @Query("SELECT COALESCE(SUM(mp.amount), 0) FROM MentorPayment mp " +
-           "WHERE mp.mentor.id = :mentorId AND mp.status = 'PAID'")
+    @Query("""
+                SELECT COALESCE(SUM(mp.amount), 0)
+                FROM MentorPayment mp
+                WHERE mp.mentor.id = :mentorId
+                  AND mp.status = 'PAID'
+            """)
     BigDecimal getTotalPaidAmountByMentor(String mentorId);
 }

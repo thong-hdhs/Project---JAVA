@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 
 @Service
 @AllArgsConstructor
@@ -118,6 +118,9 @@ public class ReportServiceImpl implements ReportService {
     public Report submitReport(String id) {
         Report report = getReportById(id);
 
+        if (report.getStatus() == Report.Status.APPROVED) {
+            throw new IllegalStateException("Report đã được duyệt, không thể submit lại");
+        }
         report.setStatus(Report.Status.SUBMITTED);
         report.setSubmittedDate(LocalDate.now());
 
@@ -138,5 +141,117 @@ public class ReportServiceImpl implements ReportService {
         report.setReviewNotes(reviewNotes);
 
         return reportRepository.save(report);
+    }
+    @Override
+    public List<Report> getMyReports(String mentorId) {
+        return reportRepository.findByMentorId(mentorId);
+    }
+
+    @Override
+    public List<Report> getMyReportsByStatus(String mentorId, Report.Status status) {
+        return reportRepository.findByMentorIdAndStatus(mentorId, status);
+    }
+
+    @Override
+    public List<Report> getReportsByType(Report.ReportType reportType) {
+        return reportRepository.findByReportType(reportType);
+    }
+
+    @Override
+    public List<Report> getReportsByDateRange(
+            LocalDateTime start,
+            LocalDateTime end) {
+
+        return reportRepository.findByCreatedAtBetween(start, end);
+    }
+
+    @Override
+    public long countReportsByStatus(Report.Status status) {
+        return reportRepository.countByStatus(status);
+    }
+    @Override
+    public boolean existsReportPeriod(
+            String projectId,
+            Report.ReportType reportType,
+            LocalDate start,
+            LocalDate end) {
+
+        return reportRepository
+                .existsByProjectIdAndReportTypeAndReportPeriodStartAndReportPeriodEnd(
+                        projectId, reportType, start, end);
+    }
+    @Override
+    public List<Report> getMonthlyReports(String projectId, int month, int year) {
+
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+
+        return reportRepository
+                .findByProjectIdAndReportTypeAndReportPeriodStartBetween(
+                        projectId,
+                        Report.ReportType.MONTHLY,
+                        start,
+                        end
+                );
+    }
+
+    @Override
+    public Map<String, Object> summarizeProjectProgress(String projectId) {
+
+        List<Report> reports = reportRepository.findByProjectIdAndStatusIn(
+                projectId,
+                List.of(Report.Status.SUBMITTED, Report.Status.APPROVED)
+        );
+
+        Map<String, Object> result = new HashMap<>();
+
+        result.put("totalReports", reports.size());
+        result.put("approvedReports",
+                reports.stream()
+                        .filter(r -> r.getStatus() == Report.Status.APPROVED)
+                        .count()
+        );
+
+        String latestTitle = reports.stream()
+                .filter(r -> r.getCreatedAt() != null)
+                .max(Comparator.comparing(Report::getCreatedAt))
+                .map(Report::getTitle)
+                .orElse(null);
+
+        result.put("latestReport", latestTitle);
+
+        return result;
+    }
+
+    @Override
+    public String exportReport(String reportId, String format) {
+
+        Report report = getReportById(reportId);
+
+        // Stub cho đồ án – thực tế sẽ sinh file
+        return "EXPORT_" + format.toUpperCase()
+                + "_REPORT_" + report.getId();
+    }
+    @Override
+    public List<Report> getReportsByProjectAndStatus(String projectId, Report.Status status) {
+
+        return reportRepository.findByProjectIdAndStatus(projectId, status);
+    }
+    @Override
+    public List<Report> getReportsByProjectAndMentor(String projectId, String mentorId) {
+
+        return reportRepository.findByProjectIdAndMentorId(projectId, mentorId);
+    }
+    @Override
+    public Map<String, Long> countReportsByProject(String projectId) {
+
+        Map<String, Long> result = new java.util.HashMap<>();
+
+        for (Report.Status status : Report.Status.values()) {
+            long count = reportRepository.countByProjectIdAndStatus(projectId, status);
+            result.put(status.name(), count);
+        }
+
+        return result;
     }
 }

@@ -1,5 +1,6 @@
 package com.example.labOdc.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.example.labOdc.DTO.MilestoneDTO;
@@ -15,4 +16,9 @@ public interface MilestoneService {
     Milestone updateMilestone(MilestoneDTO dto, String id);
 
     void deleteMilestone(String id);
+
+    // workflow chuẩn
+    List<Milestone> getMilestonesByProjectId(String projectId);
+
+    Milestone completeMilestone(String milestoneId, LocalDate completedDate);
 }

@@ -14,6 +14,9 @@ public class ProjectChangeRequestDTO {
     @NotBlank
     private String projectId;
 
+    @NotBlank
+    private String requestedById; // NEW
+
     @NotNull
     private ProjectChangeRequestType requestType;
 

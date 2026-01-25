@@ -3,16 +3,18 @@ package com.example.labOdc.Service;
 import java.util.List;
 
 import com.example.labOdc.DTO.LabAdminDTO;
-import com.example.labOdc.Model.LabAdmin;
+import com.example.labOdc.DTO.Response.LabAdminResponse;
 
 public interface LabAdminService {
-    LabAdmin createLabAdmin(LabAdminDTO dto);
+    LabAdminResponse createLabAdmin(LabAdminDTO dto);
 
-    List<LabAdmin> getAllLabAdmins();
+    List<LabAdminResponse> getAllLabAdmins();
 
     void deleteLabAdmin(String id);
 
-    LabAdmin getLabAdminById(String id);
+    LabAdminResponse getLabAdminById(String id);
 
-    LabAdmin updateLabAdmin(LabAdminDTO dto, String id);
+    LabAdminResponse updateLabAdmin(LabAdminDTO dto, String id);
+
+
 }

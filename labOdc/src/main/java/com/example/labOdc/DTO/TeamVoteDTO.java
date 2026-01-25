@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -25,4 +27,14 @@ public class TeamVoteDTO {
 
     @NotNull
     private TeamVote.Vote vote;
+
+    @NotBlank
+    private String content;
+
+    private LocalDateTime endTime;
+
+    private Double approveRatio;
+
+    private Boolean anonymous;
+
 }

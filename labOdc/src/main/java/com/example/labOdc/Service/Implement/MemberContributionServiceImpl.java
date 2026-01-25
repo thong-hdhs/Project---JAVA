@@ -15,6 +15,7 @@ import com.example.labOdc.Service.MemberContributionService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -108,4 +109,82 @@ public class MemberContributionServiceImpl implements MemberContributionService 
     public void deleteContribution(String id) {
         memberContributionRepository.deleteById(id);
     }
+    @Override
+    public List<MemberContribution> getByProjectAndTalent(String projectId, String talentId) {
+        return memberContributionRepository
+                .findByProjectIdAndTalentId(projectId, talentId);
+    }
+
+    @Override
+    public BigDecimal getTotalScoreOfTalentInProject(String projectId, String talentId) {
+        return memberContributionRepository
+                .sumScoreByProjectAndTalent(projectId, talentId);
+    }
+
+    @Override
+    public BigDecimal getAverageScoreOfTalent(String talentId) {
+        return memberContributionRepository.avgScoreByTalent(talentId);
+    }
+
+    @Override
+    public boolean existsContribution(String projectId, String talentId) {
+        return memberContributionRepository
+                .existsByProjectIdAndTalentId(projectId, talentId);
+    }
+    @Override
+    public void deleteByProject(String projectId) {
+        memberContributionRepository.deleteByProjectId(projectId);
+    }
+
+    @Override
+    public BigDecimal getTotalScoreOfProject(String projectId) {
+        return memberContributionRepository.sumScoreByProject(projectId);
+    }
+
+    @Override
+    public BigDecimal getContributionPercentage(
+            String projectId, String talentId) {
+
+        BigDecimal talentScore =
+                getTotalScoreOfTalentInProject(projectId, talentId);
+
+        BigDecimal projectScore =
+                getTotalScoreOfProject(projectId);
+
+        if (projectScore.compareTo(BigDecimal.ZERO) == 0)
+            return BigDecimal.ZERO;
+
+        return talentScore
+                .multiply(BigDecimal.valueOf(100))
+                .divide(projectScore, 2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    @Override
+    public List<Object[]> getRankingByProject(String projectId) {
+        return memberContributionRepository.rankingByProject(projectId);
+    }
+
+    @Override
+    public List<MemberContribution> getHistory(
+            String projectId, String talentId) {
+
+        return memberContributionRepository
+                .findByProjectIdAndTalentIdOrderByRecordedAtAsc(
+                        projectId, talentId);
+    }
+
+    @Override
+    public List<Object[]> getSummaryByType(String projectId) {
+        return memberContributionRepository.sumScoreByType(projectId);
+    }
+    @Override
+    public long countByProject(String projectId) {
+
+        // optional: check project tồn tại cho chặt chẽ
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Project"));
+
+        return memberContributionRepository.countByProjectId(projectId);
+    }
+
 }
