@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
@@ -24,6 +25,7 @@ public class ProjectMentorController {
     private final ProjectMentorService projectMentorService;
 
     @PostMapping("/")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectMentorResponse> create(@Valid @RequestBody ProjectMentorDTO dto, BindingResult result) {
         if (result.hasErrors()) {
             List<String> errorMessages = result.getFieldErrors()
@@ -50,6 +52,7 @@ public class ProjectMentorController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectMentorResponse> update(@Valid @RequestBody ProjectMentorDTO dto,
             @PathVariable String id) {
         ProjectMentor pm = projectMentorService.updateProjectMentor(dto, id);
@@ -57,6 +60,7 @@ public class ProjectMentorController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<String> delete(@PathVariable String id) {
         projectMentorService.deleteProjectMentor(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
@@ -78,6 +82,7 @@ public class ProjectMentorController {
     }
 
     @PutMapping("/{id}/set-main")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectMentorResponse> setMainMentor(@PathVariable String id) {
         ProjectMentor pm = projectMentorService.setMainMentor(id);
         return ApiResponse.success(ProjectMentorResponse.fromProjectMentor(pm), "Set main mentor", HttpStatus.OK);
