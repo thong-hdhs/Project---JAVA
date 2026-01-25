@@ -9,131 +9,135 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class FundDistributionServiceImpl implements FundDistributionService {
 
-        private final FundDistributionRepository fundDistributionRepository;
-        private final FundAllocationRepository fundAllocationRepository;
-        private final TalentRepository talentRepository;
-        private final UserRepository userRepository;
+    private final FundDistributionRepository fundDistributionRepository;
+    private final FundAllocationRepository fundAllocationRepository;
+    private final TalentRepository talentRepository;
+    private final UserRepository userRepository;
 
-        // ========== CREATE ==========
-        @Override
-        public FundDistributionResponse createDistribution(FundDistributionDTO dto) {
+    @Override
+    public FundDistributionResponse createDistribution(FundDistributionDTO dto) {
 
-                FundAllocation allocation = dto.getFundAllocationId() != null
-                                ? fundAllocationRepository.findById(dto.getFundAllocationId()).orElse(null)
-                                : null;
+        FundAllocation allocation = null;
 
-                Talent talent = dto.getTalentId() != null
-                                ? talentRepository.findById(dto.getTalentId()).orElse(null)
-                                : null;
+        if (dto.getFundAllocationId() != null && !dto.getFundAllocationId().isBlank()) {
+                allocation = fundAllocationRepository
+                        .findById(dto.getFundAllocationId())
+                        .orElse(null); // ❗ KHÔNG throw khi test
+        }
+        Talent talent = dto.getTalentId() != null
+                ? talentRepository.findById(dto.getTalentId()).orElse(null)
+                : null;
 
-                FundDistribution distribution = FundDistribution.builder()
-                                .fundAllocation(allocation)
-                                .talent(talent)
-                                .amount(dto.getAmount())
-                                .percentage(dto.getPercentage())
-                                .status(FundDistributionStatus.PENDING)
-                                .notes(dto.getNotes())
-                                .build();
+        FundDistribution distribution = FundDistribution.builder()
+                .fundAllocation(allocation)
+                .talent(talent)
+                .amount(dto.getAmount())
+                .percentage(dto.getPercentage())
+                .status(FundDistributionStatus.PENDING)
+                .notes(dto.getNotes())
+                .build();
 
-                return FundDistributionResponse.fromEntity(
-                                fundDistributionRepository.save(distribution));
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
+    }
+
+    @Override
+    public FundDistributionResponse updateStatus(
+            String distributionId,
+            String status,
+            String approvedById,
+            String notes
+    ) {
+
+        FundDistribution distribution = fundDistributionRepository.findById(distributionId)
+                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
+
+        FundDistributionStatus newStatus =
+                FundDistributionStatus.valueOf(status.toUpperCase());
+
+        distribution.setStatus(newStatus);
+
+        if (approvedById != null) {
+            User approvedBy = userRepository.findById(approvedById)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            distribution.setApprovedBy(approvedBy);
+            distribution.setApprovedAt(LocalDateTime.now());
         }
 
-        // ========== UPDATE STATUS ==========
-        @Override
-        public FundDistributionResponse updateStatus(
-                        String distributionId,
-                        String statusStr,
-                        String approvedById,
-                        LocalDate paidDate,
-                        String paymentMethod,
-                        String transactionRef,
-                        String notes) {
-
-                FundDistribution distribution = fundDistributionRepository.findById(distributionId)
-                                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
-
-                distribution.setStatus(FundDistributionStatus.valueOf(statusStr.toUpperCase()));
-
-                if (approvedById != null) {
-                        User approvedBy = userRepository.findById(approvedById)
-                                        .orElseThrow(() -> new RuntimeException("User not found"));
-                        distribution.setApprovedBy(approvedBy);
-                        distribution.setApprovedAt(LocalDateTime.now());
-                }
-
-                if (paidDate != null)
-                        distribution.setPaidDate(paidDate);
-                if (paymentMethod != null)
-                        distribution.setPaymentMethod(paymentMethod);
-                if (transactionRef != null)
-                        distribution.setTransactionReference(transactionRef);
-                if (notes != null)
-                        distribution.setNotes(notes);
-
-                return FundDistributionResponse.fromEntity(
-                                fundDistributionRepository.save(distribution));
+        if (notes != null) {
+            distribution.setNotes(notes);
         }
 
-        // ========== GET BY ID ==========
-        @Override
-        @Transactional(readOnly = true)
-        public FundDistributionResponse getById(String id) {
-                return fundDistributionRepository.findById(id)
-                                .map(FundDistributionResponse::fromEntity)
-                                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
-        }
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
+    }
 
-        // ========== GET BY FUND ALLOCATION ==========
-        @Override
-        @Transactional(readOnly = true)
-        public List<FundDistributionResponse> getByFundAllocationId(String fundAllocationId) {
-                return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
-                                .stream()
-                                .map(FundDistributionResponse::fromEntity)
-                                .toList();
-        }
+    @Override
+    public FundDistributionResponse markAsPaid(
+            String distributionId,
+            String paymentMethod,
+            String transactionReference
+    ) {
 
-        // ========== GET BY TALENT ==========
-        @Override
-        @Transactional(readOnly = true)
-        public List<FundDistributionResponse> getByTalentId(String talentId) {
-                return fundDistributionRepository.findByTalentId(talentId)
-                                .stream()
-                                .map(FundDistributionResponse::fromEntity)
-                                .toList();
-        }
+        FundDistribution distribution = fundDistributionRepository.findById(distributionId)
+                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
 
-        // ========== GET BY STATUS ==========
-        @Override
-        @Transactional(readOnly = true)
-        public List<FundDistributionResponse> getByStatus(String status) {
-                return fundDistributionRepository
-                                .findByStatus(FundDistributionStatus.valueOf(status.toUpperCase()))
-                                .stream()
-                                .map(FundDistributionResponse::fromEntity)
-                                .toList();
-        }
+        distribution.setStatus(FundDistributionStatus.PAID);
+        distribution.setPaidDate(LocalDate.now());
+        distribution.setPaymentMethod(paymentMethod);
+        distribution.setTransactionReference(transactionReference);
 
-        // ========== TOTAL PAID ==========
-        @Override
-        @Transactional(readOnly = true)
-        public BigDecimal getTotalPaidForTalent(String talentId) {
-                return fundDistributionRepository.findByTalentId(talentId)
-                                .stream()
-                                .filter(d -> d.getStatus() == FundDistributionStatus.PAID)
-                                .map(FundDistribution::getAmount)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        }
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FundDistributionResponse getById(String id) {
+        return fundDistributionRepository.findById(id)
+                .map(FundDistributionResponse::fromEntity)
+                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FundDistributionResponse> getByFundAllocationId(String fundAllocationId) {
+        return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
+                .stream()
+                .map(FundDistributionResponse::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FundDistributionResponse> getByTalentId(String talentId) {
+        return fundDistributionRepository.findByTalentId(talentId)
+                .stream()
+                .map(FundDistributionResponse::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isFullyDistributed(String fundAllocationId) {
+
+        FundAllocation allocation = fundAllocationRepository.findById(fundAllocationId)
+                .orElseThrow(() -> new RuntimeException("Fund allocation not found"));
+
+        return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
+                .stream()
+                .allMatch(d -> d.getStatus() == FundDistributionStatus.PAID);
+    }
 }
