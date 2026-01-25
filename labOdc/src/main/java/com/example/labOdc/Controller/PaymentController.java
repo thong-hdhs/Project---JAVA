@@ -42,10 +42,10 @@ public class PaymentController {
             return ApiResponse.error(errorMessages);
         }
 
-        PaymentResponse response = paymentService.createPayment(dto);
+        Payment payment = paymentService.createPayment(dto);
 
         return ApiResponse.success(
-                response,
+                PaymentResponse.fromEntity(payment),
                 "Payment recorded successfully",
                 HttpStatus.CREATED
         );
@@ -60,10 +60,14 @@ public class PaymentController {
             @RequestParam(required = false) LocalDate paymentDate,
             @RequestParam(required = false) String notes) {
 
-        PaymentResponse response = paymentService.updateStatus(id, status, transactionId, paymentDate, notes);
+        Payment payment = paymentService.updatePaymentStatus(
+            id,
+            PaymentStatus.valueOf(status.toUpperCase()),
+            transactionId
+        );
 
         return ApiResponse.success(
-                response,
+                PaymentResponse.fromEntity(payment),
                 "Payment status updated successfully",
                 HttpStatus.OK
         );
@@ -72,21 +76,21 @@ public class PaymentController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<PaymentResponse> getById(@PathVariable String id) {
-        PaymentResponse response = paymentService.getById(id);
-        return ApiResponse.success(response, "Payment retrieved successfully", HttpStatus.OK);
+        Payment payment = paymentService.getPaymentById(id);
+        return ApiResponse.success(PaymentResponse.fromEntity(payment), "Payment retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<List<PaymentResponse>> getByProject(@PathVariable String projectId) {
-        List<PaymentResponse> list = paymentService.getByProjectId(projectId);
+        List<PaymentResponse> list = paymentService.getPaymentsByProject(projectId).stream().map(PaymentResponse::fromEntity).toList();
         return ApiResponse.success(list, "Payments by project retrieved successfully", HttpStatus.OK);
     }
 
     @GetMapping("/company/{companyId}")
     @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
     public ApiResponse<List<PaymentResponse>> getByCompany(@PathVariable String companyId) {
-        List<PaymentResponse> list = paymentService.getByCompanyId(companyId);
+        List<PaymentResponse> list = paymentService.getPaymentsByCompany(companyId).stream().map(PaymentResponse::fromEntity).toList();
         return ApiResponse.success(list, "Payments by company retrieved successfully", HttpStatus.OK);
     }
 

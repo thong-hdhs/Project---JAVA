@@ -54,7 +54,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
-
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/excel-templates").permitAll()
+                        .requestMatchers("/api/import/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.decoder(jwtDecoder())
@@ -68,7 +70,7 @@ public class SecurityConfig {
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
 
-      //  converter.setAuthoritiesClaimName("role");
+        // converter.setAuthoritiesClaimName("role");
         converter.setAuthoritiesClaimName("roles");
         converter.setAuthorityPrefix("ROLE_");
 

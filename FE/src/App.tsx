@@ -1,0 +1,315 @@
+import { lazy, Suspense } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+// Auth components
+const Login = lazy(() => import("./pages/auth/login"));
+const Register = lazy(() => import("./pages/auth/register"));
+const ForgotPass = lazy(() => import("./pages/auth/forgot-password"));
+const Landing = lazy(() => import("./pages/landing"));
+const Error = lazy(() => import("./pages/404"));
+
+// Layouts
+import Layout from "./layout/Layout";
+import AuthLayout from "./layout/AuthLayout";
+import AuthGuard from "./components/auth/AuthGuard";
+import AdminRoute from "./Routes/AdminRoute";
+import LabAdminRoute from "./Routes/LabAdminRoute";
+import CompanyRoute from "./Routes/CompanyRoute";
+import MentorRoute from "./Routes/MentorRoute";
+import UserRoute from "./Routes/UserRoute";
+
+// Loading component
+import Loading from "@/components/Loading";
+
+// Lazy load all LabOdc pages
+// Candidate/Talent pages
+const CandidateDashboard = lazy(
+  () => import("./pages/labodc/candidate/dashboard")
+);
+const CandidateProfile = lazy(() => import("./pages/labodc/candidate/profile"));
+const BrowseProjects = lazy(
+  () => import("./pages/labodc/candidate/browse-projects")
+);
+const ProjectDetail = lazy(
+  () => import("./pages/labodc/candidate/project-detail")
+);
+const MyApplications = lazy(
+  () => import("./pages/labodc/candidate/applications")
+);
+const MyProjects = lazy(() => import("./pages/labodc/candidate/my-projects"));
+const TaskDetail = lazy(() => import("./pages/labodc/candidate/task-detail"));
+const FundDistributions = lazy(
+  () => import("./pages/labodc/candidate/fund-distributions")
+);
+const TeamVotes = lazy(() => import("./pages/labodc/candidate/team-votes"));
+const CompanyVerification = lazy(
+  () => import("./pages/labodc/candidate/company-verification")
+);
+
+// Company/Enterprise pages
+const EnterpriseDashboard = lazy(
+  () => import("./pages/labodc/enterprise/dashboard")
+);
+// CompanyProfile removed - use common `profile` page
+const ProjectList = lazy(() => import("./pages/labodc/enterprise/projects"));
+const CreateProject = lazy(
+  () => import("./pages/labodc/enterprise/create-project")
+);
+const EditProject = lazy(
+  () => import("./pages/labodc/enterprise/edit-project")
+);
+const ProjectDetailEnterprise = lazy(
+  () => import("./pages/labodc/enterprise/project-detail")
+);
+const Payments = lazy(() => import("./pages/labodc/enterprise/payments"));
+const ChangeRequests = lazy(
+  () => import("./pages/labodc/enterprise/change-requests")
+);
+const CompanyEvaluations = lazy(
+  () => import("./pages/labodc/enterprise/evaluations")
+);
+
+// Mentor pages
+const MentorDashboard = lazy(() => import("./pages/labodc/mentor/dashboard"));
+// MentorProfile removed - use common `profile` page
+const MentorInvitations = lazy(
+  () => import("./pages/labodc/mentor/invitations")
+);
+const CandidateReviews = lazy(
+  () => import("./pages/labodc/mentor/candidate-reviews")
+);
+const MentorProjectWorkspace = lazy(
+  () => import("./pages/labodc/mentor/project-workspace")
+);
+const MentorReports = lazy(() => import("./pages/labodc/mentor/reports"));
+const FundApprovals = lazy(
+  () => import("./pages/labodc/mentor/fund-approvals")
+);
+
+// Lab Admin pages
+const LabAdminDashboard = lazy(
+  () => import("./pages/labodc/lab-admin/dashboard")
+);
+const ValidateProjects = lazy(
+  () => import("./pages/labodc/lab-admin/validate-projects")
+);
+const PaymentsOverview = lazy(
+  () => import("./pages/labodc/lab-admin/payments-overview")
+);
+const FundAllocations = lazy(
+  () => import("./pages/labodc/lab-admin/fund-allocations")
+);
+const FundDistributionsAdmin = lazy(
+  () => import("./pages/labodc/lab-admin/fund-distributions")
+);
+const LabFundAdvances = lazy(
+  () => import("./pages/labodc/lab-admin/lab-fund-advances")
+);
+const TransparencyReport = lazy(
+  () => import("./pages/labodc/lab-admin/transparency-report")
+);
+const ChangeRequestApprovals = lazy(
+  () => import("./pages/labodc/lab-admin/change-request-approvals")
+);
+const RiskRecords = lazy(() => import("./pages/labodc/lab-admin/risk-records"));
+const CompanyApprovals = lazy(
+  () => import("./pages/labodc/lab-admin/company-approvals")
+);
+
+// System Admin pages
+const SystemAdminDashboard = lazy(
+  () => import("./pages/labodc/system-admin/dashboard")
+);
+const UserManagement = lazy(
+  () => import("./pages/labodc/system-admin/user-management")
+);
+const Settings = lazy(() => import("./pages/labodc/system-admin/settings"));
+const ExcelTemplates = lazy(
+  () => import("./pages/labodc/system-admin/excel-templates")
+);
+const EmailTemplates = lazy(
+  () => import("./pages/labodc/system-admin/email-templates")
+);
+const AuditLogs = lazy(() => import("./pages/labodc/system-admin/audit-logs"));
+const MentorRoleRequests = lazy(
+  () => import("./pages/labodc/system-admin/mentor-role-requests")
+);
+
+// Common pages
+const Profile = lazy(() => import("./pages/profile"));
+const Notifications = lazy(() => import("./pages/notifications"));
+
+function App() {
+  return (
+    <main className="App relative">
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<AuthLayout />}>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPass />} />
+        </Route>
+
+        {/* Protected routes */}
+        <Route
+          path="/*"
+          element={
+            <AuthGuard requireAuth={true}>
+              <Layout />
+            </AuthGuard>
+          }
+        >
+          {/* Candidate/Talent (Users) routes */}
+          <Route element={<UserRoute />}>
+            <Route path="candidate/dashboard" element={<CandidateDashboard />} />
+            <Route path="candidate/profile" element={<CandidateProfile />} />
+            <Route
+              path="candidate/browse-projects"
+              element={<BrowseProjects />}
+            />
+            <Route path="candidate/project/:id" element={<ProjectDetail />} />
+            <Route path="candidate/applications" element={<MyApplications />} />
+            <Route path="candidate/my-projects" element={<MyProjects />} />
+            <Route path="candidate/task/:id" element={<TaskDetail />} />
+            <Route
+              path="candidate/fund-distributions"
+              element={<FundDistributions />}
+            />
+            <Route path="candidate/team-votes" element={<TeamVotes />} />
+            <Route
+              path="candidate/company-verification"
+              element={<CompanyVerification />}
+            />
+          </Route>
+
+          {/* Company/Enterprise routes */}
+          <Route element={<CompanyRoute />}>
+            <Route
+              path="enterprise/dashboard"
+              element={<EnterpriseDashboard />}
+            />
+            <Route path="enterprise/projects" element={<ProjectList />} />
+            <Route
+              path="enterprise/projects/create"
+              element={<CreateProject />}
+            />
+            <Route
+              path="enterprise/projects/:id/edit"
+              element={<EditProject />}
+            />
+            <Route
+              path="enterprise/projects/:id"
+              element={<ProjectDetailEnterprise />}
+            />
+            <Route path="enterprise/payments" element={<Payments />} />
+            <Route
+              path="enterprise/change-requests"
+              element={<ChangeRequests />}
+            />
+            <Route
+              path="enterprise/evaluations"
+              element={<CompanyEvaluations />}
+            />
+          </Route>
+
+          {/* Mentor routes */}
+          <Route element={<MentorRoute />}>
+            <Route path="mentor/dashboard" element={<MentorDashboard />} />
+            <Route path="mentor/invitations" element={<MentorInvitations />} />
+            <Route
+              path="mentor/candidate-reviews"
+              element={<CandidateReviews />}
+            />
+            <Route
+              path="mentor/project/:id"
+              element={<MentorProjectWorkspace />}
+            />
+            <Route path="mentor/reports" element={<MentorReports />} />
+            <Route path="mentor/fund-approvals" element={<FundApprovals />} />
+          </Route>
+
+          {/* Lab Admin routes */}
+          <Route element={<LabAdminRoute />}>
+            <Route path="lab-admin/dashboard" element={<LabAdminDashboard />} />
+            <Route
+              path="lab-admin/validate-projects"
+              element={<ValidateProjects />}
+            />
+            <Route
+              path="lab-admin/payments-overview"
+              element={<PaymentsOverview />}
+            />
+            <Route
+              path="lab-admin/fund-allocations"
+              element={<FundAllocations />}
+            />
+            <Route
+              path="lab-admin/fund-distributions"
+              element={<FundDistributionsAdmin />}
+            />
+            <Route
+              path="lab-admin/lab-fund-advances"
+              element={<LabFundAdvances />}
+            />
+            <Route
+              path="lab-admin/transparency-report"
+              element={<TransparencyReport />}
+            />
+            <Route
+              path="lab-admin/change-request-approvals"
+              element={<ChangeRequestApprovals />}
+            />
+            <Route path="lab-admin/risk-records" element={<RiskRecords />} />
+            <Route
+              path="lab-admin/company-approvals"
+              element={<CompanyApprovals />}
+            />
+          </Route>
+
+          {/* System Admin routes */}
+          <Route element={<AdminRoute />}>
+            <Route
+              path="system-admin/dashboard"
+              element={<SystemAdminDashboard />}
+            />
+            <Route path="system-admin/users" element={<UserManagement />} />
+            <Route path="system-admin/settings" element={<Settings />} />
+            <Route
+              path="system-admin/excel-templates"
+              element={<ExcelTemplates />}
+            />
+            <Route
+              path="system-admin/email-templates"
+              element={<EmailTemplates />}
+            />
+            <Route path="system-admin/audit-logs" element={<AuditLogs />} />
+            <Route
+              path="system-admin/mentor-role-requests"
+              element={<MentorRoleRequests />}
+            />
+          </Route>
+
+          {/* Common routes */}
+          <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<Notifications />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/404" />} />
+        </Route>
+
+        {/* Error page */}
+        <Route
+          path="/404"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Error />
+            </Suspense>
+          }
+        />
+      </Routes>
+    </main>
+  );
+}
+
+export default App;

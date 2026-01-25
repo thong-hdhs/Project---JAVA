@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
@@ -26,6 +27,7 @@ public class MilestoneController {
     private final MilestoneService milestoneService;
 
     @PostMapping("/")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<MilestoneResponse> create(@Valid @RequestBody MilestoneDTO dto, BindingResult result) {
         if (result.hasErrors()) {
             List<String> errorMessages = result.getFieldErrors()
@@ -52,12 +54,14 @@ public class MilestoneController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<MilestoneResponse> update(@Valid @RequestBody MilestoneDTO dto, @PathVariable String id) {
         Milestone m = milestoneService.updateMilestone(dto, id);
         return ApiResponse.success(MilestoneResponse.fromMilestone(m), "Thanh cong", HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<String> delete(@PathVariable String id) {
         milestoneService.deleteMilestone(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
@@ -73,6 +77,7 @@ public class MilestoneController {
     }
 
     @PutMapping("/{id}/complete")
+    @PreAuthorize("hasAnyRole('COMPANY', 'LAB_ADMIN')")
     public ApiResponse<MilestoneResponse> complete(@PathVariable String id,
             @RequestBody(required = false) CompleteMilestoneDTO body) {
         LocalDate completedDate = body != null ? body.getCompletedDate() : null;

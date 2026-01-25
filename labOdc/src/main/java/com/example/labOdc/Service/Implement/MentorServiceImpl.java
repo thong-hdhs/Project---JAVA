@@ -7,9 +7,14 @@ import org.springframework.stereotype.Service;
 
 import com.example.labOdc.DTO.MentorDTO;
 import com.example.labOdc.DTO.Response.MentorResponse;
+import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Mentor;
+import com.example.labOdc.Model.MentorInvitation;
+import com.example.labOdc.Model.MentorInvitationStatus;
+import com.example.labOdc.Repository.MentorInvitationRepository;
 import com.example.labOdc.Repository.MentorRepository;
+import com.example.labOdc.Repository.ProjectMentorRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.MentorService;
 
@@ -21,6 +26,8 @@ public class MentorServiceImpl implements MentorService {
 
     private final MentorRepository mentorRepository;
     private final UserRepository userRepository;
+    private final MentorInvitationRepository mentorInvitationRepository;
+    private final ProjectMentorRepository projectMentorRepository;
 
     /**
      * Chức năng: Tạo hồ sơ Mentor mới.
@@ -114,37 +121,92 @@ public class MentorServiceImpl implements MentorService {
 
     /**
      * Chức năng: Chấp nhận lời mời làm mentor cho dự án.
-     * Repository: Sử dụng ProjectInvitationRepository (placeholder) để cập nhật trạng thái.
+     * Repository: Sử dụng MentorInvitationRepository để cập nhật trạng thái.
      */
     @Override
     public void acceptInvite(String inviteId) {
-        // Placeholder: Logic để chấp nhận lời mời
-        // ProjectInvitation invite = projectInvitationRepository.findById(inviteId).orElseThrow();
-        // invite.setStatus(ACCEPTED);
-        // projectInvitationRepository.save(invite);
-        // Cập nhật mentor status nếu cần
-        System.out.println("Accepted invite: " + inviteId);
+        MentorInvitation invite = mentorInvitationRepository.findById(inviteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor invitation not found"));
+        invite.setStatus(MentorInvitationStatus.ACCEPTED);
+        invite.setRespondedAt(java.time.LocalDateTime.now());
+        mentorInvitationRepository.save(invite);
     }
 
     /**
      * Chức năng: Từ chối lời mời làm mentor cho dự án.
-     * Repository: Sử dụng ProjectInvitationRepository để cập nhật trạng thái và lý do.
+     * Repository: Sử dụng MentorInvitationRepository để cập nhật trạng thái và lý do.
      */
     @Override
     public void rejectInvite(String inviteId, String reason) {
-        // Placeholder: Logic từ chối lời mời
-        // ProjectInvitation invite = projectInvitationRepository.findById(inviteId).orElseThrow();
-        // invite.setStatus(REJECTED);
-        // invite.setRejectionReason(reason);
-        // projectInvitationRepository.save(invite);
-        System.out.println("Rejected invite: " + inviteId + " with reason: " + reason);
+        MentorInvitation invite = mentorInvitationRepository.findById(inviteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor invitation not found"));
+        invite.setStatus(MentorInvitationStatus.REJECTED);
+        invite.setRespondedAt(java.time.LocalDateTime.now());
+        // Note: MentorInvitation doesn't have rejectionReason field, so we might need to add it or log the reason
+        mentorInvitationRepository.save(invite);
     }
 
-    
 
-    
+    @Override
+    public void setMentorAvailability(String mentorId, Mentor.Status status) {
+        Mentor mentor = mentorRepository.findById(mentorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
+        mentor.setStatus(status);
+        mentorRepository.save(mentor);
+    }
 
-    
+    @Override
+    public List<MentorInvitation> getMentorInvitations(String mentorId) {
+        Mentor mentor = mentorRepository.findById(mentorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
+        return mentorInvitationRepository.findAll().stream()
+                .filter(inv -> inv.getMentor().getId().equals(mentorId))
+                .toList();
+    }
 
-    
+    @Override
+    public List<ProjectResponse> getAssignedProjects(String mentorId) {
+        Mentor mentor = mentorRepository.findById(mentorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
+        return projectMentorRepository.findAll().stream()
+                .filter(pm -> pm.getMentor().getId().equals(mentorId))
+                .map(pm -> ProjectResponse.fromProject(pm.getProject()))
+                .toList();
+    }
+
+    @Override
+    public void breakdownTasks(String projectId, String excelTemplate) {
+        // Placeholder: Phân tích template Excel và tạo tasks
+        System.out.println("Breaking down tasks for project: " + projectId + " with template: " + excelTemplate);
+    }
+
+    @Override
+    public void assignTask(String taskId, String talentId) {
+        // Placeholder: Giao task cho talent
+        System.out.println("Assigning task: " + taskId + " to talent: " + talentId);
+    }
+
+    @Override
+    public void updateTaskStatus(String taskId, String status) {
+        // Placeholder: Cập nhật status task
+        System.out.println("Updating task: " + taskId + " to status: " + status);
+    }
+
+    @Override
+    public void submitReport(String projectId, String reportRequest) {
+        // Placeholder: Gửi báo cáo
+        System.out.println("Submitting report for project: " + projectId + " with content: " + reportRequest);
+    }
+
+    @Override
+    public void evaluateTalent(String projectId, String talentId, String evaluationRequest) {
+        // Placeholder: Đánh giá talent
+        System.out.println("Evaluating talent: " + talentId + " in project: " + projectId + " with: " + evaluationRequest);
+    }
+
+    @Override
+    public void approveFundDistribution(String projectId) {
+        // Placeholder: Phê duyệt phân bổ quỹ
+        System.out.println("Approving fund distribution for project: " + projectId);
+    }
 }

@@ -1,115 +1,130 @@
 package com.example.labOdc.Service.Implement;
 
 import com.example.labOdc.DTO.MentorPaymentDTO;
-import com.example.labOdc.DTO.Response.MentorPaymentResponse;
 import com.example.labOdc.Model.*;
 import com.example.labOdc.Repository.*;
 import com.example.labOdc.Service.MentorPaymentService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class MentorPaymentServiceImpl implements MentorPaymentService {
 
-        private final MentorPaymentRepository mentorPaymentRepository;
-        private final FundAllocationRepository fundAllocationRepository;
-        private final MentorRepository mentorRepository;
-        private final UserRepository userRepository;
+    private final MentorPaymentRepository mentorPaymentRepository;
+    private final FundAllocationRepository fundAllocationRepository;
+    private final MentorRepository mentorRepository;
+    private final UserRepository userRepository;
 
-        @Override
-        public MentorPaymentResponse createFromAllocation(MentorPaymentDTO dto) {
+    @Override
+    public MentorPayment createMentorPayment(MentorPaymentDTO dto) {
 
-                FundAllocation allocation = null;
-                if (dto.getFundAllocationId() != null) {
-                        allocation = fundAllocationRepository
-                                        .findById(dto.getFundAllocationId())
-                                        .orElse(null); // ❗ KHÔNG throw
-                }
+        FundAllocation fundAllocation = null;
+        Project project = null;
 
-                // ❗ mentorAmount lấy từ fund allocation (20%)
-                MentorPayment payment = MentorPayment.builder()
-                                .fundAllocation(allocation)
-                                .mentor(allocation != null && allocation.getProject() != null
-                                                ? allocation.getProject().getMentor()
-                                                : null)
-                                .project(allocation != null ? allocation.getProject() : null)
-                                .amount(dto.getTotalAmount())
-                                .status(MentorPaymentStatus.PENDING)
-                                .notes(dto.getNotes())
-                                .build();
-
-                MentorPayment saved = mentorPaymentRepository.save(payment);
-                return MentorPaymentResponse.fromEntity(saved);
+        if (dto.getFundAllocationId() != null) {
+            fundAllocation = fundAllocationRepository.findById(dto.getFundAllocationId())
+                    .orElseThrow(() -> new EntityNotFoundException("FundAllocation not found"));
+            project = fundAllocation.getProject();
         }
 
-        @Override
-        public MentorPaymentResponse updateStatus(
-                        String paymentId,
-                        MentorPaymentStatus newStatus,
-                        String approvedById,
-                        String notes) {
+        Mentor mentor = mentorRepository.findById(dto.getMentorId())
+                .orElseThrow(() -> new EntityNotFoundException("Mentor not found"));
 
-                MentorPayment payment = mentorPaymentRepository.findById(paymentId)
-                                .orElseThrow(() -> new RuntimeException("Mentor payment not found"));
+        MentorPayment payment = MentorPayment.builder()
+                .fundAllocation(fundAllocation)
+                .mentor(mentor)
+                .project(project)
+                .amount(dto.getTotalAmount())
+                .notes(dto.getNotes())
+                .status(MentorPaymentStatus.PENDING)
+                .build();
 
-                payment.setStatus(newStatus);
+        return mentorPaymentRepository.save(payment);
+    }
 
-                if (approvedById != null &&
-                                (newStatus == MentorPaymentStatus.APPROVED
-                                                || newStatus == MentorPaymentStatus.PAID)) {
+    @Override
+    public MentorPayment approveMentorPayment(String mentorPaymentId, String approvedByUserId) {
 
-                        User approver = userRepository.findById(approvedById)
-                                        .orElseThrow(() -> new RuntimeException("Approver not found"));
+        MentorPayment payment = getById(mentorPaymentId);
 
-                        payment.setApprovedBy(approver);
-                        payment.setApprovedAt(LocalDateTime.now());
-                }
+        User approvedBy = userRepository.findById(approvedByUserId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-                if (notes != null) {
-                        payment.setNotes(notes);
-                }
+        payment.setStatus(MentorPaymentStatus.APPROVED);
+        payment.setApprovedBy(approvedBy);
+        payment.setApprovedAt(LocalDateTime.now());
 
-                MentorPayment updated = mentorPaymentRepository.save(payment);
-                return MentorPaymentResponse.fromEntity(updated);
-        }
+        return mentorPaymentRepository.save(payment);
+    }
 
-        @Override
-        @Transactional(readOnly = true)
-        public MentorPaymentResponse getById(String id) {
-                return mentorPaymentRepository.findById(id)
-                                .map(MentorPaymentResponse::fromEntity)
-                                .orElseThrow(() -> new RuntimeException("Mentor payment not found"));
-        }
+    @Override
+    public MentorPayment markAsPaid(
+            String mentorPaymentId,
+            String paymentMethod,
+            String transactionReference
+    ) {
 
-        @Override
-        @Transactional(readOnly = true)
-        public List<MentorPaymentResponse> getByMentorId(String mentorId) {
-                return mentorPaymentRepository.findByMentorId(mentorId)
-                                .stream()
-                                .map(MentorPaymentResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
+        MentorPayment payment = getById(mentorPaymentId);
 
-        @Override
-        @Transactional(readOnly = true)
-        public List<MentorPaymentResponse> getByProjectId(String projectId) {
-                return mentorPaymentRepository.findByProjectId(projectId)
-                                .stream()
-                                .map(MentorPaymentResponse::fromEntity)
-                                .collect(Collectors.toList());
-        }
+        payment.setStatus(MentorPaymentStatus.PAID);
+        payment.setPaymentMethod(paymentMethod);
+        payment.setTransactionReference(transactionReference);
+        payment.setPaidDate(LocalDate.now());
 
-        @Override
-        @Transactional(readOnly = true)
-        public BigDecimal getTotalPaidForMentor(String mentorId) {
-                return mentorPaymentRepository.getTotalPaidAmountByMentor(mentorId);
-        }
+        return mentorPaymentRepository.save(payment);
+    }
+
+    @Override
+    public MentorPayment cancelMentorPayment(String mentorPaymentId, String reason) {
+
+        MentorPayment payment = getById(mentorPaymentId);
+
+        payment.setStatus(MentorPaymentStatus.CANCELLED);
+        payment.setNotes(reason);
+
+        return mentorPaymentRepository.save(payment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MentorPayment getById(String mentorPaymentId) {
+        return mentorPaymentRepository.findById(mentorPaymentId)
+                .orElseThrow(() -> new EntityNotFoundException("MentorPayment not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MentorPayment> getByMentor(String mentorId) {
+        return mentorPaymentRepository.findByMentorId(mentorId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MentorPayment> getByProject(String projectId) {
+        return mentorPaymentRepository.findByProjectId(projectId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MentorPayment> getByStatus(MentorPaymentStatus status) {
+        return mentorPaymentRepository.findByStatus(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalAmountByMentor(String mentorId) {
+
+        if (mentorId == null) return BigDecimal.ZERO;
+
+        return mentorPaymentRepository.getTotalPaidAmountByMentor(mentorId);
+    }
 }

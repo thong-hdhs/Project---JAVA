@@ -22,9 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.MentorDTO;
 import com.example.labOdc.DTO.Response.MentorResponse;
+import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.Model.Mentor;
+import com.example.labOdc.Model.MentorInvitation;
 import com.example.labOdc.Service.MentorService;
 
+import jakarta.annotation.security.PermitAll;
+
+@PermitAll
 @RestController
 @RequestMapping("api/v1/mentors")
 public class MentorController {
@@ -139,5 +144,111 @@ public class MentorController {
         return ResponseEntity.ok("Invite rejected");
     }
 
-    
+    /**
+     * Đặt trạng thái sẵn sàng của mentor.
+     * @param mentorId ID mentor
+     * @param status Trạng thái
+     */
+    @PostMapping("/availability/{mentorId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> setMentorAvailability(@PathVariable String mentorId, @RequestParam Mentor.Status status) {
+        mentorService.setMentorAvailability(mentorId, status);
+        return ApiResponse.success("Availability updated", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Lấy danh sách lời mời mentor.
+     * @param mentorId ID mentor
+     * @return Danh sách lời mời
+     */
+    @GetMapping("/invitations/{mentorId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<List<MentorInvitation>> getMentorInvitations(@PathVariable String mentorId) {
+        List<MentorInvitation> invitations = mentorService.getMentorInvitations(mentorId);
+        return ApiResponse.success(invitations, "Mentor invitations retrieved", HttpStatus.OK);
+    }
+
+    /**
+     * Lấy danh sách dự án được giao.
+     * @param mentorId ID mentor
+     * @return Danh sách dự án
+     */
+    @GetMapping("/projects/{mentorId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<List<ProjectResponse>> getAssignedProjects(@PathVariable String mentorId) {
+        List<ProjectResponse> projects = mentorService.getAssignedProjects(mentorId);
+        return ApiResponse.success(projects, "Assigned projects retrieved", HttpStatus.OK);
+    }
+
+    /**
+     * Phân tích nhiệm vụ từ template Excel.
+     * @param projectId ID dự án
+     * @param excelTemplate Template Excel
+     */
+    @PostMapping("/tasks/breakdown/{projectId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> breakdownTasks(@PathVariable String projectId, @RequestParam String excelTemplate) {
+        mentorService.breakdownTasks(projectId, excelTemplate);
+        return ApiResponse.success("Tasks broken down", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Giao nhiệm vụ cho talent.
+     * @param taskId ID nhiệm vụ
+     * @param talentId ID talent
+     */
+    @PostMapping("/tasks/{taskId}/assign/{talentId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> assignTask(@PathVariable String taskId, @PathVariable String talentId) {
+        mentorService.assignTask(taskId, talentId);
+        return ApiResponse.success("Task assigned", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Cập nhật trạng thái nhiệm vụ.
+     * @param taskId ID nhiệm vụ
+     * @param status Trạng thái mới
+     */
+    @PutMapping("/tasks/{taskId}/status")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> updateTaskStatus(@PathVariable String taskId, @RequestParam String status) {
+        mentorService.updateTaskStatus(taskId, status);
+        return ApiResponse.success("Task status updated", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Gửi báo cáo dự án.
+     * @param projectId ID dự án
+     * @param reportRequest Nội dung báo cáo
+     */
+    @PostMapping("/reports/{projectId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> submitReport(@PathVariable String projectId, @RequestBody String reportRequest) {
+        mentorService.submitReport(projectId, reportRequest);
+        return ApiResponse.success("Report submitted", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Đánh giá talent.
+     * @param projectId ID dự án
+     * @param talentId ID talent
+     * @param evaluationRequest Nội dung đánh giá
+     */
+    @PostMapping("/evaluations/{projectId}/{talentId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> evaluateTalent(@PathVariable String projectId, @PathVariable String talentId, @RequestBody String evaluationRequest) {
+        mentorService.evaluateTalent(projectId, talentId, evaluationRequest);
+        return ApiResponse.success("Talent evaluated", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Phê duyệt phân bổ quỹ.
+     * @param projectId ID dự án
+     */
+    @PostMapping("/funds/approve/{projectId}")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> approveFundDistribution(@PathVariable String projectId) {
+        mentorService.approveFundDistribution(projectId);
+        return ApiResponse.success("Fund distribution approved", "OK", HttpStatus.OK);
+    }
 }

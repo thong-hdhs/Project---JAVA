@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
@@ -26,6 +27,7 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @PostMapping("/")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<ProjectResponse> createProject(@Valid @RequestBody ProjectDTO dto, BindingResult result) {
         if (result.hasErrors()) {
             List<String> errorMessages = result.getFieldErrors()
@@ -52,12 +54,14 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<ProjectResponse> updateProject(@Valid @RequestBody ProjectDTO dto, @PathVariable String id) {
         Project project = projectService.updateProject(dto, id);
         return ApiResponse.success(ProjectResponse.fromProject(project), "Thanh cong", HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ApiResponse<String> deleteProject(@PathVariable String id) {
         projectService.deleteProject(id);
         return ApiResponse.success("Xoa thanh cong", "Thanh cong", HttpStatus.OK);
@@ -66,18 +70,21 @@ public class ProjectController {
     // ---------- workflow endpoints ----------
 
     @PutMapping("/{id}/submit")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<ProjectResponse> submit(@PathVariable String id) {
         Project project = projectService.submitProject(id);
         return ApiResponse.success(ProjectResponse.fromProject(project), "Submitted", HttpStatus.OK);
     }
 
     @PutMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectResponse> approve(@PathVariable String id, @RequestParam String validatedBy) {
         Project project = projectService.approveProject(id, validatedBy);
         return ApiResponse.success(ProjectResponse.fromProject(project), "Approved", HttpStatus.OK);
     }
 
     @PutMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectResponse> reject(@PathVariable String id, @RequestParam String validatedBy,
             @RequestBody RejectRequestDTO body) {
         Project project = projectService.rejectProject(id, validatedBy, body.getReason());

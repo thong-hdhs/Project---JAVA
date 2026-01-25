@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
@@ -25,6 +26,7 @@ public class MentorInvitationController {
     private final MentorInvitationService mentorInvitationService;
 
     @PostMapping("/")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<MentorInvitationResponse> create(@Valid @RequestBody MentorInvitationDTO dto,
             BindingResult result) {
         if (result.hasErrors()) {
@@ -67,18 +69,21 @@ public class MentorInvitationController {
     }
 
     @PutMapping("/{id}/accept")
+    @PreAuthorize("hasRole('MENTOR')")
     public ApiResponse<MentorInvitationResponse> accept(@PathVariable String id) {
         MentorInvitation mi = mentorInvitationService.acceptInvitation(id);
         return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Accepted", HttpStatus.OK);
     }
 
     @PutMapping("/{id}/reject")
+    @PreAuthorize("hasRole('MENTOR')")
     public ApiResponse<MentorInvitationResponse> reject(@PathVariable String id) {
         MentorInvitation mi = mentorInvitationService.rejectInvitation(id);
         return ApiResponse.success(MentorInvitationResponse.fromMentorInvitation(mi), "Rejected", HttpStatus.OK);
     }
 
     @PutMapping("/{id}/fee")
+    @PreAuthorize("hasRole('COMPANY')")
     public ApiResponse<MentorInvitationResponse> updateFee(@PathVariable String id,
             @RequestBody UpdateProposedFeeDTO body) {
         MentorInvitation mi = mentorInvitationService.updateProposedFee(id, body.getProposedFeePercentage());
