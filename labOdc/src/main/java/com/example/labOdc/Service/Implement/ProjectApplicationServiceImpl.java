@@ -1,6 +1,5 @@
 package com.example.labOdc.Service.Implement;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,8 +12,11 @@ import com.example.labOdc.DTO.Response.ProjectApplicationResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Project;
 import com.example.labOdc.Model.ProjectApplication;
+import com.example.labOdc.Model.ProjectTeam;
+import com.example.labOdc.Model.ProjectTeamStatus;
 import com.example.labOdc.Repository.ProjectApplicationRepository;
 import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.ProjectTeamRepository;
 import com.example.labOdc.Repository.TalentRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.ProjectApplicationService;
@@ -31,6 +33,7 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
     private final ProjectRepository projectRepository;
     private final TalentRepository talentRepository;
     private final UserRepository userRepository;
+    private final ProjectTeamRepository projectTeamRepository;
 
     /**
      * Chức năng: Tạo đơn ứng tuyển dự án mới.
@@ -172,4 +175,78 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
 
     
 
+    /**
+     * Chức năng: Lấy danh sách đơn ứng tuyển đang chờ xử lý theo dự án.
+     * Repository: ProjectApplicationRepository.findAll() - Lọc theo projectId và status PENDING.
+     */
+    @Override
+    public List<ProjectApplicationResponse> getPendingApplications(String projectId) {
+        return applicationRepository.findAll().stream()
+                .filter(pa -> pa.getProject().getId().equals(projectId) && pa.getStatus() == ProjectApplication.Status.PENDING)
+                .map(ProjectApplicationResponse::from)
+                .toList();
+    }
+
+    /**
+     * Chức năng: Thêm talent vào team dự án sau khi phê duyệt.
+     * Repository: ProjectTeamRepository.save() - Tạo ProjectTeam entity.
+     */
+    @Override
+    public void addTalentToProjectTeam(String applicationId) {
+        ProjectApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        if (application.getStatus() != ProjectApplication.Status.APPROVED) {
+            throw new IllegalStateException("Application must be approved first");
+        }
+        ProjectTeam team = ProjectTeam.builder()
+                .project(application.getProject())
+                .talent(application.getTalent())
+                .joinedDate(java.time.LocalDate.now())
+                .status(ProjectTeamStatus.ACTIVE)
+                .build();
+        projectTeamRepository.save(team);
+    }
+
+    /**
+     * Chức năng: Xóa talent khỏi dự án.
+     * Repository: ProjectTeamRepository.findAll(), delete() - Tìm và xóa ProjectTeam entity.
+     */
+    @Override
+    public void removeTalentFromProject(String projectId, String talentId) {
+        ProjectTeam team = projectTeamRepository.findAll().stream()
+                .filter(pt -> pt.getProject().getId().equals(projectId) && pt.getTalent().getId().equals(talentId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not in project team"));
+        team.setStatus(ProjectTeamStatus.REMOVED);
+        team.setLeftDate(java.time.LocalDate.now());
+        projectTeamRepository.save(team);
+    }
+
+    @Override
+    public void createApplication(String projectId, String talentId, String coverLetter) {
+        // Placeholder: Tạo application
+        System.out.println("Creating application for project: " + projectId + " by talent: " + talentId + " with cover: " + coverLetter);
+    }
+
+    @Override
+    public void withdrawApplication(String applicationId) {
+        // Placeholder: Withdraw application
+        System.out.println("Withdrawing application: " + applicationId);
+    }
+
+    @Override
+    public List<ProjectApplicationResponse> getApplicationsByProject(String projectId) {
+        return applicationRepository.findAll().stream()
+                .filter(pa -> pa.getProject().getId().equals(projectId))
+                .map(ProjectApplicationResponse::from)
+                .toList();
+    }
+
+    @Override
+    public List<ProjectApplicationResponse> getApplicationsByTalent(String talentId) {
+        return applicationRepository.findAll().stream()
+                .filter(pa -> pa.getTalent().getId().equals(talentId))
+                .map(ProjectApplicationResponse::from)
+                .toList();
+    }
 }

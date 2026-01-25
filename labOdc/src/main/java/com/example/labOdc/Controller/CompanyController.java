@@ -22,9 +22,11 @@ import com.example.labOdc.DTO.CompanyDTO;
 import com.example.labOdc.DTO.Response.CompanyResponse;
 import com.example.labOdc.Service.CompanyService;
 
+import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
+@PermitAll
 @RestController
 @AllArgsConstructor
 @RequestMapping("api/v1/companies")
@@ -98,8 +100,8 @@ public class CompanyController {
      */
     @PostMapping("/approve/{id}")
     @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
-    public ApiResponse<CompanyResponse> approveCompany(@PathVariable String id) {
-        CompanyResponse response = companyService.approveCompany(id);
+    public ApiResponse<CompanyResponse> approveCompany(@PathVariable String id, @RequestParam String labAdminId) {
+        CompanyResponse response = companyService.approveCompany(id, labAdminId);
         return ApiResponse.success(response, "Approved", HttpStatus.OK);
     }
 
@@ -109,10 +111,22 @@ public class CompanyController {
      */
     @PostMapping("/reject/{id}")
     @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
-    public ApiResponse<CompanyResponse> rejectCompany(@PathVariable String id, @RequestParam String reason) {
-        CompanyResponse response = companyService.rejectCompany(id, reason);
+    public ApiResponse<CompanyResponse> rejectCompany(@PathVariable String id, @RequestParam String reason, @RequestParam String labAdminId) {
+        CompanyResponse response = companyService.rejectCompany(id, reason, labAdminId);
         return ApiResponse.success(response, "Rejected", HttpStatus.OK);
     }
 
     
+    /**
+     * Chức năng: Suspend công ty với lý do.
+     * Service: CompanyService.suspendCompany() - Cập nhật status thành SUSPENDED.
+     */
+    @PostMapping("/suspend/{id}")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
+    public ApiResponse<CompanyResponse> suspendCompany(@PathVariable String id, @RequestParam String reason) {
+        CompanyResponse response = companyService.suspendCompany(id, reason);
+        return ApiResponse.success(response, "Suspended", HttpStatus.OK);
+    }
+
+   
 }

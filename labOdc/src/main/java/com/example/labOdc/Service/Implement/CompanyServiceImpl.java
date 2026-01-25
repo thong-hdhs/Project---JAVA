@@ -12,10 +12,13 @@ import com.example.labOdc.DTO.CompanyDTO;
 import com.example.labOdc.DTO.Response.CompanyResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Company;
+import com.example.labOdc.Model.Project;
+import com.example.labOdc.Model.ProjectStatus;
 import com.example.labOdc.Model.RoleEntity;
 import com.example.labOdc.Model.User;
 import com.example.labOdc.Model.UserRole;
 import com.example.labOdc.Repository.CompanyRepository;
+import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.RoleRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.CompanyService;
@@ -31,6 +34,7 @@ public class CompanyServiceImpl implements CompanyService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ProjectRepository projectRepository;
 
     /**
      * Chức năng: Tạo hồ sơ công ty mới.
@@ -143,42 +147,6 @@ public CompanyResponse createCompany(CompanyDTO companyDTO) {
     }
 
     /**
-     * Chức năng: Phê duyệt hồ sơ công ty.
-     * Repository: CompanyRepository.findById() và save() - Tìm và cập nhật status thành APPROVED.
-     */
-    @Override
-    @Transactional
-    public CompanyResponse approveCompany(String id) {
-        logger.info("Approving company with ID: {}", id);
-        Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
-        company.setStatus(Company.Status.APPROVED);
-        // Giả định set approvedBy từ current user, approvedAt từ now
-        // company.setApprovedBy(currentUser);
-        company.setApprovedAt(java.time.LocalDateTime.now());
-        Company updatedCompany = companyRepository.save(company);
-        logger.info("Company approved successfully");
-        return CompanyResponse.fromCompany(updatedCompany);
-    }
-
-    /**
-     * Chức năng: Từ chối hồ sơ công ty với lý do.
-     * Repository: CompanyRepository.findById() và save() - Tìm và cập nhật status thành REJECTED.
-     */
-    @Override
-    @Transactional
-    public CompanyResponse rejectCompany(String id, String reason) {
-        logger.info("Rejecting company with ID: {} for reason: {}", id, reason);
-        Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
-        company.setStatus(Company.Status.REJECTED);
-        company.setRejectionReason(reason);
-        Company updatedCompany = companyRepository.save(company);
-        logger.info("Company rejected successfully");
-        return CompanyResponse.fromCompany(updatedCompany);
-    }
-
-    /**
      * Helper method to update company fields from DTO
      * Only updates non-null fields to support partial updates
      */
@@ -198,4 +166,61 @@ public CompanyResponse createCompany(CompanyDTO companyDTO) {
         if (dto.getCompanySize() != null)
             company.setCompanySize(dto.getCompanySize());
     }
+
+
+
+    /**
+     * Chức năng: Suspend công ty với lý do.
+     * Repository: CompanyRepository.findById(), save().
+     * Logic: Cập nhật status thành SUSPENDED và lưu lý do.
+     */
+    @Override
+    @Transactional
+    public CompanyResponse suspendCompany(String companyId, String reason) {
+        logger.info("Suspending company with ID: {} for reason: {}", companyId, reason);
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with ID: " + companyId));
+        company.setStatus(Company.Status.SUSPENDED);
+        company.setRejectionReason(reason); // Sử dụng rejectionReason cho suspend reason
+        Company updatedCompany = companyRepository.save(company);
+        logger.info("Company suspended successfully");
+        return CompanyResponse.fromCompany(updatedCompany);
+    }
+
+    @Override
+    public List<Project> getCompanyProjects(String companyId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        return projectRepository.findAll().stream()
+                .filter(project -> project.getCompany().getId().equals(companyId))
+                .toList();
+    }
+
+
+   
+    @Override
+    @Transactional
+    public CompanyResponse approveCompany(String id, String labAdminId) {
+        logger.info("Approving company with ID: {} by lab admin: {}", id, labAdminId);
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        company.setStatus(Company.Status.APPROVED);
+        Company updatedCompany = companyRepository.save(company);
+        logger.info("Company approved successfully");
+        return CompanyResponse.fromCompany(updatedCompany);
+    }
+
+    @Override
+    @Transactional
+    public CompanyResponse rejectCompany(String id, String reason, String labAdminId) {
+        logger.info("Rejecting company with ID: {} by lab admin: {} for reason: {}", id, labAdminId, reason);
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        company.setStatus(Company.Status.REJECTED);
+        company.setRejectionReason(reason);
+        Company updatedCompany = companyRepository.save(company);
+        logger.info("Company rejected successfully");
+        return CompanyResponse.fromCompany(updatedCompany);
+    }
+
 }
