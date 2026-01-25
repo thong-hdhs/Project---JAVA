@@ -1,6 +1,5 @@
 package com.example.labOdc.Controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -23,9 +22,11 @@ import com.example.labOdc.DTO.ProjectApplicationDTO;
 import com.example.labOdc.DTO.Response.ProjectApplicationResponse;
 import com.example.labOdc.Service.ProjectApplicationService;
 
+import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
+@PermitAll
 @RestController
 @AllArgsConstructor
 @RequestMapping("api/v1/applications")
@@ -137,5 +138,51 @@ public class ProjectApplicationController {
         return ApiResponse.success(response, "Rejected", HttpStatus.OK);
     }
 
-   
+    /**
+     * Tạo đơn ứng tuyển.
+     * @param projectId ID dự án
+     * @param talentId ID talent
+     * @param coverLetter Thư xin việc
+     */
+    @PostMapping("/create/{projectId}/{talentId}")
+    @PreAuthorize("hasRole('TALENT')")
+    public ApiResponse<String> createApplication(@PathVariable String projectId, @PathVariable String talentId, @RequestParam String coverLetter) {
+        applicationService.createApplication(projectId, talentId, coverLetter);
+        return ApiResponse.success("Application created", "OK", HttpStatus.CREATED);
+    }
+
+    /**
+     * Rút đơn ứng tuyển.
+     * @param applicationId ID đơn ứng tuyển
+     */
+    @PutMapping("/withdraw/{applicationId}")
+    @PreAuthorize("hasRole('TALENT')")
+    public ApiResponse<String> withdrawApplication(@PathVariable String applicationId) {
+        applicationService.withdrawApplication(applicationId);
+        return ApiResponse.success("Application withdrawn", "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Lấy danh sách đơn ứng tuyển theo dự án.
+     * @param projectId ID dự án
+     * @return Danh sách đơn ứng tuyển
+     */
+    @GetMapping("/by-project/{projectId}")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'COMPANY', 'SYSTEM_ADMIN')")
+    public ApiResponse<List<ProjectApplicationResponse>> getApplicationsByProject(@PathVariable String projectId) {
+        List<ProjectApplicationResponse> list = applicationService.getApplicationsByProject(projectId);
+        return ApiResponse.success(list, "OK", HttpStatus.OK);
+    }
+
+    /**
+     * Lấy danh sách đơn ứng tuyển theo talent.
+     * @param talentId ID talent
+     * @return Danh sách đơn ứng tuyển
+     */
+    @GetMapping("/by-talent/{talentId}")
+    @PreAuthorize("hasAnyRole('TALENT', 'LAB_ADMIN', 'SYSTEM_ADMIN')")
+    public ApiResponse<List<ProjectApplicationResponse>> getApplicationsByTalent(@PathVariable String talentId) {
+        List<ProjectApplicationResponse> list = applicationService.getApplicationsByTalent(talentId);
+        return ApiResponse.success(list, "OK", HttpStatus.OK);
+    }
 }

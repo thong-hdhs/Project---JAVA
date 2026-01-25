@@ -1,17 +1,27 @@
 package com.example.labOdc.Service.Implement;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.DTO.Response.TalentResponse;
 import com.example.labOdc.DTO.TalentDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
+import com.example.labOdc.Model.FundDistribution;
+import com.example.labOdc.Model.Project;
+import com.example.labOdc.Model.ProjectApplication;
 import com.example.labOdc.Model.Talent;
+import com.example.labOdc.Model.Task;
+import com.example.labOdc.Repository.FundAllocationRepository;
+import com.example.labOdc.Repository.FundDistributionRepository;
+import com.example.labOdc.Repository.ProjectApplicationRepository;
+import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.ProjectTeamRepository;
 import com.example.labOdc.Repository.TalentRepository;
+import com.example.labOdc.Repository.TaskRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.TalentService;
 
@@ -25,6 +35,12 @@ public class TalentServiceImpl implements TalentService {
     private static final Logger logger = LoggerFactory.getLogger(TalentServiceImpl.class);
     private final TalentRepository talentRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectApplicationRepository projectApplicationRepository;
+    private final ProjectTeamRepository projectTeamRepository;
+    private final TaskRepository taskRepository;
+    private final FundAllocationRepository fundAllocationRepository;
+    private final FundDistributionRepository fundDistributionRepository;
 
     /**
      * Chức năng: Tạo hồ sơ sinh viên mới.
@@ -160,4 +176,127 @@ public class TalentServiceImpl implements TalentService {
                 .toList();
     }
 
+    @Override
+    public void setTalentAvailability(String talentId, Talent.Status status) {
+        Talent talent = talentRepository.findById(talentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        talent.setStatus(status);
+        talentRepository.save(talent);
+    }
+
+    @Override
+    public void applyToProject(String projectId, String talentId, String coverLetter) {
+        Talent talent = talentRepository.findById(talentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        
+        ProjectApplication application = ProjectApplication.builder()
+                .project(project)
+                .talent(talent)
+                .coverLetter(coverLetter)
+                .status(ProjectApplication.Status.PENDING)
+                .build();
+        
+        projectApplicationRepository.save(application);
+    }
+
+    @Override
+    public void withdrawApplication(String applicationId) {
+        ProjectApplication application = projectApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        application.setStatus(ProjectApplication.Status.WITHDRAWN);
+        projectApplicationRepository.save(application);
+    }
+
+    @Override
+    public List<ProjectApplication> getMyApplications(String talentId) {
+        Talent talent = talentRepository.findById(talentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        return projectApplicationRepository.findAll().stream()
+                .filter(pa -> pa.getTalent().getId().equals(talentId))
+                .toList();
+    }
+
+    @Override
+    public List<ProjectResponse> getMyProjects(String talentId) {
+        Talent talent = talentRepository.findById(talentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        return projectTeamRepository.findAll().stream()
+                .filter(pt -> pt.getTalent().getId().equals(talentId))
+                .map(pt -> ProjectResponse.fromProject(pt.getProject()))
+                .toList();
+    }
+
+    @Override
+    public List<Task> getAssignedTasks(String talentId) {
+        Talent talent = talentRepository.findById(talentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        return taskRepository.findAll().stream()
+                .filter(task -> talentId.equals(task.getAssignedTo()))
+                .toList();
+    }
+
+    @Override
+    public void updateSkillsAndCertifications(String talentId) {
+        // Placeholder: Cập nhật skills và certifications
+        System.out.println("Updating skills and certifications for talent: " + talentId);
+    }
+
+    @Override
+    public void updateTaskProgress(String taskId, String status) {
+        logger.info("Updating task progress for taskId: {} to status: {}", taskId, status);
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        
+        try {
+            Task.Status taskStatus = Task.Status.valueOf(status.toUpperCase());
+            task.setStatus(taskStatus);
+            if (taskStatus == Task.Status.DONE) {
+                task.setCompletedDate(java.time.LocalDate.now());
+            }
+            taskRepository.save(task);
+            logger.info("Task progress updated successfully");
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid status: {}", status);
+            throw new IllegalArgumentException("Invalid task status: " + status);
+        }
+    }
+
+    @Override
+    public void submitContribution(String projectId, String contributionRequest) {
+        // Placeholder: Gửi contribution
+        System.out.println("Submitting contribution for project: " + projectId + " with: " + contributionRequest);
+    }
+
+    @Override
+    public void voteOnProposal(String projectId, String voteRequest) {
+        // Placeholder: Vote proposal
+        System.out.println("Voting on proposal for project: " + projectId + " with: " + voteRequest);
+    }
+
+    @Override
+    public void viewTeamFundDistribution(String projectId) {
+        logger.info("Viewing team fund distribution for projectId: {}", projectId);
+        
+        // Find fund allocation for the project
+        fundAllocationRepository.findByProjectId(projectId).ifPresentOrElse(fundAllocation -> {
+            // Find all fund distributions for this allocation
+            List<FundDistribution> distributions = fundDistributionRepository.findByFundAllocationId(fundAllocation.getId());
+            
+            if (distributions.isEmpty()) {
+                logger.info("No fund distributions found for project: {}", projectId);
+            } else {
+                logger.info("Fund distributions for project {}:", projectId);
+                distributions.forEach(dist -> {
+                    logger.info("Talent: {}, Amount: {}, Status: {}", 
+                        dist.getTalent().getUser().getUsername(), 
+                        dist.getAmount(), 
+                        dist.getStatus());
+                });
+            }
+        }, () -> {
+            logger.info("No fund allocation found for project: {}", projectId);
+        });
+    }
 }

@@ -1,6 +1,5 @@
 package com.example.labOdc.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import com.example.labOdc.DTO.ProjectApplicationDTO;
@@ -38,4 +37,50 @@ public interface ProjectApplicationService {
      * Service: Cập nhật trạng thái thành WITHDRAWN.
      */
     ProjectApplicationResponse cancelApplication(String id);
+
+    /**
+     * Chức năng: Lấy danh sách đơn ứng tuyển đang chờ xử lý theo dự án.
+     * Service: Lọc các đơn có status PENDING.
+     */
+    List<ProjectApplicationResponse> getPendingApplications(String projectId);
+
+    /**
+     * Chức năng: Thêm talent vào team dự án sau khi phê duyệt.
+     * Service: Tạo ProjectTeam entity.
+     */
+    void addTalentToProjectTeam(String applicationId);
+
+    /**
+     * Chức năng: Xóa talent khỏi dự án.
+     * Service: Xóa ProjectTeam entity.
+     */
+    void removeTalentFromProject(String projectId, String talentId);
+
+    /**
+     * Tạo đơn ứng tuyển.
+     * @param projectId ID dự án
+     * @param talentId ID talent
+     * @param coverLetter Thư xin việc
+     */
+    void createApplication(String projectId, String talentId, String coverLetter);
+
+    /**
+     * Rút đơn ứng tuyển.
+     * @param applicationId ID đơn ứng tuyển
+     */
+    void withdrawApplication(String applicationId);
+
+    /**
+     * Lấy danh sách đơn ứng tuyển theo dự án.
+     * @param projectId ID dự án
+     * @return Danh sách đơn ứng tuyển
+     */
+    List<ProjectApplicationResponse> getApplicationsByProject(String projectId);
+
+    /**
+     * Lấy danh sách đơn ứng tuyển theo talent.
+     * @param talentId ID talent
+     * @return Danh sách đơn ứng tuyển
+     */
+    List<ProjectApplicationResponse> getApplicationsByTalent(String talentId);
 }
