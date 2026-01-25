@@ -1,0 +1,204 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import StatusBadge from '@/components/ui/StatusBadge';
+import DataTable from '@/components/ui/DataTable';
+import QRCodeModal from '@/components/ui/QRCodeModal';
+import Icon from '@/components/ui/Icon';
+import { projectService } from '@/services/project.service';
+import { Project } from '@/types';
+
+const EnterpriseProjects: React.FC = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      // In real app, filter by company_id
+      const response = await projectService.getProjects();
+      const companyProjects = response.data; // Mock - all projects
+      setProjects(companyProjects);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentClick = (project: Project) => {
+    if (project.validation_status === 'APPROVED') {
+      setSelectedProject(project);
+      setShowQRModal(true);
+    }
+  };
+
+  const getValidationStatusColor = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'APPROVED':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'REJECTED':
+        return 'bg-red-50 text-red-700 border-red-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  const columns = [
+    {
+      key: 'project_name',
+      header: 'Project Name',
+      render: (value: string, item: Project) => (
+        <div>
+          <div className="font-medium text-gray-900">{value}</div>
+          <div className="text-sm text-gray-500 line-clamp-1">{item.description}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'budget',
+      header: 'Budget',
+      render: (value: number) => <span className="font-semibold text-blue-600">${value.toLocaleString()}</span>,
+    },
+    {
+      key: 'validation_status',
+      header: 'Validation Status',
+      render: (value: string) => (
+        <div className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full border ${getValidationStatusColor(value)}`}>
+          <Icon
+            icon={value === 'APPROVED' ? 'check' : value === 'REJECTED' ? 'close' : 'clock'}
+            className="w-4 h-4"
+            width={undefined}
+            rotate={undefined}
+            hFlip={undefined}
+            vFlip={undefined}
+          />
+          <span className="text-sm font-medium capitalize">{value.toLowerCase()}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'duration_months',
+      header: 'Duration',
+      render: (value: number) => `${value} months`,
+    },
+    {
+      key: 'status',
+      header: 'Project Status',
+      render: (value: string) => <StatusBadge status={value} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (_: any, item: Project) => (
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/enterprise/projects/${item.id}`}>
+            <Button text="View" className="btn-outline-dark btn-sm" />
+          </Link>
+
+          {item.validation_status === 'APPROVED' && (
+            <button
+              onClick={() => handlePaymentClick(item)}
+              className="inline-flex items-center space-x-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+            >
+              <Icon icon="payment" className="w-4 h-4" width={undefined} rotate={undefined} hFlip={undefined} vFlip={undefined} />
+              <span>Pay</span>
+            </button>
+          )}
+
+          {item.status === 'DRAFT' && item.validation_status !== 'REJECTED' && (
+            <Link to={`/enterprise/projects/${item.id}/edit`}>
+              <Button text="Edit" className="btn-outline-dark btn-sm" />
+            </Link>
+          )}
+
+          {item.validation_status === 'REJECTED' && (
+            <div className="flex items-center space-x-2 text-red-600">
+              <Icon icon="alert" className="w-4 h-4" width={undefined} rotate={undefined} hFlip={undefined} vFlip={undefined} />
+              <span className="text-xs">Rejected</span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Projects</h1>
+          <p className="text-gray-600 mt-1">Manage your submitted projects</p>
+        </div>
+        <Link to="/enterprise/projects/create">
+          <Button text="Create New Project" className="bg-primary-500 text-white" />
+        </Link>
+      </div>
+
+      {/* Projects Table */}
+      <Card>
+        <DataTable
+          data={projects}
+          columns={columns}
+          loading={loading}
+          emptyMessage="You haven't created any projects yet."
+        />
+      </Card>
+
+      {/* Project Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="text-center bg-gradient-to-br from-blue-50 to-blue-100">
+          <div className="text-2xl font-bold text-blue-600">{projects.length}</div>
+          <div className="text-gray-600">Total Projects</div>
+        </Card>
+
+        <Card className="text-center bg-gradient-to-br from-yellow-50 to-yellow-100">
+          <div className="text-2xl font-bold text-yellow-600">
+            {projects.filter(p => p.validation_status === 'PENDING').length}
+          </div>
+          <div className="text-gray-600">Waiting for Review</div>
+        </Card>
+
+        <Card className="text-center bg-gradient-to-br from-green-50 to-green-100">
+          <div className="text-2xl font-bold text-green-600">
+            {projects.filter(p => p.validation_status === 'APPROVED').length}
+          </div>
+          <div className="text-gray-600">Approved</div>
+        </Card>
+
+        <Card className="text-center bg-gradient-to-br from-red-50 to-red-100">
+          <div className="text-2xl font-bold text-red-600">
+            {projects.filter(p => p.validation_status === 'REJECTED').length}
+          </div>
+          <div className="text-gray-600">Rejected</div>
+        </Card>
+      </div>
+
+      {/* QR Code Modal */}
+      {selectedProject && (
+        <QRCodeModal
+          isOpen={showQRModal}
+          onClose={() => {
+            setShowQRModal(false);
+            setSelectedProject(null);
+          }}
+          projectName={selectedProject.project_name}
+          projectId={selectedProject.id}
+          amount={selectedProject.budget}
+        />
+      )}
+    </div>
+  );
+};
+
+export default EnterpriseProjects;

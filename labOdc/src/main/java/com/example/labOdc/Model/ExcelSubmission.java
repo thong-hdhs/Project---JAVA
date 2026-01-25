@@ -2,6 +2,8 @@ package com.example.labOdc.Model;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import com.example.labOdc.Enum.SubmissionStatus;
 import com.example.labOdc.Enum.TemplateType;
 
@@ -50,6 +52,7 @@ public class ExcelSubmission {
     @Column(columnDefinition = "TEXT")
     private String reviewComment;
 
+    @CreationTimestamp
     private LocalDateTime submittedAt;
 
     private LocalDateTime reviewedAt;
