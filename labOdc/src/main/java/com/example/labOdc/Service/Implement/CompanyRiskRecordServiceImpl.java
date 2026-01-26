@@ -3,8 +3,12 @@ package com.example.labOdc.Service.Implement;
 import com.example.labOdc.DTO.CompanyRiskRecordDTO;
 import com.example.labOdc.DTO.Response.CompanyRiskRecordResponse;
 import com.example.labOdc.Model.*;
-import com.example.labOdc.Repository.*;
+import com.example.labOdc.Repository.CompanyRepository;
+import com.example.labOdc.Repository.CompanyRiskRecordRepository;
+import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.CompanyRiskRecordService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,17 +28,24 @@ public class CompanyRiskRecordServiceImpl implements CompanyRiskRecordService {
 
     @Override
     public CompanyRiskRecordResponse createRiskRecord(CompanyRiskRecordDTO dto) {
-        Company company = companyRepository.findById(dto.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        Project project = null;
-        if (dto.getProjectId() != null && !dto.getProjectId().isBlank()) {
-            project = projectRepository.findById(dto.getProjectId())
-                    .orElseThrow(() -> new RuntimeException("Project not found"));
+        Company company = null;
+        if (dto.getCompanyId() != null) {
+            company = companyRepository.findById(dto.getCompanyId())
+                    .orElseThrow(() -> new EntityNotFoundException("Company not found"));
         }
 
-        User recordedBy = userRepository.findById(dto.getRecordedById())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Project project = null;
+        if (dto.getProjectId() != null) {
+            project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new EntityNotFoundException("Project not found"));
+        }
+
+        User recordedBy = null;
+        if (dto.getRecordedById() != null) {
+            recordedBy = userRepository.findById(dto.getRecordedById())
+                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        }
 
         CompanyRiskRecord record = CompanyRiskRecord.builder()
                 .company(company)
@@ -46,23 +57,24 @@ public class CompanyRiskRecordServiceImpl implements CompanyRiskRecordService {
                 .build();
 
         CompanyRiskRecord saved = companyRiskRecordRepository.save(record);
-        return mapToResponse(saved);
+
+        return CompanyRiskRecordResponse.fromEntity(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public CompanyRiskRecordResponse getById(String id) {
         CompanyRiskRecord record = companyRiskRecordRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Risk record not found"));
-        return mapToResponse(record);
+                .orElseThrow(() -> new EntityNotFoundException("Risk record not found"));
+        return CompanyRiskRecordResponse.fromEntity(record);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CompanyRiskRecordResponse> getByCompanyId(String companyId) {
-        return companyRiskRecordRepository.findByCompanyIdOrderByRecordedAtDesc(companyId)
+        return companyRiskRecordRepository.findByCompanyId(companyId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(CompanyRiskRecordResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -71,32 +83,30 @@ public class CompanyRiskRecordServiceImpl implements CompanyRiskRecordService {
     public List<CompanyRiskRecordResponse> getByProjectId(String projectId) {
         return companyRiskRecordRepository.findByProjectId(projectId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(CompanyRiskRecordResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CompanyRiskRecordResponse> getHighRiskCompanies() {
-        return companyRiskRecordRepository.findBySeverityIn(
-                List.of(RiskSeverity.HIGH, RiskSeverity.CRITICAL))
+        return companyRiskRecordRepository.findBySeverity(RiskSeverity.HIGH)
                 .stream()
-                .map(this::mapToResponse)
+                .map(CompanyRiskRecordResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    private CompanyRiskRecordResponse mapToResponse(CompanyRiskRecord record) {
-        return CompanyRiskRecordResponse.builder()
-                .id(record.getId())
-                .companyName(record.getCompany().getCompanyName())
-                .companyTaxCode(record.getCompany().getTaxCode())
-                .projectName(record.getProject() != null ? record.getProject().getProjectName() : null)
-                .projectCode(record.getProject() != null ? record.getProject().getProjectCode() : null)
-                .riskType(record.getRiskType())
-                .severity(record.getSeverity())
-                .description(record.getDescription())
-                .recordedByName(record.getRecordedBy().getFullName())
-                .recordedAt(record.getRecordedAt())
-                .build();
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasCriticalRisk(String companyId) {
+        return companyRiskRecordRepository
+                .existsByCompanyIdAndSeverity(companyId, RiskSeverity.CRITICAL);
+    }
+
+    @Override
+    public void validateCompanyIsNotBlocked(String companyId) {
+        if (hasCriticalRisk(companyId)) {
+            throw new RuntimeException("Company is blocked due to CRITICAL risk");
+        }
     }
 }

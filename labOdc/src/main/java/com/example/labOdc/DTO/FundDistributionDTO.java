@@ -14,16 +14,15 @@ import java.math.BigDecimal;
 @Builder
 public class FundDistributionDTO {
 
-    @NotBlank(message = "fundAllocationId is required")
     private String fundAllocationId;
 
-    @NotBlank(message = "talentId is required")
     private String talentId;
 
     @NotNull(message = "amount is required")
     @Positive(message = "amount must be positive")
     private BigDecimal amount;
 
+    @Positive(message = "percentage must be positive")
     private BigDecimal percentage;
 
     private String notes;

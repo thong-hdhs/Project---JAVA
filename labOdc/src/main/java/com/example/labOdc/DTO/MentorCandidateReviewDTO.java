@@ -6,20 +6,23 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class MentorCandidateReviewDTO {
-    private String id;
+    @NotBlank
     private String mentorId;
+
+    @NotBlank
     private String talentId;
+
+    @NotBlank
     private String projectId;
+
     private BigDecimal rating;
     private String comments;
-    private String status; // PENDING / APPROVED / REJECTED
-    private String reviewedById;
-    private LocalDateTime reviewedAt;
 }

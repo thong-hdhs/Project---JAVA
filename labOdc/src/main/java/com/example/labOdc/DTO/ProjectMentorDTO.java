@@ -1,8 +1,8 @@
 package com.example.labOdc.DTO;
 
 import com.example.labOdc.Model.ProjectMentorRole;
-import com.example.labOdc.Model.ProjectMentorStatus;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
@@ -10,8 +10,12 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class ProjectMentorDTO {
+    @NotBlank
     private String projectId;
+
+    @NotBlank
     private String mentorId;
+
     private ProjectMentorRole role;
-    private ProjectMentorStatus status;
+    private String status;
 }

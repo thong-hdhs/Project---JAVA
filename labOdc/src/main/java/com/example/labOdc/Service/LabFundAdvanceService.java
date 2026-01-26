@@ -1,17 +1,34 @@
 package com.example.labOdc.Service;
 
 import com.example.labOdc.DTO.LabFundAdvanceDTO;
-import com.example.labOdc.DTO.Response.LabFundAdvanceResponse;
+import com.example.labOdc.Model.LabFundAdvance;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface LabFundAdvanceService {
 
-    LabFundAdvanceResponse createAdvance(LabFundAdvanceDTO dto);
+    // Tạo mới yêu cầu tạm ứng từ Lab Admin
+    LabFundAdvance createAdvance(LabFundAdvanceDTO dto);
 
-    LabFundAdvanceResponse updateStatus(String advanceId, String status, String approvedById);
+    // Lab Admin phê duyệt tạm ứng
+    LabFundAdvance approveAdvance(String advanceId, String approvedByUserId);
 
-    LabFundAdvanceResponse getById(String id);
+    // Quyết toán tạm ứng khi doanh nghiệp thanh toán
+    LabFundAdvance settleAdvance(String advanceId, String paymentId);
 
-    List<LabFundAdvanceResponse> getByProjectId(String projectId);
+    // Hủy yêu cầu tạm ứng
+    LabFundAdvance cancelAdvance(String advanceId, String reason);
+
+    // Lấy danh sách tạm ứng theo project
+    List<LabFundAdvance> getAdvancesByProject(String projectId);
+
+    // Lấy danh sách tạm ứng chưa quyết toán
+    List<LabFundAdvance> getUnsettledAdvances();
+
+    // Tính tổng số tiền tạm ứng chưa quyết toán
+    BigDecimal getTotalOutstandingAdvance();
+
+    // Lấy tạm ứng theo ID
+    LabFundAdvance getAdvanceById(String advanceId);
 }

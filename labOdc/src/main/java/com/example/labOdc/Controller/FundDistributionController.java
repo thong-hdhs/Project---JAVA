@@ -12,8 +12,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +22,8 @@ public class FundDistributionController {
 
     private final FundDistributionService fundDistributionService;
 
+    /* ================= CREATE ================= */
+
     @PostMapping("/")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<FundDistributionResponse> createDistribution(
@@ -31,34 +31,39 @@ public class FundDistributionController {
             BindingResult result) {
 
         if (result.hasErrors()) {
-            List<String> errorMessages = result.getFieldErrors()
+            List<String> errors = result.getFieldErrors()
                     .stream()
                     .map(FieldError::getDefaultMessage)
                     .collect(Collectors.toList());
-            return ApiResponse.error(errorMessages);
+
+            return ApiResponse.error(errors);
         }
 
-        FundDistributionResponse response = fundDistributionService.createDistribution(dto);
+        FundDistributionResponse response =
+                fundDistributionService.createDistribution(dto);
 
         return ApiResponse.success(
                 response,
-                "Fund distribution to talent created successfully",
+                "Fund distribution created successfully",
                 HttpStatus.CREATED
         );
     }
 
+    /* ================= STATUS FLOW ================= */
+
+    /**
+     * Approve / Reject / Pending distribution
+     */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<FundDistributionResponse> updateDistributionStatus(
+    public ApiResponse<FundDistributionResponse> updateStatus(
             @PathVariable String id,
             @RequestParam String status,
             @RequestParam(required = false) String approvedById,
-            @RequestParam(required = false) LocalDate paidDate,
-            @RequestParam(required = false) String paymentMethod,
-            @RequestParam(required = false) String transactionRef,
             @RequestParam(required = false) String notes) {
 
-        FundDistributionResponse response = fundDistributionService.updateStatus(id, status, approvedById, paidDate, paymentMethod, transactionRef, notes);
+        FundDistributionResponse response =
+                fundDistributionService.updateStatus(id, status, approvedById, notes);
 
         return ApiResponse.success(
                 response,
@@ -67,31 +72,75 @@ public class FundDistributionController {
         );
     }
 
+    /**
+     * Mark distribution as PAID
+     */
+    @PatchMapping("/{id}/paid")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
+    public ApiResponse<FundDistributionResponse> markAsPaid(
+            @PathVariable String id,
+            @RequestParam String paymentMethod,
+            @RequestParam String transactionReference) {
+
+        FundDistributionResponse response =
+                fundDistributionService.markAsPaid(id, paymentMethod, transactionReference);
+
+        return ApiResponse.success(
+                response,
+                "Fund distribution marked as paid successfully",
+                HttpStatus.OK
+        );
+    }
+
+    /* ================= QUERY ================= */
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'TALENT')")
     public ApiResponse<FundDistributionResponse> getById(@PathVariable String id) {
-        FundDistributionResponse response = fundDistributionService.getById(id);
-        return ApiResponse.success(response, "Fund distribution retrieved successfully", HttpStatus.OK);
+
+        FundDistributionResponse response =
+                fundDistributionService.getById(id);
+
+        return ApiResponse.success(
+                response,
+                "Fund distribution retrieved successfully",
+                HttpStatus.OK
+        );
     }
 
+    /**
+     * 1 FundAllocation → N FundDistribution
+     */
     @GetMapping("/allocation/{fundAllocationId}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
-    public ApiResponse<List<FundDistributionResponse>> getByAllocation(@PathVariable String fundAllocationId) {
-        List<FundDistributionResponse> list = fundDistributionService.getByFundAllocationId(fundAllocationId);
-        return ApiResponse.success(list, "Distributions by allocation retrieved successfully", HttpStatus.OK);
+    public ApiResponse<List<FundDistributionResponse>> getByAllocation(
+            @PathVariable String fundAllocationId) {
+
+        List<FundDistributionResponse> list =
+                fundDistributionService.getByFundAllocationId(fundAllocationId);
+
+        return ApiResponse.success(
+                list,
+                "Fund distributions by allocation retrieved successfully",
+                HttpStatus.OK
+        );
     }
 
+    /**
+     * 1 Talent → N FundDistribution
+     */
     @GetMapping("/talent/{talentId}")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'TALENT')")
-    public ApiResponse<List<FundDistributionResponse>> getByTalent(@PathVariable String talentId) {
-        List<FundDistributionResponse> list = fundDistributionService.getByTalentId(talentId);
-        return ApiResponse.success(list, "Distributions by talent retrieved successfully", HttpStatus.OK);
-    }
+    public ApiResponse<List<FundDistributionResponse>> getByTalent(
+            @PathVariable String talentId) {
 
-    @GetMapping("/talent/{talentId}/total-paid")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'TALENT')")
-    public ApiResponse<BigDecimal> getTotalPaidForTalent(@PathVariable String talentId) {
-        BigDecimal total = fundDistributionService.getTotalPaidForTalent(talentId);
-        return ApiResponse.success(total, "Total paid to talent retrieved successfully", HttpStatus.OK);
+        List<FundDistributionResponse> list =
+                fundDistributionService.getByTalentId(talentId);
+
+        return ApiResponse.success(
+                list,
+                "Fund distributions by talent retrieved successfully",
+                HttpStatus.OK
+        );
     }
 }

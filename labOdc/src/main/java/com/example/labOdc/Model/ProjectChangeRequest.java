@@ -22,12 +22,13 @@ public class ProjectChangeRequest {
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-    @Column(name = "project_id", length = 36, nullable = false)
-    private String projectId;
-
-    @Column(name = "requested_by", length = 36, nullable = false)
-    private String requestedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requested_by", nullable = false)
+    private User requestedBy;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "request_type", nullable = false)
@@ -50,8 +51,9 @@ public class ProjectChangeRequest {
     @Builder.Default
     private ProjectChangeRequestStatus status = ProjectChangeRequestStatus.PENDING;
 
-    @Column(name = "approved_by", length = 36)
-    private String approvedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    private User approvedBy;
 
     @Column(name = "requested_date")
     private LocalDate requestedDate;

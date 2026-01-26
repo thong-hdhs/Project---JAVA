@@ -1,10 +1,9 @@
 package com.example.labOdc.DTO;
 
-import java.time.LocalDate;
-
-import com.example.labOdc.Model.ProjectChangeRequestStatus;
 import com.example.labOdc.Model.ProjectChangeRequestType;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Data
@@ -12,18 +11,16 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class ProjectChangeRequestDTO {
+    @NotBlank
     private String projectId;
-    private String requestedBy;
+
+    @NotBlank
+    private String requestedById; // NEW
+
+    @NotNull
     private ProjectChangeRequestType requestType;
 
     private String reason;
     private String proposedChanges;
     private String impactAnalysis;
-
-    private ProjectChangeRequestStatus status;
-    private String approvedBy;
-
-    private LocalDate requestedDate;
-    private LocalDate reviewedDate;
-    private String reviewNotes;
 }

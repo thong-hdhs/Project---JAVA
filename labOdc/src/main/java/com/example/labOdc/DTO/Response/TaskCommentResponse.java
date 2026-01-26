@@ -19,8 +19,8 @@ public class TaskCommentResponse {
     public static TaskCommentResponse fromEntity(TaskComment taskComment) {
         return TaskCommentResponse.builder()
                 .id(taskComment.getId())
-                .taskId(taskComment.getTaskId())
-                .userId(taskComment.getUserId())
+                .taskId(taskComment.getTask() != null ? taskComment.getTask().getId() : null)
+                .userId(taskComment.getUser() != null ? taskComment.getUser().getId() : null)
                 .comment(taskComment.getComment())
                 .attachments(taskComment.getAttachments())
                 .createdAt(taskComment.getCreatedAt())

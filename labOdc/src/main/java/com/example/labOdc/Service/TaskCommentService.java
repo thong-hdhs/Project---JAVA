@@ -2,21 +2,35 @@ package com.example.labOdc.Service;
 
 import com.example.labOdc.DTO.TaskCommentDTO;
 import com.example.labOdc.Model.TaskComment;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Map;
 
 public interface TaskCommentService {
 
-    TaskComment create(TaskCommentDTO taskCommentDTO);
+    TaskComment createComment(TaskCommentDTO dto, String userId);
 
-    List<TaskComment> getAll();
+    List<TaskComment> getCommentsByTask(String taskId);
+
+    List<TaskComment> getByUser(String userId);
 
     TaskComment getById(String id);
 
-    List<TaskComment> getByTaskId(String taskId);
+    TaskComment updateComment(String id, TaskCommentDTO dto);
 
-    TaskComment update(String id, TaskCommentDTO taskCommentDTO);
+    void deleteComment(String id);
 
-    void delete(String id);
+    boolean isOwner(String commentId, String userId);
+
+    long countByTask(String taskId);
+
+    TaskComment replyComment(TaskCommentDTO dto, String userId, String parentCommentId);
+
+    Page<TaskComment> getCommentsByTask(String taskId, int page, int size);
+
+    void softDeleteComment(String id, String userId);
+
+    Map<TaskComment, List<TaskComment>> getCommentTree(String taskId);
 }
 

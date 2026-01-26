@@ -1,5 +1,6 @@
 package com.example.labOdc.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.example.labOdc.DTO.ProjectTeamDTO;
@@ -15,4 +16,11 @@ public interface ProjectTeamService {
     ProjectTeam updateProjectTeam(ProjectTeamDTO dto, String id);
 
     void deleteProjectTeam(String id);
+
+    // workflow chuẩn
+    List<ProjectTeam> getProjectTeamsByProjectId(String projectId);
+
+    ProjectTeam setLeader(String projectTeamId);
+
+    ProjectTeam removeMember(String projectTeamId, LocalDate leftDate);
 }

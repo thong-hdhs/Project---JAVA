@@ -22,11 +22,13 @@ public class ProjectMentor {
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "project_id", length = 36, nullable = false)
-    private String projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-    @Column(name = "mentor_id", length = 36, nullable = false)
-    private String mentorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mentor_id", nullable = false)
+    private Mentor mentor;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")

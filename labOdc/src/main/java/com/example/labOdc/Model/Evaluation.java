@@ -8,6 +8,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -17,11 +18,12 @@ import java.util.UUID;
 @Table(name = "evaluations")
 public class Evaluation {
     @Id
-    @Column(name = "id",length = 36, nullable = false, updatable = false)
+    @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "project_id", nullable = false)
-    private String projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @Column(name = "evaluator_id", nullable = false)
     private String evaluatorId;
@@ -56,7 +58,7 @@ public class Evaluation {
     private String feedback;
     @Column(name = "evaluation_date")
     private LocalDate evaluationDate;
-
+    @Builder.Default
     @Column(name = "is_anonymous")
     private Boolean isAnonymous = false;
 

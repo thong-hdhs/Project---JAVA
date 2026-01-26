@@ -12,8 +12,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -31,12 +34,12 @@ public class Project {
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
-
-    @Column(name = "company_id", length = 36, nullable = false)
-    private String companyId;
-
-    @Column(name = "mentor_id", length = 36)
-    private String mentorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mentor_id")
+    private Mentor mentor;
 
     @Column(name = "project_name", nullable = false)
     private String projectName;
@@ -77,8 +80,9 @@ public class Project {
     @Builder.Default
     private ValidationStatus validationStatus = ValidationStatus.PENDING;
 
-    @Column(name = "validated_by", length = 36)
-    private String validatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validated_by")
+    private LabAdmin validatedBy;
 
     @Column(name = "validated_at")
     private LocalDateTime validatedAt;

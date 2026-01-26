@@ -36,7 +36,7 @@ public class CompanyRiskRecordController {
             return ApiResponse.error(errorMessages);
         }
 
-        CompanyRiskRecordResponse response = companyRiskRecordService.createRiskRecord(dto);
+        CompanyRiskRecordResponse response =  companyRiskRecordService.createRiskRecord(dto);
 
         return ApiResponse.success(
                 response,

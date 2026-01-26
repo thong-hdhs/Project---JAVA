@@ -1,7 +1,6 @@
 package com.example.labOdc.Service.Implement;
 
 import com.example.labOdc.DTO.LabFundAdvanceDTO;
-import com.example.labOdc.DTO.Response.LabFundAdvanceResponse;
 import com.example.labOdc.Model.*;
 import com.example.labOdc.Repository.*;
 import com.example.labOdc.Service.LabFundAdvanceService;
@@ -9,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,14 +22,16 @@ public class LabFundAdvanceServiceImpl implements LabFundAdvanceService {
     private final UserRepository userRepository;
 
     @Override
-    public LabFundAdvanceResponse createAdvance(LabFundAdvanceDTO dto) {
-        Project project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
+    public LabFundAdvance createAdvance(LabFundAdvanceDTO dto) {
+
+        Project project = null;
+        if (dto.getProjectId() != null) {
+            project = projectRepository.findById(dto.getProjectId()).orElse(null);
+        }
 
         Payment payment = null;
         if (dto.getPaymentId() != null) {
-            payment = paymentRepository.findById(dto.getPaymentId())
-                    .orElseThrow(() -> new RuntimeException("Payment not found"));
+            payment = paymentRepository.findById(dto.getPaymentId()).orElse(null);
         }
 
         LabFundAdvance advance = LabFundAdvance.builder()
@@ -41,57 +42,80 @@ public class LabFundAdvanceServiceImpl implements LabFundAdvanceService {
                 .status(LabFundAdvanceStatus.ADVANCED)
                 .build();
 
-        LabFundAdvance saved = labFundAdvanceRepository.save(advance);
-        return mapToResponse(saved);
+        return labFundAdvanceRepository.save(advance);
     }
 
     @Override
-    public LabFundAdvanceResponse updateStatus(String advanceId, String statusStr, String approvedById) {
-        LabFundAdvance advance = labFundAdvanceRepository.findById(advanceId)
-                .orElseThrow(() -> new RuntimeException("Lab fund advance not found"));
+    public LabFundAdvance approveAdvance(String advanceId, String approvedByUserId) {
 
-        LabFundAdvanceStatus status = LabFundAdvanceStatus.valueOf(statusStr.toUpperCase());
-        advance.setStatus(status);
+        LabFundAdvance advance = labFundAdvanceRepository.findById(advanceId).orElse(null);
+        if (advance == null) return null;
 
-        if (approvedById != null) {
-            User approvedBy = userRepository.findById(approvedById)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            advance.setApprovedBy(approvedBy);
+        User approver = null;
+        if (approvedByUserId != null) {
+            approver = userRepository.findById(approvedByUserId).orElse(null);
         }
 
-        LabFundAdvance updated = labFundAdvanceRepository.save(advance);
-        return mapToResponse(updated);
+        advance.setApprovedBy(approver);
+        return labFundAdvanceRepository.save(advance);
+    }
+
+    @Override
+    public LabFundAdvance settleAdvance(String advanceId, String paymentId) {
+
+        LabFundAdvance advance = labFundAdvanceRepository.findById(advanceId).orElse(null);
+        if (advance == null) return null;
+
+        Payment payment = null;
+        if (paymentId != null) {
+            payment = paymentRepository.findById(paymentId).orElse(null);
+        }
+
+        advance.setPayment(payment);
+        advance.setStatus(LabFundAdvanceStatus.SETTLED);
+        return labFundAdvanceRepository.save(advance);
+    }
+
+    @Override
+    public LabFundAdvance cancelAdvance(String advanceId, String reason) {
+
+        LabFundAdvance advance = labFundAdvanceRepository.findById(advanceId).orElse(null);
+        if (advance == null) return null;
+
+        advance.setStatus(LabFundAdvanceStatus.CANCELLED);
+        if (reason != null) {
+            advance.setAdvanceReason(reason);
+        }
+
+        return labFundAdvanceRepository.save(advance);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public LabFundAdvanceResponse getById(String id) {
-        LabFundAdvance advance = labFundAdvanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lab fund advance not found"));
-        return mapToResponse(advance);
+    public List<LabFundAdvance> getAdvancesByProject(String projectId) {
+        if (projectId == null) return List.of();
+        return labFundAdvanceRepository.findByProjectId(projectId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<LabFundAdvanceResponse> getByProjectId(String projectId) {
-        return labFundAdvanceRepository.findByProjectId(projectId)
+    public List<LabFundAdvance> getUnsettledAdvances() {
+        return labFundAdvanceRepository.findByStatus(LabFundAdvanceStatus.ADVANCED);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalOutstandingAdvance() {
+        return labFundAdvanceRepository.findByStatus(LabFundAdvanceStatus.ADVANCED)
                 .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .map(LabFundAdvance::getAdvanceAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private LabFundAdvanceResponse mapToResponse(LabFundAdvance advance) {
-        return LabFundAdvanceResponse.builder()
-                .id(advance.getId())
-                .projectName(advance.getProject().getProjectName())
-                .projectCode(advance.getProject().getProjectCode())
-                .paymentTransactionId(advance.getPayment() != null ? advance.getPayment().getTransactionId() : null)
-                .advanceAmount(advance.getAdvanceAmount())
-                .advanceReason(advance.getAdvanceReason())
-                .status(advance.getStatus())
-                .approvedByName(advance.getApprovedBy() != null ? advance.getApprovedBy().getFullName() : null)
-                .createdAt(advance.getCreatedAt())
-                .updatedAt(advance.getUpdatedAt())
-                .build();
+    @Override
+    @Transactional(readOnly = true)
+    public LabFundAdvance getAdvanceById(String advanceId) {
+        if (advanceId == null) return null;
+        return labFundAdvanceRepository.findById(advanceId).orElse(null);
     }
 }

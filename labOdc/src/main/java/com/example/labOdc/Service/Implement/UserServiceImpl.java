@@ -17,6 +17,7 @@ import com.example.labOdc.Repository.RoleRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.UserService;
 
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -51,9 +52,10 @@ public class UserServiceImpl implements UserService {
                 .email(userDTO.getEmail())
                 .password(passwordEncoder.encode(userDTO.getPassword()))
                 .fullName(userDTO.getFullName())
-                .username(userDTO.getUsername())
                 .phone(userDTO.getPhone())
+                .username(userDTO.getUsername())
                 .avatarUrl(userDTO.getAvatarUrl())
+                .username(userDTO.getUsername())
                 .roles(roles)
                 .isActive(userDTO.getIsActive() != null ? userDTO.getIsActive() : true)
                 .emailVerified(userDTO.getEmailVerified())
@@ -70,10 +72,13 @@ public class UserServiceImpl implements UserService {
         return list;
     }
 
+    @Transactional
     @Override
     public void deleteUser(String id) {
-        userRepository.deleteById(id);
-
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user"));
+        user.setIsActive(false);
+        userRepository.save(user);
     }
 
     @Override

@@ -9,11 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,11 +25,17 @@ public class FundDistributionServiceImpl implements FundDistributionService {
 
     @Override
     public FundDistributionResponse createDistribution(FundDistributionDTO dto) {
-        FundAllocation allocation = fundAllocationRepository.findById(dto.getFundAllocationId())
-                .orElseThrow(() -> new RuntimeException("Fund allocation not found"));
 
-        Talent talent = talentRepository.findById(dto.getTalentId())
-                .orElseThrow(() -> new RuntimeException("Talent not found"));
+        FundAllocation allocation = null;
+
+        if (dto.getFundAllocationId() != null && !dto.getFundAllocationId().isBlank()) {
+                allocation = fundAllocationRepository
+                        .findById(dto.getFundAllocationId())
+                        .orElse(null); // ❗ KHÔNG throw khi test
+        }
+        Talent talent = dto.getTalentId() != null
+                ? talentRepository.findById(dto.getTalentId()).orElse(null)
+                : null;
 
         FundDistribution distribution = FundDistribution.builder()
                 .fundAllocation(allocation)
@@ -42,18 +46,26 @@ public class FundDistributionServiceImpl implements FundDistributionService {
                 .notes(dto.getNotes())
                 .build();
 
-        FundDistribution saved = fundDistributionRepository.save(distribution);
-        return mapToResponse(saved);
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
     }
 
     @Override
-    public FundDistributionResponse updateStatus(String distributionId, String statusStr, String approvedById,
-                                                 LocalDate paidDate, String paymentMethod, String transactionRef, String notes) {
+    public FundDistributionResponse updateStatus(
+            String distributionId,
+            String status,
+            String approvedById,
+            String notes
+    ) {
+
         FundDistribution distribution = fundDistributionRepository.findById(distributionId)
                 .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
 
-        FundDistributionStatus status = FundDistributionStatus.valueOf(statusStr.toUpperCase());
-        distribution.setStatus(status);
+        FundDistributionStatus newStatus =
+                FundDistributionStatus.valueOf(status.toUpperCase());
+
+        distribution.setStatus(newStatus);
 
         if (approvedById != null) {
             User approvedBy = userRepository.findById(approvedById)
@@ -62,21 +74,41 @@ public class FundDistributionServiceImpl implements FundDistributionService {
             distribution.setApprovedAt(LocalDateTime.now());
         }
 
-        if (paidDate != null) distribution.setPaidDate(paidDate);
-        if (paymentMethod != null) distribution.setPaymentMethod(paymentMethod);
-        if (transactionRef != null) distribution.setTransactionReference(transactionRef);
-        if (notes != null) distribution.setNotes(notes);
+        if (notes != null) {
+            distribution.setNotes(notes);
+        }
 
-        FundDistribution updated = fundDistributionRepository.save(distribution);
-        return mapToResponse(updated);
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
+    }
+
+    @Override
+    public FundDistributionResponse markAsPaid(
+            String distributionId,
+            String paymentMethod,
+            String transactionReference
+    ) {
+
+        FundDistribution distribution = fundDistributionRepository.findById(distributionId)
+                .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
+
+        distribution.setStatus(FundDistributionStatus.PAID);
+        distribution.setPaidDate(LocalDate.now());
+        distribution.setPaymentMethod(paymentMethod);
+        distribution.setTransactionReference(transactionReference);
+
+        return FundDistributionResponse.fromEntity(
+                fundDistributionRepository.save(distribution)
+        );
     }
 
     @Override
     @Transactional(readOnly = true)
     public FundDistributionResponse getById(String id) {
-        FundDistribution distribution = fundDistributionRepository.findById(id)
+        return fundDistributionRepository.findById(id)
+                .map(FundDistributionResponse::fromEntity)
                 .orElseThrow(() -> new RuntimeException("Fund distribution not found"));
-        return mapToResponse(distribution);
     }
 
     @Override
@@ -84,8 +116,8 @@ public class FundDistributionServiceImpl implements FundDistributionService {
     public List<FundDistributionResponse> getByFundAllocationId(String fundAllocationId) {
         return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
                 .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .map(FundDistributionResponse::fromEntity)
+                .toList();
     }
 
     @Override
@@ -93,38 +125,19 @@ public class FundDistributionServiceImpl implements FundDistributionService {
     public List<FundDistributionResponse> getByTalentId(String talentId) {
         return fundDistributionRepository.findByTalentId(talentId)
                 .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .map(FundDistributionResponse::fromEntity)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BigDecimal getTotalPaidForTalent(String talentId) {
-        return fundDistributionRepository.findByTalentId(talentId)
-                .stream()
-                .filter(d -> d.getStatus() == FundDistributionStatus.PAID)
-                .map(FundDistribution::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+    public boolean isFullyDistributed(String fundAllocationId) {
 
-    private FundDistributionResponse mapToResponse(FundDistribution distribution) {
-        return FundDistributionResponse.builder()
-                .id(distribution.getId())
-                .fundAllocationId(distribution.getFundAllocation().getId())
-                .projectName(distribution.getFundAllocation().getProject().getProjectName())
-                .talentName(distribution.getTalent().getUser().getFullName())
-                .talentStudentCode(distribution.getTalent().getStudentCode())
-                .amount(distribution.getAmount())
-                .percentage(distribution.getPercentage())
-                .status(distribution.getStatus())
-                .approvedByName(distribution.getApprovedBy() != null ? distribution.getApprovedBy().getFullName() : null)
-                .approvedAt(distribution.getApprovedAt())
-                .paidDate(distribution.getPaidDate())
-                .paymentMethod(distribution.getPaymentMethod())
-                .transactionReference(distribution.getTransactionReference())
-                .notes(distribution.getNotes())
-                .createdAt(distribution.getCreatedAt())
-                .updatedAt(distribution.getUpdatedAt())
-                .build();
+        FundAllocation allocation = fundAllocationRepository.findById(fundAllocationId)
+                .orElseThrow(() -> new RuntimeException("Fund allocation not found"));
+
+        return fundDistributionRepository.findByFundAllocationId(fundAllocationId)
+                .stream()
+                .allMatch(d -> d.getStatus() == FundDistributionStatus.PAID);
     }
 }

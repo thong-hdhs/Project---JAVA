@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
 @Data
 @Builder
 public class EvaluationResponse {
@@ -32,9 +33,15 @@ public class EvaluationResponse {
     private LocalDateTime updatedAt;
 
     public static EvaluationResponse fromEntity(Evaluation evaluation) {
+        if (evaluation == null)
+            return null;
+
         return EvaluationResponse.builder()
                 .id(evaluation.getId())
-                .projectId(evaluation.getProjectId())
+                .projectId(
+                        evaluation.getProject() != null
+                                ? evaluation.getProject().getId()
+                                : null)
                 .evaluatorId(evaluation.getEvaluatorId())
                 .evaluatedId(evaluation.getEvaluatedId())
                 .evaluatorType(evaluation.getEvaluatorType())
@@ -52,4 +59,3 @@ public class EvaluationResponse {
                 .build();
     }
 }
-

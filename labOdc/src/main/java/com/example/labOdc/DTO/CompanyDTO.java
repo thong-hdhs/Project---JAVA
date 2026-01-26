@@ -1,9 +1,8 @@
 package com.example.labOdc.DTO;
 
-import java.time.LocalDateTime;
-
 import com.example.labOdc.Model.Company;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,18 +13,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class CompanyDTO {
-    private String userId;
+    @NotBlank
     private String companyName;
+
+    @NotBlank
     private String taxCode;
+
     private String address;
     private String industry;
     private String description;
     private String website;
     private Company.Size companySize;
-    private Company.Status status;
-    private String approvedById;
-    private LocalDateTime approvedAt;
-    private String rejectionReason;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

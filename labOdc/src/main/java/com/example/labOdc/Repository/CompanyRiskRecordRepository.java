@@ -19,4 +19,8 @@ public interface CompanyRiskRecordRepository extends JpaRepository<CompanyRiskRe
     List<CompanyRiskRecord> findByCompanyIdOrderByRecordedAtDesc(String companyId);
 
     List<CompanyRiskRecord> findBySeverityIn(List<RiskSeverity> severities);
+
+    boolean existsByCompanyIdAndSeverity(String companyId, RiskSeverity severity);
+
+    long countByCompanyIdAndSeverity(String companyId, RiskSeverity severity);
 }
