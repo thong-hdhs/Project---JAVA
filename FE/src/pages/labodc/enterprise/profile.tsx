@@ -1,0 +1,169 @@
+import { useEffect, useState } from "react";
+import { getCandidateProfile, updateCandidateProfile } from "../../../services";
+
+type CandidateProfile = {
+  studentCode: string;
+  major?: string;
+  year?: number;
+  skills?: string;
+  certifications?: string;
+  portfolioUrl?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+};
+
+const Profile = () => {
+  const [profile, setProfile] = useState<CandidateProfile>({
+    studentCode: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const candidateId = localStorage.getItem("talentId");
+
+  // ================= LOAD PROFILE =================
+  useEffect(() => {
+    if (!candidateId) return;
+
+    setLoading(true);
+    getCandidateProfile(candidateId)
+      .then((res) => {
+        setProfile(res.data.data);
+      })
+      .catch((err) => {
+        console.error("Load profile error", err);
+      })
+      .finally(() => setLoading(false));
+  }, [candidateId]);
+
+  // ================= HANDLE CHANGE =================
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
+    setProfile((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // ================= SUBMIT =================
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!candidateId) return;
+
+    try {
+      setSaving(true);
+      await updateCandidateProfile(candidateId, profile);
+      alert("Cập nhật hồ sơ thành công");
+    } catch (err) {
+      console.error("Update failed", err);
+      alert("Cập nhật thất bại");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <p>Đang tải hồ sơ...</p>;
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <h2>Hồ sơ cá nhân</h2>
+
+      <form onSubmit={handleSubmit}>
+        {/* STUDENT CODE */}
+        <div>
+          <label>Mã sinh viên</label>
+          <input
+            type="text"
+            name="studentCode"
+            value={profile.studentCode}
+            disabled
+          />
+        </div>
+
+        {/* MAJOR */}
+        <div>
+          <label>Ngành học</label>
+          <input
+            type="text"
+            name="major"
+            value={profile.major || ""}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* YEAR */}
+        <div>
+          <label>Năm học</label>
+          <input
+            type="number"
+            name="year"
+            value={profile.year || ""}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* SKILLS */}
+        <div>
+          <label>Kỹ năng</label>
+          <textarea
+            name="skills"
+            value={profile.skills || ""}
+            onChange={handleChange}
+            placeholder="Java, Spring Boot, React"
+          />
+        </div>
+
+        {/* CERTIFICATIONS */}
+        <div>
+          <label>Chứng chỉ</label>
+          <textarea
+            name="certifications"
+            value={profile.certifications || ""}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* PORTFOLIO */}
+        <div>
+          <label>Portfolio URL</label>
+          <input
+            type="text"
+            name="portfolioUrl"
+            value={profile.portfolioUrl || ""}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* GITHUB */}
+        <div>
+          <label>Github</label>
+          <input
+            type="text"
+            name="githubUrl"
+            value={profile.githubUrl || ""}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* LINKEDIN */}
+        <div>
+          <label>LinkedIn</label>
+          <input
+            type="text"
+            name="linkedinUrl"
+            value={profile.linkedinUrl || ""}
+            onChange={handleChange}
+          />
+        </div>
+
+        <button type="submit" disabled={saving}>
+          {saving ? "Đang lưu..." : "Lưu thay đổi"}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default Profile;
