@@ -114,23 +114,19 @@ public class PaymentController {
     //Fake webhook/callback từ PayOS
     @PostMapping("/payos/callback-fake")
     public ApiResponse<String> fakePayOSCallback(@RequestBody Map<String, Object> payload) {
-        String orderCode = (String) payload.getOrDefault("orderCode", "");
+        String transactionId = (String) payload.getOrDefault("transactionId", "");
         String status = (String) payload.getOrDefault("status", "PAID");
 
-        if (orderCode.isEmpty()) {
-            return ApiResponse.error("Thiếu orderCode trong payload");
+        if (transactionId.isEmpty()) {
+            return ApiResponse.error("Thiếu transactionId trong payload");
         }
 
-        // Lấy paymentId từ orderCode
-        String paymentId = orderCode.contains("-") ? orderCode.split("-")[1] : orderCode;
-
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thanh toán"));
 
         if ("PAID".equalsIgnoreCase(status)) {
             payment.setStatus(PaymentStatus.COMPLETED);
             payment.setPaymentDate(LocalDate.now());
-            payment.setTransactionId("FAKE_TX_" + System.currentTimeMillis());
         } else if ("CANCELLED".equalsIgnoreCase(status) || "FAILED".equalsIgnoreCase(status)) {
             payment.setStatus(PaymentStatus.FAILED);
         }
