@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCandidateProfile, updateCandidateProfile } from "../../../services";
+import { getMyCandidateProfile, updateMyCandidateProfile } from "../../../services";
 
 type CandidateProfile = {
   studentCode: string;
@@ -19,22 +19,18 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const candidateId = localStorage.getItem("talentId");
-
   // ================= LOAD PROFILE =================
   useEffect(() => {
-    if (!candidateId) return;
-
     setLoading(true);
-    getCandidateProfile(candidateId)
+    getMyCandidateProfile()
       .then((res) => {
-        setProfile(res.data.data);
+        setProfile(res?.data?.data || res?.data || {});
       })
       .catch((err) => {
         console.error("Load profile error", err);
       })
       .finally(() => setLoading(false));
-  }, [candidateId]);
+  }, []);
 
   // ================= HANDLE CHANGE =================
   const handleChange = (
@@ -50,11 +46,10 @@ const Profile = () => {
   // ================= SUBMIT =================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!candidateId) return;
 
     try {
       setSaving(true);
-      await updateCandidateProfile(candidateId, profile);
+      await updateMyCandidateProfile(profile);
       alert("Cập nhật hồ sơ thành công");
     } catch (err) {
       console.error("Update failed", err);

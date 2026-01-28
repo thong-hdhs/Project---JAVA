@@ -27,6 +27,9 @@ const CandidateDashboard = lazy(
   () => import("./pages/labodc/candidate/dashboard")
 );
 const CandidateProfile = lazy(() => import("./pages/labodc/candidate/profile"));
+const CandidateProfileUpdate = lazy(
+  () => import("./pages/labodc/candidate/profile-update")
+);
 const BrowseProjects = lazy(
   () => import("./pages/labodc/candidate/browse-projects")
 );
@@ -148,6 +151,7 @@ const MentorRoleRequests = lazy(
 
 // Common pages
 const Profile = lazy(() => import("./pages/profile"));
+const ProfileRedirect = lazy(() => import("./pages/profile-redirect"));
 const Notifications = lazy(() => import("./pages/notifications"));
 
 function App() {
@@ -176,6 +180,10 @@ function App() {
             <Route path="candidate/dashboard" element={<CandidateDashboard />} />
             <Route path="candidate/profile" element={<CandidateProfile />} />
             <Route
+              path="candidate/profile/update"
+              element={<CandidateProfileUpdate />}
+            />
+            <Route
               path="candidate/browse-projects"
               element={<BrowseProjects />}
             />
@@ -200,6 +208,7 @@ function App() {
               path="enterprise/dashboard"
               element={<EnterpriseDashboard />}
             />
+            <Route path="enterprise/profile" element={<Profile />} />
             <Route path="enterprise/projects" element={<ProjectList />} />
             <Route
               path="enterprise/projects/create"
@@ -227,6 +236,7 @@ function App() {
           {/* Mentor routes */}
           <Route element={<MentorRoute />}>
             <Route path="mentor/dashboard" element={<MentorDashboard />} />
+            <Route path="mentor/profile" element={<Profile />} />
             <Route path="mentor/invitations" element={<MentorInvitations />} />
             <Route
               path="mentor/candidate-reviews"
@@ -243,6 +253,7 @@ function App() {
           {/* Lab Admin routes */}
           <Route element={<LabAdminRoute />}>
             <Route path="lab-admin/dashboard" element={<LabAdminDashboard />} />
+            <Route path="lab-admin/profile" element={<Profile />} />
             <Route
               path="lab-admin/validate-projects"
               element={<ValidateProjects />}
@@ -302,6 +313,7 @@ function App() {
               path="system-admin/dashboard"
               element={<SystemAdminDashboard />}
             />
+            <Route path="system-admin/profile" element={<Profile />} />
             <Route path="system-admin/users" element={<UserManagement />} />
             <Route path="system-admin/settings" element={<Settings />} />
             <Route
@@ -320,7 +332,7 @@ function App() {
           </Route>
 
           {/* Common routes */}
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={<ProfileRedirect />} />
           <Route path="notifications" element={<Notifications />} />
 
           {/* Fallback */}

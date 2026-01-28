@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable from '@/components/ui/DataTable';
+import { projectService } from '@/services/project.service';
+import type { Project, ProjectApplication } from '@/types';
 
 const CandidateApplications: React.FC = () => {
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] = useState<Array<ProjectApplication & { project?: Project }>>([]);
   const [loading, setLoading] = useState(true);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadApplications();
@@ -15,29 +19,34 @@ const CandidateApplications: React.FC = () => {
   const loadApplications = async () => {
     try {
       setLoading(true);
-      // Mock data - in real app this would come from API
-      setApplications([
-        {
-          id: '1',
-          project_name: 'E-commerce Platform',
-          company: 'TechCorp Inc.',
-          status: 'PENDING',
-          applied_at: new Date().toLocaleDateString(),
-          cover_letter: 'I am very interested in this project...'
-        },
-        {
-          id: '2',
-          project_name: 'Mobile App Development',
-          company: 'StartupXYZ',
-          status: 'APPROVED',
-          applied_at: new Date().toLocaleDateString(),
-          cover_letter: 'I have experience in mobile development...'
-        }
-      ]);
+      const apps = await projectService.getMyApplications();
+      const projectsResult = await projectService.getProjects();
+      const projects = projectsResult?.data || [];
+      const projectById = new Map(projects.map((p) => [p.id, p] as const));
+
+      setApplications(
+        apps.map((a) => ({
+          ...a,
+          project: projectById.get(a.project_id),
+        })),
+      );
     } catch (error) {
       console.error('Error loading applications:', error);
+      setApplications([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWithdraw = async (id: string) => {
+    try {
+      setWithdrawingId(id);
+      await projectService.withdrawApplication(id);
+      await loadApplications();
+    } catch (error) {
+      console.error('Error withdrawing application:', error);
+    } finally {
+      setWithdrawingId(null);
     }
   };
 
@@ -45,10 +54,14 @@ const CandidateApplications: React.FC = () => {
     {
       key: 'project_name',
       header: 'Project',
-      render: (value: string, item: any) => (
+      render: (_value: string, item: any) => (
         <div>
-          <div className="font-medium text-gray-900">{value}</div>
-          <div className="text-sm text-gray-500">{item.company}</div>
+          <div className="font-medium text-gray-900">
+            {item.project?.project_name || item.project_id}
+          </div>
+          <div className="text-sm text-gray-500">
+            Company: {item.project?.company_id || '—'}
+          </div>
         </div>
       ),
     },
@@ -60,15 +73,27 @@ const CandidateApplications: React.FC = () => {
     {
       key: 'applied_at',
       header: 'Applied Date',
+      render: (_value: any, item: any) => {
+        const dt = item?.applied_at ? new Date(item.applied_at) : null;
+        return dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleDateString() : '—';
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       render: (value: any, item: any) => (
         <div className="flex space-x-2">
-          <Button text="View Details" className="btn-outline-dark btn-sm" />
+          <Link to={`/candidate/project/${item.project_id}`}>
+            <Button text="View Details" className="btn-outline-dark btn-sm" />
+          </Link>
           {item.status === 'PENDING' && (
-            <Button text="Withdraw" className="btn-outline-danger btn-sm" />
+            <Button
+              text="Withdraw"
+              className="btn-outline-danger btn-sm"
+              disabled={withdrawingId === item.id}
+              isLoading={withdrawingId === item.id}
+              onClick={() => handleWithdraw(item.id)}
+            />
           )}
         </div>
       ),

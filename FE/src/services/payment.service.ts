@@ -216,4 +216,36 @@ export const paymentService = {
 
     return response.data?.data || [];
   },
+
+  async confirmPayment(paymentId: string): Promise<BackendPaymentResponse> {
+    try {
+      const response = await apiClient.post<BackendApiResponse<BackendPaymentResponse>>(
+        `/api/v1/payments/${paymentId}/confirm`,
+      );
+
+      if (!response.data?.success) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Confirm payment failed';
+        throw new Error(msg);
+      }
+
+      if (!response.data?.data) {
+        throw new Error('Confirm payment failed: empty response');
+      }
+
+      // Let other screens refresh their data without a full reload.
+      try {
+        window.dispatchEvent(new Event('payments:changed'));
+      } catch {
+        // ignore (SSR / non-browser)
+      }
+
+      return response.data.data;
+    } catch (err: any) {
+      const backendMsg = err?.response?.data?.message || err?.response?.data?.errors?.[0];
+      if (backendMsg) {
+        throw new Error(String(backendMsg));
+      }
+      throw err;
+    }
+  },
 };

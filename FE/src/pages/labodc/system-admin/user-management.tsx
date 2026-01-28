@@ -5,6 +5,15 @@ import Button from "@/components/ui/Button";
 
 const API_BASE = "http://localhost:8082/api/v1/users";
 
+const ROLE_OPTIONS = [
+  "SYSTEM_ADMIN",
+  "LAB_ADMIN",
+  "COMPANY",
+  "MENTOR",
+  "TALENT",
+  "USER",
+] as const;
+
 interface User {
   id: string;
   fullName: string;
@@ -272,6 +281,9 @@ const UserManagement: React.FC = () => {
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
               <option value="LAB_ADMIN">LAB_ADMIN</option>
+              <option value="MENTOR">MENTOR</option>
+              <option value="TALENT">TALENT</option>
+        
             </select>
 
             <div className="flex justify-end gap-2 pt-3">

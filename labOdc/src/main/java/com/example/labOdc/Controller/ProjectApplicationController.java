@@ -26,6 +26,8 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
+import java.security.Principal;
+
 @PermitAll
 @RestController
 @AllArgsConstructor
@@ -38,15 +40,19 @@ public class ProjectApplicationController {
      * Service: ProjectApplicationService.createApplication() - Xử lý logic tạo và lưu entity.
      */
     @PostMapping("/")
-    @PreAuthorize("hasAnyRole('TALENT', 'SYSTEM_ADMIN')")
-    public ApiResponse<ProjectApplicationResponse> create(@Valid @RequestBody ProjectApplicationDTO dto, BindingResult result) {
+        @PreAuthorize("hasAnyRole('TALENT', 'USER', 'SYSTEM_ADMIN')")
+        public ApiResponse<ProjectApplicationResponse> create(
+            @Valid @RequestBody ProjectApplicationDTO dto,
+            BindingResult result,
+            Principal principal
+        ) {
         if (result.hasErrors()) {
             List<String> errorMessages = result.getFieldErrors()
                     .stream()
                     .map(FieldError::getDefaultMessage).toList();
             return ApiResponse.error(errorMessages);
         }
-        ProjectApplicationResponse response = applicationService.createApplication(dto);
+        ProjectApplicationResponse response = applicationService.createApplication(dto, principal != null ? principal.getName() : null);
         return ApiResponse.success(response, "Created", HttpStatus.CREATED);
     }
 
@@ -117,6 +123,19 @@ public class ProjectApplicationController {
     }
 
     /**
+     * Chức năng: Lấy danh sách đơn ứng tuyển của user hiện tại.
+     */
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('TALENT', 'USER')")
+    public ApiResponse<List<ProjectApplicationResponse>> getMyApplications(Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ApiResponse.error(List.of("Unauthenticated user"));
+        }
+        List<ProjectApplicationResponse> list = applicationService.getMyApplications(principal.getName());
+        return ApiResponse.success(list, "OK", HttpStatus.OK);
+    }
+
+    /**
      * Chức năng: Phê duyệt đơn ứng tuyển dự án.
      * Service: ProjectApplicationService.approveApplication() - Cập nhật trạng thái thành APPROVED.
      */
@@ -156,9 +175,9 @@ public class ProjectApplicationController {
      * @param applicationId ID đơn ứng tuyển
      */
     @PutMapping("/withdraw/{applicationId}")
-    @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> withdrawApplication(@PathVariable String applicationId) {
-        applicationService.withdrawApplication(applicationId);
+    @PreAuthorize("hasAnyRole('TALENT', 'USER')")
+    public ApiResponse<String> withdrawApplication(@PathVariable String applicationId, Principal principal) {
+        applicationService.withdrawApplication(applicationId, principal != null ? principal.getName() : null);
         return ApiResponse.success("Application withdrawn", "OK", HttpStatus.OK);
     }
 

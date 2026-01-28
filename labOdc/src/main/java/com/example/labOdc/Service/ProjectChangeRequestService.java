@@ -3,6 +3,8 @@ package com.example.labOdc.Service;
 import java.util.List;
 
 import com.example.labOdc.DTO.ProjectChangeRequestDTO;
+import com.example.labOdc.DTO.Action.ApplyProjectChangeRequestDTO;
+import com.example.labOdc.Model.Project;
 import com.example.labOdc.Model.ProjectChangeRequest;
 
 public interface ProjectChangeRequestService {
@@ -23,4 +25,6 @@ public interface ProjectChangeRequestService {
     ProjectChangeRequest reject(String id, String reviewNotes);
 
     ProjectChangeRequest cancel(String id);
+
+    Project applyApprovedChangeRequest(String id, ApplyProjectChangeRequestDTO body);
 }

@@ -84,9 +84,10 @@ const MobileMenu = ({ className = "custom-class" }) => {
       <SimpleBar
         className="h-[calc(100%-80px)]"
         scrollableNodeProps={{ ref: scrollableNodeRef, className: "sidebar-menu-container" }}
-        contentNodeProps={{ className: "sidebar-menu-content px-4" }}
       >
-        <Navmenu menus={menuItems} />
+        <div className="sidebar-menu-content px-4">
+          <Navmenu menus={menuItems} />
+        </div>
       </SimpleBar>
     </div>
   );

@@ -13,6 +13,15 @@ const Profile = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
+  const getProfilePath = () => {
+    const role = String(user?.role || "").toUpperCase();
+    if (role === "SYSTEM_ADMIN") return "/system-admin/profile";
+    if (role === "LAB_ADMIN") return "/lab-admin/profile";
+    if (role === "COMPANY") return "/enterprise/profile";
+    if (role === "MENTOR") return "/mentor/profile";
+    return "/candidate/profile";
+  };
+
   const handleLogout = () => {
     // Clear user data from local storage
     localStorage.removeItem("user");
@@ -25,7 +34,7 @@ const Profile = () => {
       icon: "heroicons-outline:user",
 
       action: () => {
-        navigate("/profile");
+        navigate(getProfilePath());
       },
     },
     {

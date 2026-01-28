@@ -28,6 +28,19 @@ const EnterpriseDashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
+
+    const onPaymentsChanged = () => {
+      loadDashboardData();
+    };
+    const onProjectsChanged = () => {
+      loadDashboardData();
+    };
+    window.addEventListener('payments:changed', onPaymentsChanged);
+    window.addEventListener('projects:changed', onProjectsChanged);
+    return () => {
+      window.removeEventListener('payments:changed', onPaymentsChanged);
+      window.removeEventListener('projects:changed', onProjectsChanged);
+    };
   }, []);
 
   const loadDashboardData = async () => {
@@ -60,7 +73,7 @@ const EnterpriseDashboard: React.FC = () => {
       // Calculate stats
       const totalProjects = filteredProjects.length;
       const activeProjects = filteredProjects.filter(
-        (p: Project) => p.status === "IN_PROGRESS" || p.status === "APPROVED"
+        (p: Project) => p.status === "IN_PROGRESS"
       ).length;
       const completedProjects = filteredProjects.filter(
         (p: Project) => p.status === "COMPLETED"
@@ -142,7 +155,7 @@ const EnterpriseDashboard: React.FC = () => {
                 className="bg-primary-500 text-white w-full sm:w-auto"
               />
             </Link>
-            <Link to="/profile">
+            <Link to="/enterprise/profile">
               <Button
                 text="Profile"
                 className="bg-white border border-gray-300 text-gray-700 w-full sm:w-auto"
@@ -217,14 +230,7 @@ const EnterpriseDashboard: React.FC = () => {
         <Card
           title="Recent Projects"
           subtitle=""
-          headerslot={
-            <Link to="/enterprise/projects">
-              <Button
-                text="View All"
-                className="btn-outline-dark btn-sm"
-              />
-            </Link>
-          }
+          headerslot={""}
           noborder={false}
         >
           <div className="space-y-4">
@@ -250,12 +256,10 @@ const EnterpriseDashboard: React.FC = () => {
                       <StatusBadge status={project.validation_status} />
                     </div>
                   </div>
-                  <Link to={`/enterprise/projects/${project.id}`}>
-                    <Button
-                      text="View"
-                      className="btn-outline-dark btn-sm"
-                    />
-                  </Link>
+
+											<Link to={`/enterprise/projects/${project.id}`}>
+												<Button text="View" className="btn-outline-dark btn-sm" />
+											</Link>
                 </div>
               ))
             )}
@@ -267,14 +271,11 @@ const EnterpriseDashboard: React.FC = () => {
           <Card
             title="Recent Payments"
             subtitle=""
-            headerslot={
-              <Link to="/enterprise/payments">
-                <Button
-                  text="View All"
-                  className="btn-outline-dark btn-sm"
-                />
-              </Link>
-            }
+				headerslot={
+					<Link to="/enterprise/payments">
+						<Button text="View All" className="btn-outline-dark btn-sm" />
+					</Link>
+				}
             noborder={false}
           >
             <div className="space-y-4">
@@ -299,10 +300,6 @@ const EnterpriseDashboard: React.FC = () => {
                         <StatusBadge status={String(payment.status || "")} />
                       </div>
                     </div>
-                    <Button
-                      text="View"
-                      className="btn-outline-dark btn-sm"
-                    />
                   </div>
                 ))
               )}

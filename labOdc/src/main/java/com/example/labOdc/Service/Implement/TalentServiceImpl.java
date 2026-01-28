@@ -1,9 +1,12 @@
 package com.example.labOdc.Service.Implement;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -48,6 +51,50 @@ public class TalentServiceImpl implements TalentService {
     private final TaskRepository taskRepository;
     private final FundAllocationRepository fundAllocationRepository;
     private final FundDistributionRepository fundDistributionRepository;
+
+    private User getAuthenticatedUserOrThrow() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null
+                || "anonymousUser".equalsIgnoreCase(auth.getName())) {
+            throw new AccessDeniedException("Unauthenticated user");
+        }
+
+        String username = auth.getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private Talent getAuthenticatedTalentOrThrow() {
+        User user = getAuthenticatedUserOrThrow();
+        return talentRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Talent profile not found"));
+    }
+
+    private void assertSelfTalentId(String talentId) {
+        Talent me = getAuthenticatedTalentOrThrow();
+        if (talentId == null || !talentId.equals(me.getId())) {
+            throw new AccessDeniedException("Forbidden: cannot access another talent");
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private static void validateOptionalHttpUrl(String value, String fieldName) {
+        if (isBlank(value)) {
+            return;
+        }
+        try {
+            URI uri = new URI(value.trim());
+            String scheme = uri.getScheme();
+            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                throw new IllegalArgumentException(fieldName + " must start with http:// or https://");
+            }
+        } catch (URISyntaxException ex) {
+            throw new IllegalArgumentException(fieldName + " is not a valid URL");
+        }
+    }
 
    @Override
 @Transactional
@@ -97,6 +144,27 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
 
     return TalentResponse.fromTalent(savedTalent);
 }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public TalentResponse getMyProfile() {
+        Talent talent = getAuthenticatedTalentOrThrow();
+        return TalentResponse.fromTalent(talent);
+    }
+
+    @Override
+    @Transactional
+    public TalentResponse updateMyProfile(TalentDTO talentDTO) {
+        // Basic validation for URLs (DTO validation like @NotBlank handled at controller level)
+        validateOptionalHttpUrl(talentDTO.getPortfolioUrl(), "portfolioUrl");
+        validateOptionalHttpUrl(talentDTO.getGithubUrl(), "githubUrl");
+        validateOptionalHttpUrl(talentDTO.getLinkedinUrl(), "linkedinUrl");
+
+        Talent talent = getAuthenticatedTalentOrThrow();
+        updateTalentFields(talent, talentDTO);
+        Talent updated = talentRepository.save(talent);
+        return TalentResponse.fromTalent(updated);
+    }
 
     /**
      * Chức năng: Lấy danh sách tất cả sinh viên.
@@ -208,16 +276,16 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
 
     @Override
     public void setTalentAvailability(String talentId, Talent.Status status) {
-        Talent talent = talentRepository.findById(talentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
-        talent.setStatus(status);
-        talentRepository.save(talent);
+        assertSelfTalentId(talentId);
+        Talent me = getAuthenticatedTalentOrThrow();
+        me.setStatus(status);
+        talentRepository.save(me);
     }
 
     @Override
     public void applyToProject(String projectId, String talentId, String coverLetter) {
-        Talent talent = talentRepository.findById(talentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        assertSelfTalentId(talentId);
+        Talent talent = getAuthenticatedTalentOrThrow();
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         
@@ -241,27 +309,26 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
 
     @Override
     public List<ProjectApplication> getMyApplications(String talentId) {
-        Talent talent = talentRepository.findById(talentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        assertSelfTalentId(talentId);
+        Talent me = getAuthenticatedTalentOrThrow();
         return projectApplicationRepository.findAll().stream()
-                .filter(pa -> pa.getTalent().getId().equals(talentId))
+            .filter(pa -> pa.getTalent() != null && me.getId().equals(pa.getTalent().getId()))
                 .toList();
     }
 
     @Override
     public List<ProjectResponse> getMyProjects(String talentId) {
-        Talent talent = talentRepository.findById(talentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        assertSelfTalentId(talentId);
+        Talent me = getAuthenticatedTalentOrThrow();
         return projectTeamRepository.findAll().stream()
-                .filter(pt -> pt.getTalent().getId().equals(talentId))
+            .filter(pt -> pt.getTalent() != null && me.getId().equals(pt.getTalent().getId()))
                 .map(pt -> ProjectResponse.fromProject(pt.getProject()))
                 .toList();
     }
 
     @Override
     public List<Task> getAssignedTasks(String talentId) {
-        Talent talent = talentRepository.findById(talentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        assertSelfTalentId(talentId);
         return taskRepository.findAll().stream()
                 .filter(task -> talentId.equals(task.getAssignedTo()))
                 .toList();
@@ -269,8 +336,9 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
 
     @Override
     public void updateSkillsAndCertifications(String talentId) {
-        // Placeholder: Cập nhật skills và certifications
-        System.out.println("Updating skills and certifications for talent: " + talentId);
+        // Deprecated placeholder endpoint: enforce self check to avoid updating others.
+        assertSelfTalentId(talentId);
+        logger.info("updateSkillsAndCertifications invoked for talentId: {}", talentId);
     }
 
     @Override

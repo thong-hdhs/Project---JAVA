@@ -20,6 +20,8 @@ public interface ProjectService {
     // workflow
     Project submitProject(String projectId);
 
+    Project completeProject(String projectId);
+
     Project approveProject(String projectId, String validatedBy);
 
     Project rejectProject(String projectId, String validatedBy, String rejectionReason);

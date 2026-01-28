@@ -29,24 +29,25 @@ const CandidateDashboard: React.FC = () => {
       setLoading(true);
 
       // Load user's projects (where they are team members)
-      const projectsResponse = await projectService.getProjects();
-      const userProjects = projectsResponse.data.filter(project =>
-        project.status === 'IN_PROGRESS' || project.status === 'COMPLETED'
-      );
+      const myProjectsResponse = await projectService.getMyProjects();
+      const userProjects = myProjectsResponse.data;
 
       // Load available projects for browsing
+      const projectsResponse = await projectService.getProjects();
+
       const availableProjects = projectsResponse.data.filter(project =>
-        project.status === 'APPROVED'
+        project.validation_status === 'APPROVED'
       );
 
       // Load user's tasks
-      const tasksResponse = await taskService.getTasks({
-        assigned_to: user.id
-      });
+      const tasksResponse = await taskService.getMyTasks();
+
+      // Load user's applications
+      const myApplications = await projectService.getMyApplications();
 
       // Calculate stats
-      const activeProjects = userProjects.filter(p => p.status === 'IN_PROGRESS').length;
-      const pendingApplications = 0; // Would need to load applications
+      const activeProjects = userProjects.filter((p: Project) => p.status === 'IN_PROGRESS').length;
+      const pendingApplications = myApplications.filter((a) => a.status === 'PENDING').length;
       const completedTasks = tasksResponse.filter(task => task.status === 'COMPLETED').length;
 
       setStats({
@@ -97,7 +98,7 @@ const CandidateDashboard: React.FC = () => {
             <Link to="/candidate/browse-projects">
               <Button text="Browse Projects" className="bg-primary-500 text-white" />
             </Link>
-            <Link to="/candidate/profile">
+            <Link to="/candidate/profile/update">
               <Button text="Update Profile" className="bg-white border border-gray-300 text-gray-700" />
             </Link>
           </div>

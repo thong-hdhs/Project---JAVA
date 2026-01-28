@@ -3,6 +3,9 @@ package com.example.labOdc.Service.Implement;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.AccessDeniedException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,8 @@ import com.example.labOdc.Model.Project;
 import com.example.labOdc.Model.ProjectApplication;
 import com.example.labOdc.Model.ProjectTeam;
 import com.example.labOdc.Model.ProjectTeamStatus;
+import com.example.labOdc.Model.Talent;
+import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.ProjectApplicationRepository;
 import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.ProjectTeamRepository;
@@ -40,12 +45,36 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
      * Repository: ProjectApplicationRepository.save() - Lưu entity vào database.
      */
     @Override
-    public ProjectApplicationResponse createApplication(ProjectApplicationDTO dto) {
+    public ProjectApplicationResponse createApplication(ProjectApplicationDTO dto, String requesterUsername) {
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
+        String principalName = requesterUsername;
+        if (principalName == null || principalName.isBlank()) {
+            try {
+                principalName = SecurityContextHolder.getContext().getAuthentication() != null
+                        ? SecurityContextHolder.getContext().getAuthentication().getName()
+                        : null;
+            } catch (Exception ignored) {
+                principalName = null;
+            }
+        }
+
+        if (principalName == null || principalName.isBlank()) {
+            throw new ResourceNotFoundException("Unauthenticated user");
+        }
+
+        final String login = principalName;
+        User user = userRepository.findByUsername(login)
+            .or(() -> userRepository.findByEmail(login))
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Talent talent = talentRepository.findByUserId(user.getId())
+                .orElseGet(() -> talentRepository.save(Talent.builder().user(user).build()));
+
         ProjectApplication pa = ProjectApplication.builder()
                 .project(project)
+                .talent(talent)
                 .coverLetter(dto.getCoverLetter())
                 .status(ProjectApplication.Status.PENDING)
                 .build();
@@ -121,6 +150,24 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
                 .map(ProjectApplicationResponse::from)
                 .toList();
     }
+
+        @Override
+        public List<ProjectApplicationResponse> getMyApplications(String requesterUsername) {
+        if (requesterUsername == null || requesterUsername.isBlank()) {
+            return List.of();
+        }
+
+        final String login = requesterUsername;
+        User user = userRepository.findByUsername(login)
+            .or(() -> userRepository.findByEmail(login))
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return talentRepository.findByUserId(user.getId())
+            .map(talent -> applicationRepository.findByTalentId(talent.getId()).stream()
+                .map(ProjectApplicationResponse::from)
+                .toList())
+            .orElseGet(List::of);
+        }
 
     /**
      * Chức năng: Phê duyệt đơn ứng tuyển dự án.
@@ -224,14 +271,43 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
 
     @Override
     public void createApplication(String projectId, String talentId, String coverLetter) {
-        // Placeholder: Tạo application
-        System.out.println("Creating application for project: " + projectId + " by talent: " + talentId + " with cover: " + coverLetter);
+        Project project = projectRepository.findById(projectId)
+            .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        Talent talent = talentRepository.findById(talentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        ProjectApplication pa = ProjectApplication.builder()
+            .project(project)
+            .talent(talent)
+            .coverLetter(coverLetter)
+            .status(ProjectApplication.Status.PENDING)
+            .build();
+        applicationRepository.save(pa);
     }
 
     @Override
-    public void withdrawApplication(String applicationId) {
-        // Placeholder: Withdraw application
-        System.out.println("Withdrawing application: " + applicationId);
+    public void withdrawApplication(String applicationId, String requesterUsername) {
+        ProjectApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+
+        if (requesterUsername == null || requesterUsername.isBlank()) {
+            throw new AccessDeniedException("Unauthenticated user");
+        }
+
+        final String login = requesterUsername;
+        User user = userRepository.findByUsername(login)
+                .or(() -> userRepository.findByEmail(login))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Talent talent = talentRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new AccessDeniedException("Talent profile not found"));
+
+        if (application.getTalent() == null || application.getTalent().getId() == null
+                || !application.getTalent().getId().equals(talent.getId())) {
+            throw new AccessDeniedException("Not allowed to withdraw this application");
+        }
+
+        application.setStatus(ProjectApplication.Status.WITHDRAWN);
+        applicationRepository.save(application);
     }
 
     @Override

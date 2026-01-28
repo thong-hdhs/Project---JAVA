@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon';
 import { toast } from 'react-toastify';
 import type { Project } from '@/types';
 import { projectService } from '@/services/project.service';
+import { paymentService } from '@/services/payment.service';
 import {
 	projectChangeRequestService,
 	type BackendProjectChangeRequestResponse,
@@ -60,7 +61,21 @@ const ProjectDetailEnterprise: React.FC = () => {
 		try {
 			setLoading(true);
 			const p = await projectService.getProjectFromBackend(projectId);
-			setProject(p);
+
+			// Ensure payment badge/UI is correct even if project.payment_status isn't populated.
+			let effectiveProject: Project = p;
+			try {
+				const payments = await paymentService.listPaymentsByProject(projectId);
+				const paidStatuses = new Set(['PAID', 'SUCCESS', 'COMPLETED']);
+				const hasPaid = payments.some((pay) => paidStatuses.has(String(pay.status || '').toUpperCase()));
+				if (hasPaid) {
+					effectiveProject = { ...p, payment_status: 'PAID' };
+				}
+			} catch {
+				// ignore payment lookup failures
+			}
+
+			setProject(effectiveProject);
 
 			const list = await projectChangeRequestService.listByProject(projectId);
 			setRequests(list || []);
@@ -77,20 +92,24 @@ const ProjectDetailEnterprise: React.FC = () => {
 		void load();
 	}, [load]);
 
-	const canSubmit = useMemo(() => {
+	const canComplete = useMemo(() => {
 		if (!project) return false;
-		return String(project.status).toUpperCase() === 'DRAFT' && String(project.validation_status).toUpperCase() !== 'REJECTED';
+		const paid = String(project.payment_status || '').toUpperCase() === 'PAID';
+		if (!paid) return false;
+		const s = String(project.status || '').toUpperCase();
+		return s !== 'COMPLETED' && s !== 'CANCELLED';
 	}, [project]);
 
-	const submit = useCallback(async () => {
+	const complete = useCallback(async () => {
 		if (!project) return;
 		try {
 			setActionLoading(true);
-			await projectService.submitProjectForAppraisal(project.id);
-			toast.success('Submitted for appraisal');
+			await projectService.completeProjectInBackend(project.id);
+			toast.success('Project submitted');
+			window.dispatchEvent(new Event('projects:changed'));
 			await load();
 		} catch (e: any) {
-			toast.error(e?.message || 'Submit failed');
+			toast.error(e?.message || 'Complete failed');
 		} finally {
 			setActionLoading(false);
 		}
@@ -182,6 +201,7 @@ const ProjectDetailEnterprise: React.FC = () => {
 						<p className="text-gray-600 mt-1">Project detail & change requests</p>
 						<div className="mt-2 flex flex-wrap items-center gap-2">
 							<StatusBadge status={project.status} />
+							{String(project.payment_status || '').toUpperCase() === 'PAID' ? <StatusBadge status="PAID" /> : null}
 							<span
 								className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-medium ${statusPillClass(
 									String(project.validation_status || ''),
@@ -194,13 +214,10 @@ const ProjectDetailEnterprise: React.FC = () => {
 				</div>
 
 				<div className="flex flex-wrap gap-2">
-					<Link to={`/enterprise/projects/${project.id}/edit`}>
-						<Button text="Edit" className="btn-outline-dark" />
-					</Link>
 					<button
-						onClick={() => void submit()}
-						disabled={!canSubmit || actionLoading}
-						className="inline-flex items-center space-x-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+						onClick={() => void complete()}
+						disabled={!canComplete || actionLoading}
+						className="inline-flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
 					>
 						<span className="text-sm font-medium">Submit</span>
 					</button>
@@ -427,6 +444,7 @@ const ProjectDetailEnterprise: React.FC = () => {
 					</div>
 				</div>
 			)}
+
 		</div>
 	);
 };

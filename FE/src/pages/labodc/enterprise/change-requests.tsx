@@ -184,30 +184,26 @@ const ChangeRequests: React.FC = () => {
 		try {
 			setActionLoading(true);
 			const type = String(applyTarget.requestType || '').toUpperCase();
-			if (type === 'CANCELLATION') {
-				await projectService.updateProjectStatusInBackend(selectedProject.id, 'CANCELLED');
-			} else {
-				const patch: any = {};
-				if (type === 'BUDGET_CHANGE') {
-					if (applyDraft.budget) patch.budget = Number(applyDraft.budget);
-				}
-				if (type === 'TIMELINE_EXTENSION') {
-					if (applyDraft.durationMonths) patch.durationMonths = Number(applyDraft.durationMonths);
-					if (applyDraft.startDate) patch.startDate = applyDraft.startDate;
-					if (applyDraft.endDate) patch.endDate = applyDraft.endDate;
-				}
-				if (type === 'SCOPE_CHANGE') {
-					if (applyDraft.description) patch.description = applyDraft.description;
-					if (applyDraft.requirements) patch.requirements = applyDraft.requirements;
-					if (applyDraft.requiredSkills) patch.requiredSkills = applyDraft.requiredSkills;
-				}
-				if (type === 'TEAM_CHANGE') {
-					if (applyDraft.maxTeamSize) patch.maxTeamSize = Number(applyDraft.maxTeamSize);
-					if (applyDraft.requiredSkills) patch.requiredSkills = applyDraft.requiredSkills;
-				}
-
-				await projectService.updateProjectInBackend(selectedProject.id, selectedProject, patch);
+			const payload: any = {};
+			if (type === 'BUDGET_CHANGE') {
+				if (applyDraft.budget) payload.budget = Number(applyDraft.budget);
 			}
+			if (type === 'TIMELINE_EXTENSION') {
+				if (applyDraft.durationMonths) payload.durationMonths = Number(applyDraft.durationMonths);
+				if (applyDraft.startDate) payload.startDate = applyDraft.startDate;
+				if (applyDraft.endDate) payload.endDate = applyDraft.endDate;
+			}
+			if (type === 'SCOPE_CHANGE') {
+				if (applyDraft.description) payload.description = applyDraft.description;
+				if (applyDraft.requirements) payload.requirements = applyDraft.requirements;
+				if (applyDraft.requiredSkills) payload.requiredSkills = applyDraft.requiredSkills;
+			}
+			if (type === 'TEAM_CHANGE') {
+				if (applyDraft.maxTeamSize) payload.maxTeamSize = Number(applyDraft.maxTeamSize);
+				if (applyDraft.requiredSkills) payload.requiredSkills = applyDraft.requiredSkills;
+			}
+
+			await projectChangeRequestService.applyApproved(applyTarget.id, Object.keys(payload).length ? payload : undefined);
 
 			toast.success('Project updated');
 			setShowApplyModal(false);

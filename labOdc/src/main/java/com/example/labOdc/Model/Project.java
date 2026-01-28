@@ -91,6 +91,13 @@ public class Project {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
+    @Lob
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @Column(name = "max_team_size")
     @Builder.Default
     private Integer maxTeamSize = 5;

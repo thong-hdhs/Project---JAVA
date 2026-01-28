@@ -4,7 +4,12 @@ import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.Response.TaskResponse;
 import com.example.labOdc.DTO.TaskDTO;
 import com.example.labOdc.Model.Task;
+import com.example.labOdc.Model.Talent;
+import com.example.labOdc.Model.User;
+import com.example.labOdc.Repository.TalentRepository;
+import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.TaskService;
+import com.example.labOdc.Exception.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +29,8 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final UserRepository userRepository;
+    private final TalentRepository talentRepository;
 
     @PostMapping("/")
     @PreAuthorize("""
@@ -121,6 +128,32 @@ public class TaskController {
 """)
     public ApiResponse<List<TaskResponse>> getTasksByAssignee(@PathVariable String talentId) {
         List<TaskResponse> responses = taskService.getTasksByAssignee(talentId)
+                .stream()
+                .map(TaskResponse::fromEntity)
+                .toList();
+
+        return ApiResponse.success(responses, "OK", HttpStatus.OK);
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("""
+    hasAnyRole('TALENT','USER')
+    or hasAuthority('TALENT_VIEW_ASSIGNED_TASK')
+""")
+    public ApiResponse<List<TaskResponse>> getMyTasks(Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ApiResponse.error(List.of("Unauthenticated user"));
+        }
+
+        final String login = principal.getName();
+        User user = userRepository.findByUsername(login)
+                .or(() -> userRepository.findByEmail(login))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Talent talent = talentRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+
+        List<TaskResponse> responses = taskService.getTasksByAssignee(talent.getId())
                 .stream()
                 .map(TaskResponse::fromEntity)
                 .toList();

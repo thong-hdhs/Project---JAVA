@@ -16,6 +16,44 @@ type BackendApiResponse<T> = {
 type BackendProjectStatus = 'DRAFT' | 'SUBMITTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ON_HOLD';
 type BackendValidationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+type TalentProjectResponse = {
+  id: string;
+  companyId?: string;
+  mentorId?: string;
+  projectName?: string;
+  projectCode?: string;
+  description?: string;
+  requirements?: string;
+  budget?: number | string;
+  durationMonths?: number;
+  startDate?: string;
+  endDate?: string;
+  actualEndDate?: string;
+  status?: string;
+  validationStatus?: string;
+  validatedById?: string;
+  validatedAt?: string;
+  rejectionReason?: string;
+  maxTeamSize?: number;
+  requiredSkills?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type TalentProjectApplicationResponse = {
+  id: string;
+  projectId?: string;
+  talentId?: string;
+  coverLetter?: string;
+  status?: string;
+  reviewedById?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  appliedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type BackendProjectCreateRequest = {
   companyId: string;
   projectName: string;
@@ -130,12 +168,10 @@ const mapBackendProjectToProject = (p: BackendProjectResponse): Project => {
   const validationStatus = String(p.validationStatus || '').toUpperCase();
   const backendStatus = String(p.status || '').toUpperCase();
 
-  // UI has historically used status like PENDING/APPROVED/REJECTED.
-  // BE uses SUBMITTED + validationStatus. Map to preserve existing UI expectations.
+  // Preserve backend workflow status (DRAFT/SUBMITTED/IN_PROGRESS/COMPLETED/...) for UI.
+  // Special-case: SUBMITTED shows as PENDING to match existing screens.
   let uiStatus: any = backendStatus;
   if (backendStatus === 'SUBMITTED') uiStatus = 'PENDING';
-  if (validationStatus === 'APPROVED') uiStatus = 'APPROVED';
-  if (validationStatus === 'REJECTED') uiStatus = 'REJECTED';
 
   const createdAt = parseDateOrUndefined(p.createdAt) || now();
   const updatedAt = parseDateOrUndefined(p.updatedAt) || now();
@@ -164,6 +200,63 @@ const mapBackendProjectToProject = (p: BackendProjectResponse): Project => {
     created_at: createdAt,
     updated_at: updatedAt,
   };
+};
+
+const mapTalentProjectToProject = (p: TalentProjectResponse): Project => {
+  const validationStatus = String(p.validationStatus || '').toUpperCase();
+  const backendStatus = String(p.status || '').toUpperCase();
+
+  let uiStatus: any = backendStatus;
+  if (backendStatus === 'SUBMITTED') uiStatus = 'PENDING';
+
+  const createdAt = parseDateOrUndefined(p.createdAt) || now();
+  const updatedAt = parseDateOrUndefined(p.updatedAt) || now();
+
+  return {
+    id: p.id,
+    project_name: p.projectName || '',
+    description: p.description || '',
+    requirements: p.requirements || '',
+    budget: parseNumberOrZero(p.budget),
+    duration_months: Number(p.durationMonths || 0),
+    start_date: parseDateOrUndefined(p.startDate),
+    end_date: parseDateOrUndefined(p.endDate),
+    max_team_size: Number(p.maxTeamSize || 0),
+    required_skills: splitSkills(p.requiredSkills),
+    status: uiStatus,
+    validation_status: (validationStatus as any) || 'PENDING',
+    payment_status: 'NOT_REQUIRED',
+    rejection_reason: p.rejectionReason || undefined,
+    validated_by: p.validatedById || undefined,
+    validated_at: parseDateOrUndefined(p.validatedAt),
+    company_id: p.companyId || '',
+    mentor_id: p.mentorId || undefined,
+    main_mentor_id: undefined,
+    created_by: p.companyId || 'company',
+    created_at: createdAt,
+    updated_at: updatedAt,
+  };
+};
+
+const mapTalentApplicationToProjectApplication = (a: TalentProjectApplicationResponse): ProjectApplication => {
+  return {
+    id: a.id,
+    project_id: a.projectId || '',
+    talent_id: a.talentId || '',
+    cover_letter: a.coverLetter || '',
+    status: (String(a.status || 'PENDING').toUpperCase() as any),
+    applied_at: parseDateOrUndefined(a.appliedAt) || now(),
+    reviewed_at: parseDateOrUndefined(a.reviewedAt),
+    reviewed_by: a.reviewedById || undefined,
+    review_notes: a.rejectionReason || undefined,
+  };
+};
+
+const getStoredTalentId = (): string | null => {
+  const storedTalentId = localStorage.getItem('talentId');
+  if (storedTalentId) return storedTalentId;
+  const user = getStoredUser();
+  return user?.id ? String(user.id) : null;
 };
 
 type StoredAuthUser = { role?: string; id?: string; email?: string } | null;
@@ -285,6 +378,48 @@ export const projectService = {
     return response.data;
   },
 
+  // ====== Candidate/Talent: my projects + my applications (BE: /api/v1) ======
+  async getMyProjects(): Promise<{ data: Project[]; total: number }> {
+    const talentId = getStoredTalentId();
+    if (!talentId) return { data: [], total: 0 };
+
+    const response = await apiClient.get<BackendApiResponse<TalentProjectResponse[]>>(
+      `/api/v1/talents/projects/${talentId}`,
+    );
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load my projects';
+      throw new Error(msg);
+    }
+
+    const data = (response.data?.data || []).map(mapTalentProjectToProject);
+    return { data, total: data.length };
+  },
+
+  async getMyApplications(): Promise<ProjectApplication[]> {
+    const response = await apiClient.get<BackendApiResponse<TalentProjectApplicationResponse[]>>(
+      '/api/v1/applications/me',
+    );
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load my applications';
+      throw new Error(msg);
+    }
+
+    return (response.data?.data || []).map(mapTalentApplicationToProjectApplication);
+  },
+
+  async withdrawApplication(applicationId: string): Promise<void> {
+    const response = await apiClient.put<BackendApiResponse<string>>(
+      `/api/v1/applications/withdraw/${applicationId}`,
+    );
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Withdraw application failed';
+      throw new Error(msg);
+    }
+  },
+
   // ====== Company: create + submit project for appraisal (BE: /api/projects) ======
   async listAllProjectsFromBackend(): Promise<Project[]> {
     try {
@@ -358,6 +493,25 @@ export const projectService = {
       const apiMsg = backendData?.message || backendData?.error;
       const apiErrors = backendData?.errors;
       const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Submit project failed';
+      throw new Error(msg);
+    }
+  },
+
+  async completeProjectInBackend(projectId: string): Promise<Project> {
+    try {
+      const response = await apiClient.put<BackendApiResponse<BackendProjectResponse>>(`/api/projects/${projectId}/complete`);
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Complete project failed';
+        throw new Error(msg);
+      }
+
+      return mapBackendProjectToProject(response.data.data);
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Complete project failed';
       throw new Error(msg);
     }
   },

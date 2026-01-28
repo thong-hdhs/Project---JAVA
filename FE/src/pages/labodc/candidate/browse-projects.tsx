@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Textinput from "@/components/ui/Textinput";
@@ -81,6 +82,7 @@ const BrowseProjects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState({ min: "", max: "" });
@@ -99,15 +101,32 @@ const BrowseProjects: React.FC = () => {
       setLoading(true);
       const response = await projectService.getProjects();
       const availableProjects = response.data.filter(
-        (project: Project) =>
-          project.status === "APPROVED" &&
-          project.validation_status === "APPROVED"
+        (project: Project) => project.validation_status === "APPROVED"
       );
       setProjects(availableProjects);
     } catch (error) {
       console.error("Error loading projects:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApply = async (projectId: string) => {
+    try {
+      setApplyingId(projectId);
+      await projectService.applyForProject({
+        project_id: projectId,
+        cover_letter:
+          "I am very interested in this project and believe my skills align well with the requirements.",
+      });
+      toast.success("Applied successfully");
+    } catch (error: any) {
+      const apiData = error?.response?.data;
+      const message =
+        apiData?.errors?.join?.("; ") || apiData?.message || "Apply failed";
+      toast.error(message);
+    } finally {
+      setApplyingId(null);
     }
   };
 
@@ -473,7 +492,9 @@ const BrowseProjects: React.FC = () => {
                         <Button
                           text="Apply"
                           className="bg-primary-500 text-white btn-sm"
-                          onClick={() => alert("Apply action (mock)")}
+                          onClick={() => handleApply(String(project.id))}
+                          isLoading={applyingId === String(project.id)}
+                          disabled={applyingId === String(project.id)}
                         />
                       </div>
                     </div>

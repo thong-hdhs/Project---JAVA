@@ -11,6 +11,17 @@ import com.example.labOdc.Model.Talent;
 public interface TalentService {
     TalentResponse createTalent(TalentDTO talentDTO);
 
+    /**
+     * Lấy hồ sơ Talent của chính user đang đăng nhập (từ JWT).
+     */
+    TalentResponse getMyProfile();
+
+    /**
+     * Cập nhật hồ sơ Talent của chính user đang đăng nhập (từ JWT).
+     * FE không được truyền userId/talentId.
+     */
+    TalentResponse updateMyProfile(TalentDTO talentDTO);
+
     List<TalentResponse> getAllTalents();
 
     void deleteTalent(String id);

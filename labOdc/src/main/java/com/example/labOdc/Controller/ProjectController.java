@@ -76,6 +76,13 @@ public class ProjectController {
         return ApiResponse.success(ProjectResponse.fromProject(project), "Submitted", HttpStatus.OK);
     }
 
+    @PutMapping("/{id}/complete")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ApiResponse<ProjectResponse> complete(@PathVariable String id) {
+        Project project = projectService.completeProject(id);
+        return ApiResponse.success(ProjectResponse.fromProject(project), "Completed", HttpStatus.OK);
+    }
+
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<ProjectResponse> approve(@PathVariable String id, @RequestParam String validatedBy) {

@@ -69,10 +69,11 @@ const Sidebar = () => {
         <SimpleBar
           className="h-[calc(100%-80px)]"
           scrollableNodeProps={{ ref: scrollableNodeRef, className: "sidebar-menu-container" }}
-          contentNodeProps={{ className: "sidebar-menu-content px-4" }}
         >
-          <Navmenu menus={menuItems} />
-          {/* bottom area intentionally left empty */}
+          <div className="sidebar-menu-content px-4">
+            <Navmenu menus={menuItems} />
+            {/* bottom area intentionally left empty */}
+          </div>
         </SimpleBar>
       </div>
     </div>

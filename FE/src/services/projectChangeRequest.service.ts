@@ -45,6 +45,17 @@ export type BackendProjectChangeRequestUpsertRequest = {
   impactAnalysis?: string;
 };
 
+export type ApplyApprovedChangeRequestPayload = {
+  budget?: number;
+  durationMonths?: number;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  description?: string;
+  requirements?: string;
+  requiredSkills?: string;
+  maxTeamSize?: number;
+};
+
 export const projectChangeRequestService = {
   async listAll(): Promise<BackendProjectChangeRequestResponse[]> {
     const response = await apiClient.get<BackendApiResponse<BackendProjectChangeRequestResponse[]>>(
@@ -177,5 +188,19 @@ export const projectChangeRequestService = {
     }
 
     return response.data.data;
+  },
+
+  async applyApproved(id: string, payload?: ApplyApprovedChangeRequestPayload): Promise<unknown> {
+    const response = await apiClient.put<BackendApiResponse<unknown>>(
+      `/api/project-change-requests/${id}/apply`,
+      payload ?? null,
+    );
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Apply failed';
+      throw new Error(msg);
+    }
+
+    return response.data?.data;
   },
 };

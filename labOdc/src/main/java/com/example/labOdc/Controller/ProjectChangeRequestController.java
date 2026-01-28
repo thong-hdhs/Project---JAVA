@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.ProjectChangeRequestDTO;
+import com.example.labOdc.DTO.Action.ApplyProjectChangeRequestDTO;
 import com.example.labOdc.DTO.Action.ReviewNotesDTO;
 import com.example.labOdc.DTO.Response.ProjectChangeRequestResponse;
+import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.Model.ProjectChangeRequest;
+import com.example.labOdc.Model.Project;
 import com.example.labOdc.Service.ProjectChangeRequestService;
 
 import jakarta.validation.Valid;
@@ -114,5 +117,14 @@ public class ProjectChangeRequestController {
         ProjectChangeRequest pcr = projectChangeRequestService.cancel(id);
         return ApiResponse.success(ProjectChangeRequestResponse.fromProjectChangeRequest(pcr), "Cancelled",
                 HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/apply")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ApiResponse<ProjectResponse> applyApproved(
+            @PathVariable String id,
+            @RequestBody(required = false) ApplyProjectChangeRequestDTO body) {
+        Project project = projectChangeRequestService.applyApprovedChangeRequest(id, body);
+        return ApiResponse.success(ProjectResponse.fromProject(project), "Applied", HttpStatus.OK);
     }
 }

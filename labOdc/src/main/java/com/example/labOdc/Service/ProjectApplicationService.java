@@ -6,7 +6,7 @@ import com.example.labOdc.DTO.ProjectApplicationDTO;
 import com.example.labOdc.DTO.Response.ProjectApplicationResponse;
 
 public interface ProjectApplicationService {
-    ProjectApplicationResponse createApplication(ProjectApplicationDTO dto);
+    ProjectApplicationResponse createApplication(ProjectApplicationDTO dto, String requesterUsername);
 
     List<ProjectApplicationResponse> getAllApplications();
 
@@ -19,6 +19,12 @@ public interface ProjectApplicationService {
     List<ProjectApplicationResponse> findByProjectId(String projectId);
 
     List<ProjectApplicationResponse> findByTalentId(String talentId);
+
+    /**
+     * Chức năng: Lấy danh sách đơn ứng tuyển của user hiện tại.
+     * Service: Dựa theo requesterUsername để resolve User -> Talent -> Applications.
+     */
+    List<ProjectApplicationResponse> getMyApplications(String requesterUsername);
 
     /**
      * Chức năng: Phê duyệt đơn ứng tuyển dự án.
@@ -68,7 +74,7 @@ public interface ProjectApplicationService {
      * Rút đơn ứng tuyển.
      * @param applicationId ID đơn ứng tuyển
      */
-    void withdrawApplication(String applicationId);
+    void withdrawApplication(String applicationId, String requesterUsername);
 
     /**
      * Lấy danh sách đơn ứng tuyển theo dự án.

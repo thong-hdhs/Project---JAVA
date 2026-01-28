@@ -18,13 +18,8 @@ const MyProjects: React.FC = () => {
   const loadMyProjects = async () => {
     try {
       setLoading(true);
-      // In a real app, you'd filter projects where the user is a team member
-      const response = await projectService.getProjects();
-      // Mock filtering - in real app this would be done on backend
-      const myProjects = response.data.filter(project =>
-        project.status === 'IN_PROGRESS' || project.status === 'COMPLETED'
-      );
-      setProjects(myProjects);
+      const response = await projectService.getMyProjects();
+      setProjects(response.data);
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {

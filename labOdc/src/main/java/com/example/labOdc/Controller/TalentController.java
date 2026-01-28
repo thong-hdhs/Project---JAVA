@@ -67,6 +67,46 @@ public ApiResponse<TalentResponse> saveTalent(
 
 
     /**
+     * TALENT chỉ được xem hồ sơ của chính mình.
+     * Không nhận talentId/userId từ FE.
+     */
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('TALENT')")
+    public ResponseEntity<ApiResponse<TalentResponse>> getMyProfile() {
+        TalentResponse response = talentService.getMyProfile();
+        return ResponseEntity.ok(ApiResponse.success(response, "OK", HttpStatus.OK));
+    }
+
+    /**
+     * TALENT chỉ được cập nhật hồ sơ của chính mình.
+     * Không nhận talentId/userId từ FE.
+     */
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('TALENT')")
+    public ResponseEntity<ApiResponse<TalentResponse>> updateMyProfile(
+            @Valid @RequestBody TalentDTO talentDTO,
+            BindingResult result) {
+
+        if (result.hasErrors()) {
+            List<String> errorMessages = result.getFieldErrors()
+                    .stream()
+                    .map(FieldError::getDefaultMessage)
+                    .toList();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Validation failed", errorMessages, HttpStatus.BAD_REQUEST));
+        }
+
+        try {
+            TalentResponse response = talentService.updateMyProfile(talentDTO);
+            return ResponseEntity.ok(ApiResponse.success(response, "Updated", HttpStatus.OK));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST));
+        }
+    }
+
+
+    /**
      * Chức năng: Lấy danh sách tất cả hồ sơ sinh viên.
      * Service: TalentService.getAllTalents() - Truy vấn và trả về list.
      */
@@ -93,7 +133,7 @@ public ApiResponse<TalentResponse> saveTalent(
      * Service: TalentService.getTalentById() - Truy vấn entity theo ID.
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TALENT', 'LAB_ADMIN', 'MENTOR', 'SYSTEM_ADMIN')")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'MENTOR', 'SYSTEM_ADMIN')")
     public ApiResponse<TalentResponse> getTalentById(@PathVariable String id) {
         TalentResponse response = talentService.getTalentById(id);
         return ApiResponse.success(response, "OK", HttpStatus.OK);
@@ -104,7 +144,7 @@ public ApiResponse<TalentResponse> saveTalent(
      * Service: TalentService.updateTalent() - Xử lý cập nhật entity.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TALENT', 'SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public ApiResponse<TalentResponse> updateTalent(@Valid @RequestBody TalentDTO talentDTO, @PathVariable String id) {
         TalentResponse response = talentService.updateTalent(talentDTO, id);
         return ApiResponse.success(response, "Updated", HttpStatus.OK);

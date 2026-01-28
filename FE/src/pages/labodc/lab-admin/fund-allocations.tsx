@@ -71,6 +71,14 @@ const FundAllocations: React.FC = () => {
 
 	useEffect(() => {
 		void load();
+
+		const onPaymentsChanged = () => {
+			void load();
+		};
+		window.addEventListener('payments:changed', onPaymentsChanged);
+		return () => {
+			window.removeEventListener('payments:changed', onPaymentsChanged);
+		};
 	}, [load]);
 
 	const rows = useMemo(() => {

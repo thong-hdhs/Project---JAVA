@@ -9,6 +9,10 @@ interface QRCodeModalProps {
   amount?: number;
   qrUrl?: string;
   isLoading?: boolean;
+
+  /** Optional: enable a confirm payment action from the modal. */
+  onSimulatePaid?: () => void;
+  simulatePaidLoading?: boolean;
 }
 
 const QRCodeModal: React.FC<QRCodeModalProps> = ({
@@ -18,7 +22,9 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
   projectId,
   amount,
   qrUrl,
-  isLoading
+  isLoading,
+  onSimulatePaid,
+  simulatePaidLoading,
 }) => {
   if (!isOpen) return null;
 
@@ -79,13 +85,22 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex space-x-3 rounded-b-lg">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-3 rounded-b-lg">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            className="flex-1 min-w-[120px] px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
             Close
           </button>
+          {onSimulatePaid ? (
+            <button
+              onClick={onSimulatePaid}
+              className="flex-1 min-w-[180px] px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-60"
+              disabled={Boolean(isLoading) || Boolean(simulatePaidLoading)}
+            >
+              {simulatePaidLoading ? 'Paying…' : 'Pay'}
+            </button>
+          ) : null}
           <button
             onClick={() => {
               // Save QR code functionality
@@ -94,7 +109,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
               link.download = `payment-qr-${projectId}.jpg`;
               link.click();
             }}
-            className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="flex-1 min-w-[140px] px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             disabled={Boolean(isLoading)}
           >
             Download QR

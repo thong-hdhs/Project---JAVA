@@ -59,6 +59,14 @@ const TransparencyReport: React.FC = () => {
 
 	useEffect(() => {
 		void load();
+
+		const onPaymentsChanged = () => {
+			void load();
+		};
+		window.addEventListener('payments:changed', onPaymentsChanged);
+		return () => {
+			window.removeEventListener('payments:changed', onPaymentsChanged);
+		};
 	}, [load]);
 
 	const summary = useMemo(() => {

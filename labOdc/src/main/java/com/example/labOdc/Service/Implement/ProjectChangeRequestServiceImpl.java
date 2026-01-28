@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.labOdc.DTO.ProjectChangeRequestDTO;
+import com.example.labOdc.DTO.Action.ApplyProjectChangeRequestDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Project;
 import com.example.labOdc.Model.ProjectChangeRequest;
@@ -18,6 +19,7 @@ import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.ProjectChangeRequestRepository;
 import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.UserRepository;
+import com.example.labOdc.Service.NotificationService;
 import com.example.labOdc.Service.ProjectChangeRequestService;
 
 import lombok.AllArgsConstructor;
@@ -29,6 +31,7 @@ public class ProjectChangeRequestServiceImpl implements ProjectChangeRequestServ
     private final ProjectChangeRequestRepository projectChangeRequestRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     private User getCurrentUserOrThrow() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -142,6 +145,18 @@ public class ProjectChangeRequestServiceImpl implements ProjectChangeRequestServ
 
         projectChangeRequestRepository.save(pcr);
 
+        if (pcr.getRequestedBy() != null) {
+            String projectName = (pcr.getProject() != null && pcr.getProject().getProjectName() != null)
+                ? pcr.getProject().getProjectName()
+                : (pcr.getProject() != null ? pcr.getProject().getId() : "project");
+            String type = pcr.getRequestType() != null ? pcr.getRequestType().name() : "CHANGE_REQUEST";
+            notificationService.createForUser(
+                pcr.getRequestedBy(),
+                "Change request approved",
+                "Your change request (" + type + ") for project '" + projectName + "' was APPROVED.",
+                "CHANGE_REQUEST_APPROVED");
+        }
+
         if (pcr.getRequestType() == ProjectChangeRequestType.CANCELLATION) {
             Project project = pcr.getProject();
             if (project == null) {
@@ -173,7 +188,21 @@ public class ProjectChangeRequestServiceImpl implements ProjectChangeRequestServ
         pcr.setReviewedDate(LocalDate.now());
         pcr.setReviewNotes(reviewNotes);
 
-        return projectChangeRequestRepository.save(pcr);
+        ProjectChangeRequest saved = projectChangeRequestRepository.save(pcr);
+
+        if (saved.getRequestedBy() != null) {
+            String projectName = (saved.getProject() != null && saved.getProject().getProjectName() != null)
+                ? saved.getProject().getProjectName()
+                : (saved.getProject() != null ? saved.getProject().getId() : "project");
+            String type = saved.getRequestType() != null ? saved.getRequestType().name() : "CHANGE_REQUEST";
+            notificationService.createForUser(
+                saved.getRequestedBy(),
+                "Change request rejected",
+                "Your change request (" + type + ") for project '" + projectName + "' was REJECTED.",
+                "CHANGE_REQUEST_REJECTED");
+        }
+
+        return saved;
     }
 
     @Override
@@ -195,5 +224,88 @@ public class ProjectChangeRequestServiceImpl implements ProjectChangeRequestServ
         pcr.setReviewedDate(LocalDate.now());
 
         return projectChangeRequestRepository.save(pcr);
+    }
+
+    @Override
+    @Transactional
+    public Project applyApprovedChangeRequest(String id, ApplyProjectChangeRequestDTO body) {
+        ProjectChangeRequest pcr = getProjectChangeRequestById(id);
+
+        if (pcr.getStatus() != ProjectChangeRequestStatus.APPROVED) {
+            throw new IllegalStateException("Only APPROVED change request can be applied");
+        }
+
+        User current = getCurrentUserOrThrow();
+        if (pcr.getRequestedBy() != null && current.getId() != null
+                && !current.getId().equals(pcr.getRequestedBy().getId())) {
+            throw new IllegalStateException("Only the requester can apply this change request");
+        }
+
+        Project project = pcr.getProject();
+        if (project == null) {
+            throw new IllegalStateException("Change request is missing project");
+        }
+
+        ProjectChangeRequestType type = pcr.getRequestType();
+        if (type == null) {
+            throw new IllegalStateException("Change request is missing requestType");
+        }
+
+        ApplyProjectChangeRequestDTO safe = body != null ? body : new ApplyProjectChangeRequestDTO();
+
+        switch (type) {
+            case CANCELLATION:
+                project.setStatus(ProjectStatus.CANCELLED);
+                break;
+            case BUDGET_CHANGE:
+                if (safe.getBudget() == null) {
+                    throw new IllegalArgumentException("budget is required for BUDGET_CHANGE");
+                }
+                project.setBudget(safe.getBudget());
+                break;
+            case TIMELINE_EXTENSION:
+                if (safe.getDurationMonths() != null) {
+                    project.setDurationMonths(safe.getDurationMonths());
+                }
+                if (safe.getStartDate() != null) {
+                    project.setStartDate(safe.getStartDate());
+                }
+                if (safe.getEndDate() != null) {
+                    project.setEndDate(safe.getEndDate());
+                }
+                if (safe.getDurationMonths() == null && safe.getStartDate() == null && safe.getEndDate() == null) {
+                    throw new IllegalArgumentException("At least one of durationMonths/startDate/endDate is required for TIMELINE_EXTENSION");
+                }
+                break;
+            case SCOPE_CHANGE:
+                if (safe.getDescription() != null) {
+                    project.setDescription(safe.getDescription());
+                }
+                if (safe.getRequirements() != null) {
+                    project.setRequirements(safe.getRequirements());
+                }
+                if (safe.getRequiredSkills() != null) {
+                    project.setRequiredSkills(safe.getRequiredSkills());
+                }
+                if (safe.getDescription() == null && safe.getRequirements() == null && safe.getRequiredSkills() == null) {
+                    throw new IllegalArgumentException("At least one of description/requirements/requiredSkills is required for SCOPE_CHANGE");
+                }
+                break;
+            case TEAM_CHANGE:
+                if (safe.getMaxTeamSize() != null) {
+                    project.setMaxTeamSize(safe.getMaxTeamSize());
+                }
+                if (safe.getRequiredSkills() != null) {
+                    project.setRequiredSkills(safe.getRequiredSkills());
+                }
+                if (safe.getMaxTeamSize() == null && safe.getRequiredSkills() == null) {
+                    throw new IllegalArgumentException("At least one of maxTeamSize/requiredSkills is required for TEAM_CHANGE");
+                }
+                break;
+            default:
+                throw new IllegalStateException("Unsupported requestType: " + type);
+        }
+
+        return projectRepository.save(project);
     }
 }

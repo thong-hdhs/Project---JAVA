@@ -28,7 +28,7 @@ const MentorDashboard: React.FC = () => {
             </p>
           </div>
           <div className="flex space-x-3">
-            <Link to="/profile">
+            <Link to="/mentor/profile">
               <Button
                 text="Update Profile"
                 className="bg-white border border-gray-300 text-gray-700"

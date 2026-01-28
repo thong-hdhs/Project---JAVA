@@ -20,9 +20,24 @@ const EnterpriseProjects: React.FC = () => {
   const [qrUrl, setQrUrl] = useState<string>('');
   const [payLoading, setPayLoading] = useState(false);
   const [companyId, setCompanyId] = useState<string>('');
+  const [currentPaymentId, setCurrentPaymentId] = useState<string>('');
+  const [confirmPayLoading, setConfirmPayLoading] = useState(false);
 
   useEffect(() => {
     loadProjects();
+
+    const onPaymentsChanged = () => {
+      loadProjects();
+    };
+    const onProjectsChanged = () => {
+      loadProjects();
+    };
+    window.addEventListener('payments:changed', onPaymentsChanged);
+    window.addEventListener('projects:changed', onProjectsChanged);
+    return () => {
+      window.removeEventListener('payments:changed', onPaymentsChanged);
+      window.removeEventListener('projects:changed', onProjectsChanged);
+    };
   }, []);
 
   const loadProjects = async () => {
@@ -34,6 +49,30 @@ const EnterpriseProjects: React.FC = () => {
 
       const list = await projectService.listAllProjectsFromBackend();
       const companyProjects = cid ? list.filter((p) => String(p.company_id) === cid) : list;
+
+      // Best-effort paid detection from payments list (some BE responses may not populate project.payment_status)
+      try {
+        if (cid) {
+          const payments = await paymentService.listPaymentsByCompany(cid);
+          const paidStatuses = new Set(['PAID', 'SUCCESS', 'COMPLETED']);
+          const paidProjectKeys = new Set(
+            payments
+              .filter((p) => paidStatuses.has(String(p.status || '').toUpperCase()))
+              .flatMap((p) => [String(p.projectCode || ''), String(p.projectName || '')].filter(Boolean)),
+          );
+
+          const withPaid = companyProjects.map((p) => {
+            const isPaidByPayment = paidProjectKeys.has(String(p.id)) || paidProjectKeys.has(String(p.project_name));
+            if (!isPaidByPayment) return p;
+            return { ...p, payment_status: 'PAID' as const };
+          });
+          setProjects(withPaid);
+          return;
+        }
+      } catch {
+        // ignore paid enrichment failures; fall back to raw projects
+      }
+
       setProjects(companyProjects);
     } catch (error) {
       console.error('Error loading projects:', error);
@@ -42,8 +81,13 @@ const EnterpriseProjects: React.FC = () => {
     }
   };
 
+  const isProjectPaid = (project: Project): boolean => {
+    return String(project.payment_status || '').toUpperCase() === 'PAID';
+  };
+
   const handlePaymentClick = async (project: Project) => {
     if (project.validation_status !== 'APPROVED') return;
+    if (isProjectPaid(project)) return;
     if (payLoading) return;
 
     try {
@@ -56,6 +100,8 @@ const EnterpriseProjects: React.FC = () => {
         amount: project.budget,
         usePayOS: true,
       });
+
+      setCurrentPaymentId(String(payment?.id || ''));
 
       // Prefer QR path from `payment.notes` (avoids 403 from /api/v1/payments/{id}/qr in current BE security)
       let url = getQrDisplayUrlFromPayment(payment) || '';
@@ -71,6 +117,39 @@ const EnterpriseProjects: React.FC = () => {
       window.alert(error?.message || 'Unable to create payment QR');
     } finally {
       setPayLoading(false);
+    }
+  };
+
+  const handleSimulatePaid = async () => {
+    if (!currentPaymentId) {
+      window.alert('Missing payment id to confirm payment');
+      return;
+    }
+    if (confirmPayLoading) return;
+
+    try {
+      setConfirmPayLoading(true);
+      await paymentService.confirmPayment(currentPaymentId);
+
+      const paidProjectId = String(selectedProject?.id || '');
+      if (paidProjectId) {
+        setProjects((prev) =>
+          prev.map((p) => (String(p.id) === paidProjectId ? { ...p, payment_status: 'PAID' } : p)),
+        );
+        setSelectedProject((prev) => (prev && String(prev.id) === paidProjectId ? { ...prev, payment_status: 'PAID' } : prev));
+      }
+
+      window.dispatchEvent(new Event('payments:changed'));
+      window.alert('Payment confirmed');
+      setShowQRModal(false);
+      setSelectedProject(null);
+      setQrUrl('');
+      setCurrentPaymentId('');
+    } catch (e: any) {
+      console.error('Confirm payment error:', e);
+      window.alert(e?.message || 'Payment confirmation failed');
+    } finally {
+      setConfirmPayLoading(false);
     }
   };
 
@@ -128,7 +207,10 @@ const EnterpriseProjects: React.FC = () => {
     {
       key: 'status',
       header: 'Project Status',
-      render: (value: string) => <StatusBadge status={value} />,
+      render: (value: string, item: Project) => {
+        const paid = isProjectPaid(item);
+        return <StatusBadge status={paid ? 'PAID' : value} />;
+      },
     },
     {
       key: 'actions',
@@ -139,7 +221,7 @@ const EnterpriseProjects: React.FC = () => {
             <Button text="View" className="btn-outline-dark btn-sm" />
           </Link>
 
-          {item.validation_status === 'APPROVED' && (
+          {item.validation_status === 'APPROVED' && !isProjectPaid(item) && (
             <button
               onClick={() => handlePaymentClick(item)}
               disabled={payLoading}
@@ -148,12 +230,6 @@ const EnterpriseProjects: React.FC = () => {
               <Icon icon="payment" className="w-4 h-4" width={undefined} rotate={undefined} hFlip={undefined} vFlip={undefined} />
               <span>{payLoading ? 'Loading...' : 'Pay'}</span>
             </button>
-          )}
-
-          {item.status === 'DRAFT' && item.validation_status !== 'REJECTED' && (
-            <Link to={`/enterprise/projects/${item.id}/edit`}>
-              <Button text="Edit" className="btn-outline-dark btn-sm" />
-            </Link>
           )}
 
           {item.validation_status === 'REJECTED' && (
@@ -227,12 +303,15 @@ const EnterpriseProjects: React.FC = () => {
             setShowQRModal(false);
             setSelectedProject(null);
             setQrUrl('');
+            setCurrentPaymentId('');
           }}
           projectName={selectedProject.project_name}
           projectId={selectedProject.id}
           amount={selectedProject.budget}
           qrUrl={qrUrl}
           isLoading={payLoading && !qrUrl}
+          onSimulatePaid={handleSimulatePaid}
+          simulatePaidLoading={confirmPayLoading}
         />
       )}
     </div>

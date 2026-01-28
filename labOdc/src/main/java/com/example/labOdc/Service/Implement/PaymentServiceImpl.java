@@ -22,6 +22,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.UUID;
 
 @Service
@@ -49,6 +52,15 @@ public class PaymentServiceImpl implements PaymentService {
                 ? companyRepository.findById(dto.getCompanyId())
                         .orElseThrow(() -> new RuntimeException("Company not found"))
                 : null;
+
+        // If companyId is not provided, infer company from the project (project.company is required)
+        if (company == null && project != null) {
+            company = project.getCompany();
+        }
+
+        if (company == null) {
+            throw new IllegalArgumentException("companyId is required");
+        }
 
         // Mã giao dịch nội bộ 
         String transactionId = "ORD-" + UUID.randomUUID();
@@ -108,18 +120,18 @@ public class PaymentServiceImpl implements PaymentService {
                 : null;
 
         Payment payment = Payment.builder()
-                .project(project)
-                .company(company)
-                .amount(BigDecimal.ZERO)
-                .paymentType(
-                        paymentType != null
-                                ? paymentType
-                                : PaymentType.ADVANCE
-                )
-                .status(PaymentStatus.COMPLETED)
-                .paymentDate(LocalDate.now())
-                .notes(note)
-                .build();
+            .project(project)
+            .company(company)
+            .amount(BigDecimal.ZERO)
+            .paymentType(
+                paymentType != null
+                    ? paymentType
+                    : PaymentType.ADVANCE
+            )
+            .status(PaymentStatus.COMPLETED)
+            .paymentDate(LocalDate.now())
+            .notes(note)
+            .build();
 
         return paymentRepository.save(payment);
     }
@@ -152,6 +164,11 @@ public class PaymentServiceImpl implements PaymentService {
     public Payment confirmPayment(String paymentId) {
 
         Payment payment = getPaymentById(paymentId);
+
+        // Idempotent confirm: if already completed, treat as success
+        if (payment.getStatus() == PaymentStatus.COMPLETED) {
+            return payment;
+        }
 
         if (payment.getStatus() != PaymentStatus.PENDING
                 && payment.getStatus() != PaymentStatus.PROCESSING) {
@@ -276,17 +293,94 @@ public class PaymentServiceImpl implements PaymentService {
                     350
             );
 
-            Path qrDir = Paths.get("src/main/resources/static/qr");
-            Files.createDirectories(qrDir);
+            // Always persist QR into source folder (portable across machines/drives)
+            Path sourceQrDir = resolveSourceQrDir();
+            Files.createDirectories(sourceQrDir);
+            MatrixToImageWriter.writeToPath(matrix, "PNG", sourceQrDir.resolve(fileName));
 
-            MatrixToImageWriter.writeToPath(
-                    matrix,
-                    "PNG",
-                    qrDir.resolve(fileName)
-            );
+            // Also mirror to runtime static folder when running from IDE (so /qr/... serves immediately)
+            Path runtimeQrDir = resolveRuntimeStaticQrDir();
+            if (runtimeQrDir != null) {
+                Files.createDirectories(runtimeQrDir);
+                MatrixToImageWriter.writeToPath(matrix, "PNG", runtimeQrDir.resolve(fileName));
+            }
 
         } catch (WriterException | IOException e) {
             throw new RuntimeException("Cannot generate QR code", e);
         }
+    }
+
+    private Path resolveSourceQrDir() {
+        Path projectRoot = findProjectRoot();
+        return projectRoot
+                .resolve("src")
+                .resolve("main")
+                .resolve("resources")
+                .resolve("static")
+                .resolve("qr");
+    }
+
+    private Path resolveRuntimeStaticQrDir() {
+        URL staticUrl = PaymentServiceImpl.class.getClassLoader().getResource("static");
+        if (staticUrl == null) {
+            return null;
+        }
+
+        try {
+            URI uri = staticUrl.toURI();
+            if (!"file".equalsIgnoreCase(uri.getScheme())) {
+                // e.g. running from a packaged jar; can't reliably write into classpath
+                return null;
+            }
+
+            return Paths.get(uri).resolve("qr");
+        } catch (URISyntaxException e) {
+            return null;
+        }
+    }
+
+    private Path findProjectRoot() {
+        // Strategy: walk upwards from current working directory until we find pom.xml
+        // and src/main/resources. This makes it portable across different machines/drives.
+        Path start = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        Path found = findUpwards(start);
+        if (found != null) {
+            return found;
+        }
+
+        // Fallback: also try from the compiled classes location (often .../target/classes)
+        try {
+            Path codeSource = Paths.get(
+                    PaymentServiceImpl.class
+                            .getProtectionDomain()
+                            .getCodeSource()
+                            .getLocation()
+                            .toURI()
+            ).toAbsolutePath().normalize();
+
+            found = findUpwards(codeSource);
+            if (found != null) {
+                return found;
+            }
+        } catch (Exception ignored) {
+            // best-effort fallback
+        }
+
+        // Last resort: use working directory (may still be correct in many setups)
+        return start;
+    }
+
+    private Path findUpwards(Path start) {
+        Path current = start;
+        for (int i = 0; i < 12 && current != null; i++) {
+            if (Files.exists(current.resolve("pom.xml"))
+                    && Files.exists(current.resolve("src/main/resources"))) {
+                return current;
+            }
+
+            current = current.getParent();
+        }
+
+        return null;
     }
 }

@@ -6,11 +6,15 @@ import com.example.labOdc.DTO.Response.PaymentResponse;
 import com.example.labOdc.Model.Payment;
 import com.example.labOdc.Model.PaymentStatus;
 import com.example.labOdc.Repository.PaymentRepository;
+import com.example.labOdc.Service.CompanyService;
 import com.example.labOdc.Service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -19,15 +23,18 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/v1/payments")
+@CrossOrigin("*")
 public class PaymentController {
 
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
+    private final CompanyService companyService;
 
     @PostMapping("/")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
@@ -52,7 +59,7 @@ public class PaymentController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN')")
     public ApiResponse<PaymentResponse> updatePaymentStatus(
             @PathVariable String id,
             @RequestParam String status,
@@ -72,15 +79,49 @@ public class PaymentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @Transactional(readOnly = true)
     public ApiResponse<PaymentResponse> getById(@PathVariable String id) {
         Payment payment = paymentService.getPaymentById(id);
         return ApiResponse.success(PaymentResponse.fromEntity(payment), "Payment retrieved successfully",
                 HttpStatus.OK);
     }
 
+    // Simulate payment success (Company click "Pay")
+    @PostMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @Transactional
+    public ApiResponse<PaymentResponse> confirmPayment(@PathVariable String id, Authentication authentication) {
+        Payment payment = paymentService.getPaymentById(id);
+
+        boolean isCompanyUser = authentication != null
+                && authentication.getAuthorities() != null
+                && authentication.getAuthorities().stream().anyMatch(a -> {
+                    String auth = a.getAuthority();
+                    return "ROLE_COMPANY".equals(auth) || "COMPANY".equals(auth);
+                });
+
+        // COMPANY can only confirm its own payments
+        if (isCompanyUser) {
+            var myCompany = companyService.getMyCompany();
+            if (payment.getCompany() == null
+                    || myCompany == null
+                    || myCompany.getId() == null
+                    || !Objects.equals(payment.getCompany().getId(), myCompany.getId())) {
+                throw new AccessDeniedException("Payment does not belong to company");
+            }
+        }
+
+        Payment updated = paymentService.confirmPayment(id);
+        return ApiResponse.success(
+                PaymentResponse.fromEntity(updated),
+                "Payment confirmed successfully",
+                HttpStatus.OK);
+    }
+
     @GetMapping("/project/{projectId}")
-    @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @Transactional(readOnly = true)
     public ApiResponse<List<PaymentResponse>> getByProject(@PathVariable String projectId) {
         List<PaymentResponse> list = paymentService.getPaymentsByProject(projectId).stream()
                 .map(PaymentResponse::fromEntity).toList();
@@ -88,7 +129,8 @@ public class PaymentController {
     }
 
     @GetMapping("/company/{companyId}")
-    @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @Transactional(readOnly = true)
     public ApiResponse<List<PaymentResponse>> getByCompany(@PathVariable String companyId) {
         List<PaymentResponse> list = paymentService.getPaymentsByCompany(companyId).stream()
                 .map(PaymentResponse::fromEntity).toList();
@@ -97,7 +139,8 @@ public class PaymentController {
 
     // Lấy URL ảnh QR để frontend hiển thị
     @GetMapping("/{id}/qr")
-    @PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'LAB_ADMIN', 'COMPANY')")
+    @Transactional(readOnly = true)
     public ApiResponse<String> getQrUrl(@PathVariable String id) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));

@@ -11,7 +11,9 @@ import type { UserRole } from "@/types";
 import { setUser } from "@/store/api/auth/authSlice";
 import {
 	getCandidateProfile,
+	getMyCandidateProfile,
 	updateCandidateProfile,
+	updateMyCandidateProfile,
 	createCandidateProfile,
 } from "@/services";
 
@@ -62,6 +64,7 @@ const ProfilePage: React.FC = () => {
 	const { user, token, roles: authRoles } = useSelector((state: any) => state.auth);
 	const [avatarUpdating, setAvatarUpdating] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const profileFetchKeyRef = useRef<string | null>(null);
 	const dashboardHref = user?.role ? `/${getDashboardLink(user.role)}` : "/";
 	const tokenStr = token || localStorage.getItem("token") || localStorage.getItem("access_token");
 	const tokenTalentId = getTalentIdFromToken(tokenStr);
@@ -93,7 +96,9 @@ const ProfilePage: React.FC = () => {
 		[tokenRoles],
 	);
 
-	// For API calls that require talentId, prefer the real talent UUID.
+	const isTalent = useMemo(() => tokenRoles.includes("TALENT"), [tokenRoles]);
+
+	// For admin screens that still load by talentId.
 	const candidateId = tokenTalentId || storedTalentId || "";
 
 	const [candidateProfile, setCandidateProfile] = useState<CandidateProfileForm>({
@@ -139,21 +144,28 @@ const ProfilePage: React.FC = () => {
 	}, [candidateProfile.skills]);
 
 	useEffect(() => {
-		// Only call GET-by-id when token role permits it.
 		if (!canReadByTalentId) return;
 		if (!tokenStr) {
 			setProfileError("Vui lòng đăng nhập để tải hồ sơ cá nhân.");
 			return;
 		}
-		if (!candidateId) {
-			// With USER role (before becoming TALENT), backend doesn't provide a GET-by-user endpoint.
+
+		// Avoid duplicate fetches (e.g., localStorage talentId updates causing rerenders).
+		const fetchKey = isTalent ? `me:${tokenStr}` : `id:${String(candidateId || "")}`;
+		if (profileFetchKeyRef.current === fetchKey) return;
+		profileFetchKeyRef.current = fetchKey;
+
+		// TALENT: always load by /me (no passing talentId).
+		// Other roles: keep legacy GET-by-id when we have a candidateId.
+		if (!isTalent && !candidateId) {
 			setProfileError(null);
 			return;
 		}
 
 		setProfileLoading(true);
 		setProfileError(null);
-		getCandidateProfile(String(candidateId))
+		const req = isTalent ? getMyCandidateProfile() : getCandidateProfile(String(candidateId));
+		req
 			.then((res) => {
 				const data = res?.data?.data || res?.data || {};
 				setCandidateRecordId(data.id || null);
@@ -173,6 +185,10 @@ const ProfilePage: React.FC = () => {
 			})
 			.catch((err) => {
 				const status = err?.response?.status;
+				if (status === 403) {
+					setProfileError("Bạn không có quyền truy cập hồ sơ này.");
+					return;
+				}
 				if (status === 404) {
 					setCandidateRecordId(null);
 					setProfileError(null);
@@ -186,7 +202,7 @@ const ProfilePage: React.FC = () => {
 				setProfileError(message);
 			})
 			.finally(() => setProfileLoading(false));
-	}, [candidateId, canReadByTalentId, tokenStr]);
+	}, [candidateId, canReadByTalentId, isTalent, tokenStr]);
 
 	const quickActions = useMemo(() => {
 		const role = (user?.role || "") as UserRole;
@@ -333,9 +349,23 @@ const ProfilePage: React.FC = () => {
 				linkedinUrl: candidateProfile.linkedinUrl || undefined,
 			};
 
-			// Prefer PUT when token has TALENT/SYSTEM_ADMIN and we know the talentId.
-			// Otherwise fall back to POST which updates/creates by current authenticated user (USER/SYSTEM_ADMIN).
-			if (canUpdateViaPut && candidateRecordId) {
+			// TALENT: update via /me (no passing talentId).
+			// Otherwise fall back to legacy PUT by id (SYSTEM_ADMIN) or POST (USER/SYSTEM_ADMIN).
+			if (isTalent) {
+				const res = await updateMyCandidateProfile(payload);
+				const data = res?.data?.data || res?.data || {};
+				setCandidateProfile({
+					studentCode: data.studentCode || data.student_code || payload.studentCode,
+					major: data.major ?? payload.major ?? "",
+					year: data.year ?? payload.year ?? "",
+					skills: data.skills ?? payload.skills ?? "",
+					certifications: data.certifications ?? payload.certifications ?? "",
+					portfolioUrl: data.portfolioUrl || data.portfolio_url || payload.portfolioUrl || "",
+					githubUrl: data.githubUrl || data.github_url || payload.githubUrl || "",
+					linkedinUrl: data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
+				});
+				setProfileSuccess("Cập nhật hồ sơ thành công.");
+			} else if (canUpdateViaPut && candidateRecordId) {
 				const res = await updateCandidateProfile(String(candidateRecordId), payload);
 				const data = res?.data?.data || res?.data || {};
 				setCandidateProfile({
@@ -668,97 +698,20 @@ const ProfilePage: React.FC = () => {
 				</Card>
 			</div>
 
-			{(canUpdateViaPut || canCreateOrUpdateViaPost) && (
+			{isTalent && (
 				<Card
 					title="Cập nhật hồ sơ cá nhân"
 					subtitle="Kỹ năng, chứng chỉ và portfolio"
 					bodyClass="p-6"
 				>
-					<form className="space-y-4" onSubmit={handleProfileSubmit}>
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<InputGroup
-								label="Mã sinh viên"
-								name="studentCode"
-								value={candidateProfile.studentCode}
-								onChange={handleProfileChange}
-								disabled={false}
-								placeholder="Mã sinh viên"
-							/>
-							<InputGroup
-								label="Ngành học"
-								name="major"
-								value={candidateProfile.major || ""}
-								onChange={handleProfileChange}
-								placeholder="Công nghệ thông tin"
-							/>
-							<InputGroup
-								label="Năm học"
-								type="number"
-								name="year"
-								value={candidateProfile.year ?? ""}
-								onChange={handleProfileChange}
-								placeholder="2026"
-							/>
-							<InputGroup
-								label="Portfolio URL"
-								name="portfolioUrl"
-								value={candidateProfile.portfolioUrl || ""}
-								onChange={handleProfileChange}
-								placeholder="https://portfolio.example.com"
-							/>
-							<InputGroup
-								label="Github URL"
-								name="githubUrl"
-								value={candidateProfile.githubUrl || ""}
-								onChange={handleProfileChange}
-								placeholder="https://github.com/username"
-							/>
-							<InputGroup
-								label="LinkedIn URL"
-								name="linkedinUrl"
-								value={candidateProfile.linkedinUrl || ""}
-								onChange={handleProfileChange}
-								placeholder="https://linkedin.com/in/username"
-							/>
+					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+						<div className="text-slate-600 dark:text-slate-300 text-sm">
+							Nhấn nút bên phải để mở trang cập nhật hồ sơ.
 						</div>
-
-						<Textarea
-							label="Kỹ năng (phân tách bằng dấu phẩy)"
-							name="skills"
-							row={3}
-							value={candidateProfile.skills || ""}
-							onChange={handleProfileChange}
-							placeholder="Java, Spring Boot, React"
-						/>
-						<Textarea
-							label="Chứng chỉ"
-							name="certifications"
-							row={3}
-							value={candidateProfile.certifications || ""}
-							onChange={handleProfileChange}
-							placeholder="AWS, TOEIC..."
-						/>
-
-						{profileError && (
-							<div className="text-sm text-danger-500">{profileError}</div>
-						)}
-						{profileSuccess && (
-							<div className="text-sm text-success-500">{profileSuccess}</div>
-						)}
-
-						<div className="flex items-center gap-3">
-							<Button
-								type="submit"
-								text={profileSaving ? "Đang lưu..." : "Lưu thay đổi"}
-								isLoading={profileSaving}
-								disabled={profileSaving || profileLoading || !token}
-								className="btn-primary"
-							/>
-							{profileLoading && (
-								<span className="text-sm text-slate-500">Đang tải hồ sơ...</span>
-							)}
-						</div>
-					</form>
+						<Link to="/candidate/profile/update">
+							<Button text="Update Profile" className="btn-primary" />
+						</Link>
+					</div>
 				</Card>
 			)}
 		</div>

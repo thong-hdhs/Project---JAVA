@@ -1,9 +1,12 @@
 package com.example.labOdc.Service.Implement;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.labOdc.DTO.ProjectDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
@@ -12,11 +15,16 @@ import com.example.labOdc.Model.LabAdmin;
 import com.example.labOdc.Model.Mentor;
 import com.example.labOdc.Model.Project;
 import com.example.labOdc.Model.ProjectStatus;
+import com.example.labOdc.Model.ProjectTeam;
 import com.example.labOdc.Model.ValidationStatus;
+import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.CompanyRepository;
 import com.example.labOdc.Repository.LabAdminRepository;
 import com.example.labOdc.Repository.MentorRepository;
 import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.ProjectTeamRepository;
+import com.example.labOdc.Repository.UserRepository;
+import com.example.labOdc.Service.NotificationService;
 import com.example.labOdc.Service.ProjectService;
 
 import lombok.AllArgsConstructor;
@@ -29,6 +37,35 @@ public class ProjectServiceImpl implements ProjectService {
     private final CompanyRepository companyRepository;
     private final MentorRepository mentorRepository;
     private final LabAdminRepository labAdminRepository;
+    private final UserRepository userRepository;
+    private final ProjectTeamRepository projectTeamRepository;
+    private final NotificationService notificationService;
+
+    private User getCurrentUserOrThrow() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+            throw new IllegalStateException("Unauthenticated request");
+        }
+
+        String usernameOrEmail = auth.getName();
+        return userRepository.findByUsername(usernameOrEmail)
+                .or(() -> userRepository.findByEmail(usernameOrEmail))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private Company getCurrentCompanyOrThrow() {
+        User user = getCurrentUserOrThrow();
+        return companyRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+    }
+
+    private void assertOwnedByCurrentCompany(Project project) {
+        Company currentCompany = getCurrentCompanyOrThrow();
+        if (project.getCompany() == null || project.getCompany().getId() == null
+                || !project.getCompany().getId().equals(currentCompany.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Project does not belong to your company");
+        }
+    }
 
     @Override
     public Project createProject(ProjectDTO dto) {
@@ -149,8 +186,11 @@ public class ProjectServiceImpl implements ProjectService {
     // ---------- workflow ----------
 
     @Override
+    @Transactional
     public Project submitProject(String projectId) {
         Project project = getProjectById(projectId);
+
+        assertOwnedByCurrentCompany(project);
 
         if (project.getStatus() != ProjectStatus.DRAFT) {
             throw new IllegalStateException("Only DRAFT project can be submitted");
@@ -161,6 +201,62 @@ public class ProjectServiceImpl implements ProjectService {
         project.setRejectionReason(null);
 
         return projectRepository.save(project);
+    }
+
+    @Override
+    @Transactional
+    public Project completeProject(String projectId) {
+        Project project = getProjectById(projectId);
+        assertOwnedByCurrentCompany(project);
+
+        if (project.getStatus() != ProjectStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Only IN_PROGRESS projects can be completed");
+        }
+
+        project.setStatus(ProjectStatus.COMPLETED);
+        if (project.getActualEndDate() == null) {
+            project.setActualEndDate(LocalDate.now());
+        }
+
+        Project saved = projectRepository.save(project);
+
+        // ===== Notifications: mentor + lab admins + talents =====
+        String projectName = saved.getProjectName() != null ? saved.getProjectName() : saved.getId();
+
+        if (saved.getMentor() != null && saved.getMentor().getUser() != null) {
+            notificationService.createForUser(
+                    saved.getMentor().getUser(),
+                    "Project completed",
+                    "Project '" + projectName + "' has been marked COMPLETED by the company.",
+                    "PROJECT_COMPLETED");
+        }
+
+        for (LabAdmin la : labAdminRepository.findAll()) {
+            if (la != null && la.getUser() != null) {
+                notificationService.createForUser(
+                        la.getUser(),
+                        "Project completed",
+                        "Project '" + projectName + "' has been marked COMPLETED by the company.",
+                        "PROJECT_COMPLETED");
+            }
+        }
+
+        List<ProjectTeam> team = projectTeamRepository.findByProjectIdOrderByCreatedAtDesc(saved.getId());
+        for (ProjectTeam pt : team) {
+            if (pt == null || pt.getTalent() == null || pt.getTalent().getUser() == null) continue;
+            // optionally notify only ACTIVE members
+            if (pt.getStatus() != null && pt.getStatus().name() != null && !pt.getStatus().name().equals("ACTIVE")) {
+                continue;
+            }
+
+            notificationService.createForUser(
+                    pt.getTalent().getUser(),
+                    "Project completed",
+                    "Project '" + projectName + "' has been marked COMPLETED.",
+                    "PROJECT_COMPLETED");
+        }
+
+        return saved;
     }
 
     @Override
