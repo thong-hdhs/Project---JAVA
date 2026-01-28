@@ -33,7 +33,7 @@ export const talentService = {
     const response = await apiClient.get<BackendApiResponse<BackendTalentResponse[]>>('/api/v1/talents/');
 
     if (!response.data?.success) {
-      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load students';
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load talents';
       throw new Error(msg);
     }
 
@@ -44,7 +44,7 @@ export const talentService = {
     const response = await apiClient.get<BackendApiResponse<BackendTalentResponse[]>>(`/api/v1/talents/status/${status}`);
 
     if (!response.data?.success) {
-      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load students';
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load talents';
       throw new Error(msg);
     }
 

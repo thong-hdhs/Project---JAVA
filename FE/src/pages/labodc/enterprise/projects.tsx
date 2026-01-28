@@ -8,6 +8,7 @@ import QRCodeModal from '@/components/ui/QRCodeModal';
 import Icon from '@/components/ui/Icon';
 import { projectService } from '@/services/project.service';
 import { paymentService } from '@/services/payment.service';
+import { getQrDisplayUrlFromPayment } from '@/services/payment.service';
 import { companyService } from '@/services/company.service';
 import { Project } from '@/types';
 
@@ -56,14 +57,18 @@ const EnterpriseProjects: React.FC = () => {
         usePayOS: true,
       });
 
-      const url = await paymentService.getPaymentQrUrl(payment.id);
+      // Prefer QR path from `payment.notes` (avoids 403 from /api/v1/payments/{id}/qr in current BE security)
+      let url = getQrDisplayUrlFromPayment(payment) || '';
+      if (!url) {
+        url = await paymentService.getPaymentQrUrl(payment.id);
+      }
       setSelectedProject(project);
       setQrUrl(url);
       setShowQRModal(true);
     } catch (error: any) {
       console.error('Error creating payment/qr:', error);
       // keep it simple: browser alert/toast isn't imported here
-      window.alert(error?.message || 'Không thể tạo QR thanh toán');
+      window.alert(error?.message || 'Unable to create payment QR');
     } finally {
       setPayLoading(false);
     }

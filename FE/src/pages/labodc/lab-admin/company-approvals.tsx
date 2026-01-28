@@ -61,7 +61,7 @@ const CompanyApprovals: React.FC = () => {
       const data = await companyService.listPendingCompanies();
       setItems(data || []);
     } catch (e: any) {
-      const msg = e?.message || "Không thể tải danh sách công ty đang chờ duyệt";
+      const msg = e?.message || "Failed to load pending companies";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -81,32 +81,32 @@ const CompanyApprovals: React.FC = () => {
 
   const approve = async (companyId: string) => {
     const labAdminId = getLabAdminIdForRequest(user);
-    const ok = window.confirm("Duyệt hồ sơ công ty này?");
+    const ok = window.confirm("Approve this company?");
     if (!ok) return;
     try {
       await companyService.approveCompany(companyId, labAdminId);
-      toast.success("Đã duyệt công ty");
+      toast.success("Company approved");
       setRefreshKey((k) => k + 1);
     } catch (e: any) {
-      toast.error(e?.message || "Duyệt thất bại");
+      toast.error(e?.message || "Approve failed");
     }
   };
 
   const reject = async (companyId: string) => {
     const labAdminId = getLabAdminIdForRequest(user);
-    const reason = window.prompt("Nhập lý do từ chối", "Thiếu thông tin");
+    const reason = window.prompt("Enter rejection reason", "Missing information");
     if (reason === null) return; // cancelled
     const trimmed = reason.trim();
     if (!trimmed) {
-      toast.error("Vui lòng nhập lý do từ chối");
+      toast.error("Please enter a rejection reason");
       return;
     }
     try {
       await companyService.rejectCompany(companyId, trimmed, labAdminId);
-      toast.success("Đã từ chối công ty");
+      toast.success("Company rejected");
       setRefreshKey((k) => k + 1);
     } catch (e: any) {
-      toast.error(e?.message || "Từ chối thất bại");
+      toast.error(e?.message || "Reject failed");
     }
   };
 

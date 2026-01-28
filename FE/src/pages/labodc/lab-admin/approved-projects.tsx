@@ -4,6 +4,7 @@ import DataTable from '@/components/ui/DataTable';
 import { toast } from 'react-toastify';
 import { projectService } from '@/services/project.service';
 import type { Project } from '@/types';
+import { requireRoleFromToken } from '@/utils/auth';
 
 const ApprovedProjects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -12,10 +13,16 @@ const ApprovedProjects: React.FC = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      const auth = requireRoleFromToken('LAB_ADMIN');
+      if (!auth.ok) {
+        toast.error(auth.reason);
+        setProjects([]);
+        return;
+      }
       const list = await projectService.listAllProjectsFromBackend();
       setProjects(list || []);
     } catch (e: any) {
-      toast.error(e?.message || 'Không thể tải danh sách dự án');
+      toast.error(e?.message || 'Failed to load projects');
       setProjects([]);
     } finally {
       setLoading(false);

@@ -39,6 +39,26 @@ export type BackendPaymentResponse = {
   updatedAt?: string;
 };
 
+const getRuntimeBaseUrl = (): string => {
+  const base = (apiClient.defaults as any)?.baseURL;
+  return typeof base === 'string' ? base : '';
+};
+
+export const getQrPathFromNotes = (notes?: string): string | null => {
+  const raw = String(notes || '');
+  // Notes format from backend: "QR generated: /qr/<file>.png"
+  const match = raw.match(/\/qr\/[\w\-./]+/);
+  return match?.[0] || null;
+};
+
+export const getQrDisplayUrlFromPayment = (payment?: BackendPaymentResponse): string | null => {
+  const qrPath = getQrPathFromNotes(payment?.notes);
+  if (!qrPath) return null;
+  const base = getRuntimeBaseUrl();
+  if (!base) return qrPath;
+  return `${base.replace(/\/$/, '')}${qrPath.startsWith('/') ? '' : '/'}${qrPath.replace(/^\//, '')}`;
+};
+
 export const paymentService = {
   // Payments
   async getPayments(params?: {

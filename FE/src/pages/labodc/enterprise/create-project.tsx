@@ -94,22 +94,22 @@ const CreateProject: React.FC = () => {
 
     const token = getAuthToken();
     if (!token) {
-      toast.error("Bạn cần đăng nhập để tạo dự án.");
+      toast.error("You must be logged in to create a project.");
       return;
     }
 
     const roles = getRolesFromToken(token);
     if (!roles.includes("COMPANY")) {
-      toast.error("Tài khoản không có role COMPANY.");
+      toast.error("Your account does not have the COMPANY role.");
       return;
     }
 
     if (!companyId.trim()) {
-      toast.error("Không tìm thấy Company ID. Vui lòng đăng ký công ty và được duyệt trước.");
+      toast.error("Company profile not found. Please register your company and wait for approval.");
       return;
     }
     if (!form.projectName.trim()) {
-      toast.error("Vui lòng nhập Project Name.");
+      toast.error("Project name is required.");
       return;
     }
 
@@ -130,7 +130,7 @@ const CreateProject: React.FC = () => {
       setSubmitting(true);
       const created = await projectService.createProjectForAppraisal(payload);
       await projectService.submitProjectForAppraisal(created.id);
-      toast.success("Đã gửi dự án để Lab Admin thẩm định.");
+      toast.success("Project submitted for Lab Admin review.");
 
       setForm((prev) => ({
         ...prev,
@@ -145,7 +145,7 @@ const CreateProject: React.FC = () => {
         endDate: "",
       }));
     } catch (err: any) {
-      toast.error(err?.message || "Gửi dự án thất bại");
+      toast.error(err?.message || "Failed to submit project");
     } finally {
       setSubmitting(false);
     }
@@ -156,22 +156,6 @@ const CreateProject: React.FC = () => {
       <h1 className="text-2xl font-bold text-gray-900">Create Project</h1>
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="text-sm text-gray-700">
-            <div className="font-medium text-gray-900">Company ID</div>
-            <div className="mt-1">
-              {companyIdLoading ? (
-                <span className="text-gray-500">Loading...</span>
-              ) : companyId ? (
-                <span className="font-mono">{companyId}</span>
-              ) : (
-                <span className="text-red-600">Not found</span>
-              )}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-                Company ID được lấy từ BE theo user hiện tại (API: /api/v1/companies/me).
-            </div>
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Project Name

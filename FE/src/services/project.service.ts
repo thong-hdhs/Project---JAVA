@@ -29,6 +29,58 @@ export type BackendProjectCreateRequest = {
   requiredSkills?: string; // comma-separated
 };
 
+export type BackendProjectUpdateRequest = {
+  companyId: string;
+  mentorId?: string;
+  projectName: string;
+  projectCode?: string;
+  description?: string;
+  requirements?: string;
+  budget?: number;
+  durationMonths?: number;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  actualEndDate?: string; // YYYY-MM-DD
+  maxTeamSize?: number;
+  requiredSkills?: string; // comma-separated
+};
+
+const formatDateYYYYMMDD = (d?: Date): string | undefined => {
+  if (!d) return undefined;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const buildBackendUpdateDto = (
+  project: Project,
+  patch: Partial<BackendProjectUpdateRequest>,
+): BackendProjectUpdateRequest => {
+  const companyId = String(patch.companyId ?? project.company_id ?? '').trim();
+  const projectName = String(patch.projectName ?? project.project_name ?? '').trim();
+  if (!companyId) throw new Error('Missing companyId');
+  if (!projectName) throw new Error('Missing projectName');
+
+  return {
+    companyId,
+    mentorId: patch.mentorId ?? (project.mentor_id ? String(project.mentor_id) : undefined),
+    projectName,
+    projectCode: patch.projectCode,
+    description: patch.description ?? project.description ?? undefined,
+    requirements: patch.requirements ?? project.requirements ?? undefined,
+    budget: patch.budget ?? (typeof project.budget === 'number' ? project.budget : undefined),
+    durationMonths: patch.durationMonths ?? (typeof project.duration_months === 'number' ? project.duration_months : undefined),
+    startDate: patch.startDate ?? formatDateYYYYMMDD(project.start_date),
+    endDate: patch.endDate ?? formatDateYYYYMMDD(project.end_date),
+    actualEndDate: patch.actualEndDate,
+    maxTeamSize: patch.maxTeamSize ?? (typeof project.max_team_size === 'number' ? project.max_team_size : undefined),
+    requiredSkills:
+      patch.requiredSkills ??
+      (Array.isArray(project.required_skills) ? project.required_skills.join(', ') : undefined),
+  };
+};
+
 export type BackendProjectResponse = {
   id: string;
   companyId?: string;
@@ -253,6 +305,25 @@ export const projectService = {
     }
   },
 
+  async getProjectFromBackend(projectId: string): Promise<Project> {
+    try {
+      const response = await apiClient.get<BackendApiResponse<BackendProjectResponse>>(`/api/projects/${projectId}`);
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load project';
+        throw new Error(msg);
+      }
+
+      return mapBackendProjectToProject(response.data.data);
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Failed to load project';
+      throw new Error(msg);
+    }
+  },
+
   async createProjectForAppraisal(data: BackendProjectCreateRequest): Promise<Project> {
     try {
       const response = await apiClient.post<BackendApiResponse<BackendProjectResponse>>('/api/projects/', data);
@@ -287,6 +358,47 @@ export const projectService = {
       const apiMsg = backendData?.message || backendData?.error;
       const apiErrors = backendData?.errors;
       const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Submit project failed';
+      throw new Error(msg);
+    }
+  },
+
+  async updateProjectInBackend(projectId: string, project: Project, patch: Partial<BackendProjectUpdateRequest>): Promise<Project> {
+    try {
+      const dto = buildBackendUpdateDto(project, patch);
+      const response = await apiClient.put<BackendApiResponse<BackendProjectResponse>>(`/api/projects/${projectId}`, dto);
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Update project failed';
+        throw new Error(msg);
+      }
+
+      return mapBackendProjectToProject(response.data.data);
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Update project failed';
+      throw new Error(msg);
+    }
+  },
+
+  async updateProjectStatusInBackend(projectId: string, status: BackendProjectStatus | string): Promise<Project> {
+    try {
+      const response = await apiClient.put<BackendApiResponse<BackendProjectResponse>>(`/api/projects/${projectId}/status`, {
+        status: String(status),
+      });
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Update project status failed';
+        throw new Error(msg);
+      }
+
+      return mapBackendProjectToProject(response.data.data);
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Update project status failed';
       throw new Error(msg);
     }
   },

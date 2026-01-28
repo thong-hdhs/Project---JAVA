@@ -6,7 +6,6 @@ import type {
   User,
   UserRole,
 } from "../types";
-import { verificationService } from "./verification.service";
 
 type ApiResponse<T> = {
   success: boolean;
@@ -70,84 +69,9 @@ const userFromBackendToken = (token: string): User => {
   };
 };
 
-const DEMO_PASSWORD = "password";
-
-const demoUsersByEmail: Record<string, User> = {
-  "admin@labodc.com": {
-    id: "demo-system-admin",
-    email: "admin@labodc.com",
-    full_name: "System Admin",
-    role: "SYSTEM_ADMIN",
-    is_active: true,
-    email_verified: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  "lab@labodc.com": {
-    id: "demo-lab-admin",
-    email: "lab@labodc.com",
-    full_name: "Lab Admin",
-    role: "LAB_ADMIN",
-    is_active: true,
-    email_verified: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  "company@techcorp.com": {
-    id: "demo-company",
-    email: "company@techcorp.com",
-    full_name: "Company",
-    role: "COMPANY",
-    is_active: true,
-    email_verified: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  "mentor@expert.com": {
-    id: "demo-mentor",
-    email: "mentor@expert.com",
-    full_name: "Mentor",
-    role: "MENTOR",
-    is_active: true,
-    email_verified: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  "talent1@example.com": {
-    id: "demo-talent",
-    email: "talent1@example.com",
-    full_name: "Talent",
-    role: "TALENT",
-    is_active: true,
-    email_verified: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-};
-
 const isAxiosNotFoundOrNetwork = (error: any): boolean => {
   const status = error?.response?.status;
   return status === 404 || status === 502 || status === 503 || status === 504 || !error?.response;
-};
-
-const tryDemoLogin = (credentials: LoginRequest): AuthResponse | null => {
-  const identifier = (credentials.username || credentials.email || "")
-    .trim()
-    .toLowerCase();
-  const user = demoUsersByEmail[identifier];
-  if (!user) return null;
-  if (credentials.password !== DEMO_PASSWORD) return null;
-
-  const roleOverride = verificationService.getRoleOverride(user.id);
-  return {
-    user: {
-      ...user,
-      ...(roleOverride ? { role: roleOverride } : null),
-      last_login_at: new Date(),
-      updated_at: new Date(),
-    },
-    token: `demo-${user.id}`,
-  };
 };
 
 export const authService = {
@@ -184,37 +108,28 @@ export const authService = {
   },
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    try {
-      // Spring Boot endpoint: POST /auth/token
-      // Request body: { username, password }
-      const username = credentials.username || credentials.email;
-      if (!username) {
-        throw new Error("Username is required");
-      }
-      const response = await apiClient.post<ApiResponse<BackendAuthData>>(
-        "/auth/token",
-        {
-          username,
-          password: credentials.password,
-        },
-      );
-
-      const token = response.data?.data?.token;
-      const authenticated = response.data?.data?.authenticated;
-      if (!token || authenticated !== true) {
-        throw new Error(response.data?.message || "Authentication failed");
-      }
-
-      const user = userFromBackendToken(token);
-      return { user, token };
-    } catch (error: any) {
-      // If backend auth is not implemented yet (404) or backend is down, fall back to demo credentials.
-      if (isAxiosNotFoundOrNetwork(error)) {
-        const demo = tryDemoLogin(credentials);
-        if (demo) return demo;
-      }
-      throw error;
+    // Spring Boot endpoint: POST /auth/token
+    // Request body: { username, password }
+    const username = credentials.username || credentials.email;
+    if (!username) {
+      throw new Error("Username is required");
     }
+    const response = await apiClient.post<ApiResponse<BackendAuthData>>(
+      "/auth/token",
+      {
+        username,
+        password: credentials.password,
+      },
+    );
+
+    const token = response.data?.data?.token;
+    const authenticated = response.data?.data?.authenticated;
+    if (!token || authenticated !== true) {
+      throw new Error(response.data?.message || "Authentication failed");
+    }
+
+    const user = userFromBackendToken(token);
+    return { user, token };
   },
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
@@ -237,25 +152,13 @@ export const authService = {
       const token = localStorage.getItem("token") || localStorage.getItem("access_token");
       if (token) {
         const derived = userFromBackendToken(token);
-        const roleOverride = derived?.id
-          ? verificationService.getRoleOverride(derived.id)
-          : null;
-        return {
-          ...derived,
-          ...(roleOverride ? { role: roleOverride } : null),
-        };
+        return derived;
       }
 
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
-        const roleOverride = parsed?.id
-          ? verificationService.getRoleOverride(parsed.id)
-          : null;
-        return {
-          ...parsed,
-          ...(roleOverride ? { role: roleOverride } : null),
-        };
+        return parsed;
       }
 
       throw new Error("Not authenticated");
@@ -264,13 +167,7 @@ export const authService = {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const parsed = JSON.parse(storedUser);
-          const roleOverride = parsed?.id
-            ? verificationService.getRoleOverride(parsed.id)
-            : null;
-          return {
-            ...parsed,
-            ...(roleOverride ? { role: roleOverride } : null),
-          };
+          return parsed;
         }
       }
       throw error;

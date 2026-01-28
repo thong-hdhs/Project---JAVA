@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Card from '@/components/ui/Card';
 import { toast } from 'react-toastify';
 import { companyService, type BackendCompanyResponse } from '@/services/company.service';
+import { requireRoleFromToken } from '@/utils/auth';
 
 const statusPill = (status: string | undefined) => {
   const base = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium';
@@ -19,10 +20,16 @@ const ApprovedCompanies: React.FC = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      const auth = requireRoleFromToken('LAB_ADMIN');
+      if (!auth.ok) {
+        toast.error(auth.reason);
+        setItems([]);
+        return;
+      }
       const list = await companyService.listAllCompanies();
       setItems(list || []);
     } catch (e: any) {
-      const msg = e?.message || 'Không thể tải danh sách doanh nghiệp';
+      const msg = e?.message || 'Failed to load companies';
       toast.error(msg);
       setItems([]);
     } finally {
@@ -41,20 +48,25 @@ const ApprovedCompanies: React.FC = () => {
   );
 
   const suspend = async (companyId: string) => {
-    const reason = window.prompt('Nhập lý do tạm ngưng (suspend)', 'Vi phạm quy định');
+    const auth = requireRoleFromToken('LAB_ADMIN');
+    if (!auth.ok) {
+      toast.error(auth.reason);
+      return;
+    }
+    const reason = window.prompt('Enter suspension reason', 'Policy violation');
     if (reason === null) return;
     const trimmed = reason.trim();
     if (!trimmed) {
-      toast.error('Vui lòng nhập lý do');
+      toast.error('Please enter a reason');
       return;
     }
 
     try {
       await companyService.suspendCompany(companyId, trimmed);
-      toast.success('Đã tạm ngưng công ty');
+      toast.success('Company suspended');
       setRefreshKey((k) => k + 1);
     } catch (e: any) {
-      toast.error(e?.message || 'Suspend thất bại');
+      toast.error(e?.message || 'Suspend failed');
     }
   };
 

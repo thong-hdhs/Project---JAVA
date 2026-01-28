@@ -15,9 +15,9 @@ const Payments: React.FC = () => {
 		try {
 			setLoading(true);
 			const myCompany = await companyService.getMyCompany();
-			const list = await paymentService.listPaymentsByCompany(myCompany.id);
+			const list = await paymentService.listPaymentsByCompany(String(myCompany.id));
 			setPayments(list);
-		} catch (e) {
+		} catch (e: any) {
 			console.error('Error loading payments:', e);
 			setPayments([]);
 		} finally {
@@ -33,6 +33,9 @@ const Payments: React.FC = () => {
 					<div className="p-4 text-sm text-gray-600">Loading...</div>
 				) : (
 				<div className="overflow-x-auto">
+					{payments.length === 0 ? (
+						<div className="p-4 text-sm text-gray-600">No payments.</div>
+					) : (
 					<table className="min-w-full text-sm">
 						<thead>
 							<tr className="text-left text-gray-600">
@@ -55,6 +58,7 @@ const Payments: React.FC = () => {
 							))}
 						</tbody>
 					</table>
+					)}
 				</div>
 				)}
 			</Card>

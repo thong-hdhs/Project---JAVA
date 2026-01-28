@@ -99,9 +99,6 @@ const PaymentsOverview = lazy(
 const FundAllocations = lazy(
   () => import("./pages/labodc/lab-admin/fund-allocations")
 );
-const FundDistributionsAdmin = lazy(
-  () => import("./pages/labodc/lab-admin/fund-distributions")
-);
 const LabFundAdvances = lazy(
   () => import("./pages/labodc/lab-admin/lab-fund-advances")
 );
@@ -110,6 +107,12 @@ const TransparencyReport = lazy(
 );
 const ChangeRequestApprovals = lazy(
   () => import("./pages/labodc/lab-admin/change-request-approvals")
+);
+const RejectedProjects = lazy(
+  () => import("./pages/labodc/lab-admin/rejected-projects")
+);
+const RejectedCompanies = lazy(
+  () => import("./pages/labodc/lab-admin/rejected-companies")
 );
 const RiskRecords = lazy(() => import("./pages/labodc/lab-admin/risk-records"));
 const CompanyApprovals = lazy(
@@ -122,7 +125,7 @@ const ApprovedProjects = lazy(
   () => import("./pages/labodc/lab-admin/approved-projects")
 );
 const MentorsManagement = lazy(() => import("./pages/labodc/lab-admin/mentors"));
-const StudentsManagement = lazy(() => import("./pages/labodc/lab-admin/students"));
+const TalentsManagement = lazy(() => import("./pages/labodc/lab-admin/talents"));
 
 // System Admin pages
 const SystemAdminDashboard = lazy(
@@ -257,16 +260,20 @@ function App() {
               element={<FundAllocations />}
             />
             <Route
-              path="lab-admin/fund-distributions"
-              element={<FundDistributionsAdmin />}
-            />
-            <Route
               path="lab-admin/lab-fund-advances"
               element={<LabFundAdvances />}
             />
             <Route
               path="lab-admin/transparency-report"
               element={<TransparencyReport />}
+            />
+            <Route
+              path="lab-admin/rejected-projects"
+              element={<RejectedProjects />}
+            />
+            <Route
+              path="lab-admin/rejected-companies"
+              element={<RejectedCompanies />}
             />
             <Route
               path="lab-admin/change-request-approvals"
@@ -282,7 +289,11 @@ function App() {
               element={<ApprovedCompanies />}
             />
             <Route path="lab-admin/mentors" element={<MentorsManagement />} />
-            <Route path="lab-admin/students" element={<StudentsManagement />} />
+            <Route path="lab-admin/talents" element={<TalentsManagement />} />
+            <Route
+              path="lab-admin/students"
+              element={<Navigate to="/lab-admin/transparency-report" replace />}
+            />
           </Route>
 
           {/* System Admin routes */}

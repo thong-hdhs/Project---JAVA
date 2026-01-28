@@ -1,6 +1,19 @@
 import React from "react";
 import useSkin from "@/hooks/useSkin";
 
+/**
+ * @typedef {Object} CardProps
+ * @property {import('react').ReactNode} [children]
+ * @property {import('react').ReactNode} [title]
+ * @property {import('react').ReactNode} [subtitle]
+ * @property {import('react').ReactNode} [headerslot]
+ * @property {string} [className]
+ * @property {string} [bodyClass]
+ * @property {boolean} [noborder]
+ * @property {string} [titleClass]
+ */
+
+/** @param {CardProps} props */
 const Card = ({
   children,
   title,
@@ -37,17 +50,6 @@ const Card = ({
       {children && <main className={`card-body ${bodyClass}`}>{children}</main>}
     </div>
   );
-};
-
-Card.propTypes = {
-  children: null,
-  title: null,
-  subtitle: null,
-  headerslot: null,
-  className: null,
-  bodyClass: null,
-  noborder: null,
-  titleClass: null,
 };
 
 export default Card;

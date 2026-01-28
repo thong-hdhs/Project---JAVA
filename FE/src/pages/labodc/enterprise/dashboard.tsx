@@ -7,7 +7,9 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { Link } from "react-router-dom";
 import { projectService } from "@/services/project.service";
 import { paymentService } from "@/services/payment.service";
-import { Project, Payment } from "@/types";
+import { companyService } from "@/services/company.service";
+import { Project } from "@/types";
+import type { BackendPaymentResponse } from "@/services/payment.service";
 // Using emoji icons
 
 const EnterpriseDashboard: React.FC = () => {
@@ -20,8 +22,9 @@ const EnterpriseDashboard: React.FC = () => {
     pendingValidations: 0,
   });
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
-  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
+  const [recentPayments, setRecentPayments] = useState<BackendPaymentResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentsAccessible, setPaymentsAccessible] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
@@ -30,21 +33,29 @@ const EnterpriseDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setPaymentsAccessible(true);
 
-      // Load company projects
-      const response = await projectService.getProjects();
-      const companyProjects = response.data;
-      // Filter projects by company (mock implementation)
-      const filteredProjects = companyProjects.filter(
-        (project: Project) => project.status !== "DRAFT" // Mock filter - in real app would filter by company_id
-      );
+      // Load company id
+      const myCompany = await companyService.getMyCompany();
+      const companyId = String(myCompany?.id || "");
 
-      // Load payments
-      const companyPayments = await paymentService.getPayments();
-      // Filter payments by projects (mock implementation)
-      const filteredPayments = companyPayments.filter((payment) =>
-        filteredProjects.some((project) => project.id === payment.project_id)
-      );
+      // Load company projects (BE: /api/projects)
+      const allProjects = await projectService.listAllProjectsFromBackend();
+      const filteredProjects = companyId
+        ? allProjects.filter((p) => String(p.company_id) === companyId)
+        : allProjects;
+
+      // Load payments (BE: /api/v1/payments/company/{companyId})
+      // NOTE: Company role may receive 403 due to BE security using hasAnyAuthority.
+      let filteredPayments: BackendPaymentResponse[] = [];
+      if (companyId) {
+        try {
+          filteredPayments = await paymentService.listPaymentsByCompany(companyId);
+        } catch (e: any) {
+          setPaymentsAccessible(false);
+          filteredPayments = [];
+        }
+      }
 
       // Calculate stats
       const totalProjects = filteredProjects.length;
@@ -54,10 +65,10 @@ const EnterpriseDashboard: React.FC = () => {
       const completedProjects = filteredProjects.filter(
         (p: Project) => p.status === "COMPLETED"
       ).length;
-      const totalPayments = filteredPayments.reduce(
-        (sum: number, payment: Payment) => sum + payment.amount,
-        0
-      );
+      const totalPayments = filteredPayments.reduce((sum: number, payment: BackendPaymentResponse) => {
+        const n = typeof payment.amount === "number" ? payment.amount : Number(String(payment.amount || 0));
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0);
       const pendingValidations = filteredProjects.filter(
         (p: Project) => p.validation_status === "PENDING"
       ).length;
@@ -70,8 +81,19 @@ const EnterpriseDashboard: React.FC = () => {
         pendingValidations,
       });
 
-      setRecentProjects(filteredProjects.slice(0, 3));
-      setRecentPayments(filteredPayments.slice(0, 3));
+      const sortedProjects = [...filteredProjects].sort((a, b) => {
+        const at = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const bt = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return bt - at;
+      });
+      const sortedPayments = [...filteredPayments].sort((a, b) => {
+        const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bt - at;
+      });
+
+      setRecentProjects(sortedProjects.slice(0, 3));
+      setRecentPayments(sortedPayments.slice(0, 3));
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -152,7 +174,7 @@ const EnterpriseDashboard: React.FC = () => {
 
         <MetricCard
           title="Total Payments"
-          value={`$${stats.totalPayments.toLocaleString()}`}
+          value={paymentsAccessible ? `$${stats.totalPayments.toLocaleString()}` : ''}
           icon={<span className="text-yellow-600">💰</span>}
         />
       </div>
@@ -241,50 +263,52 @@ const EnterpriseDashboard: React.FC = () => {
         </Card>
 
         {/* Recent Payments */}
-        <Card
-          title="Recent Payments"
-          subtitle=""
-          headerslot={
-            <Link to="/enterprise/payments">
-              <Button
-                text="View All"
-                className="btn-outline-dark btn-sm"
-              />
-            </Link>
-          }
-          noborder={false}
-        >
-          <div className="space-y-4">
-            {recentPayments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No payments yet.
-              </div>
-            ) : (
-              recentPayments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                >
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      {payment.payment_type} Payment
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      ${payment.amount.toLocaleString()}
-                    </p>
-                    <div className="flex items-center mt-2">
-                      <StatusBadge status={payment.status} />
+        {paymentsAccessible && (
+          <Card
+            title="Recent Payments"
+            subtitle=""
+            headerslot={
+              <Link to="/enterprise/payments">
+                <Button
+                  text="View All"
+                  className="btn-outline-dark btn-sm"
+                />
+              </Link>
+            }
+            noborder={false}
+          >
+            <div className="space-y-4">
+              {recentPayments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No payments yet.</div>
+              ) : (
+                recentPayments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                  >
+                    <div>
+                      <h4 className="font-medium text-gray-900">
+                        {(payment.paymentType || "Payment")} {payment.projectName ? `- ${payment.projectName}` : ""}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        ${(
+                          typeof payment.amount === "number" ? payment.amount : Number(String(payment.amount || 0))
+                        ).toLocaleString()}
+                      </p>
+                      <div className="flex items-center mt-2">
+                        <StatusBadge status={String(payment.status || "")} />
+                      </div>
                     </div>
+                    <Button
+                      text="View"
+                      className="btn-outline-dark btn-sm"
+                    />
                   </div>
-                  <Button
-                    text="View"
-                    className="btn-outline-dark btn-sm"
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
+                ))
+              )}
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Quick Actions */}

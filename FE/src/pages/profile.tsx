@@ -59,19 +59,42 @@ const getTalentIdFromToken = (token?: string | null): string | null => {
 
 const ProfilePage: React.FC = () => {
 	const dispatch = useDispatch();
-	const { user, token } = useSelector((state: any) => state.auth);
+	const { user, token, roles: authRoles } = useSelector((state: any) => state.auth);
 	const [avatarUpdating, setAvatarUpdating] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const dashboardHref = user?.role ? `/${getDashboardLink(user.role)}` : "/";
-	const isTalentRole = ["TALENT", "TALENT_LEADER"].includes(String(user?.role || ""));
-	const tokenTalentId = getTalentIdFromToken(token || localStorage.getItem("token"));
-	const candidateId =
-		tokenTalentId ||
-		user?.talent_id ||
-		user?.talentId ||
-		localStorage.getItem("talentId") ||
-		user?.id ||
-		"";
+	const tokenStr = token || localStorage.getItem("token") || localStorage.getItem("access_token");
+	const tokenTalentId = getTalentIdFromToken(tokenStr);
+	const storedTalentId = localStorage.getItem("talentId");
+
+	const tokenRoles = useMemo(() => {
+		const raw = Array.isArray(authRoles) ? authRoles : [];
+		return raw.map((r: any) => String(r).replace(/^ROLE_/, "").toUpperCase());
+	}, [authRoles]);
+
+	// Backend permissions:
+	// - POST /api/v1/talents/ : USER, SYSTEM_ADMIN (create OR update-by-current-user)
+	// - PUT  /api/v1/talents/{id} : TALENT, SYSTEM_ADMIN (update by talentId)
+	// - GET  /api/v1/talents/{id} : TALENT, LAB_ADMIN, MENTOR, SYSTEM_ADMIN
+	const canCreateOrUpdateViaPost = useMemo(
+		() => tokenRoles.includes("USER") || tokenRoles.includes("SYSTEM_ADMIN"),
+		[tokenRoles],
+	);
+	const canUpdateViaPut = useMemo(
+		() => tokenRoles.includes("TALENT") || tokenRoles.includes("SYSTEM_ADMIN"),
+		[tokenRoles],
+	);
+	const canReadByTalentId = useMemo(
+		() =>
+			tokenRoles.includes("TALENT") ||
+			tokenRoles.includes("LAB_ADMIN") ||
+			tokenRoles.includes("MENTOR") ||
+			tokenRoles.includes("SYSTEM_ADMIN"),
+		[tokenRoles],
+	);
+
+	// For API calls that require talentId, prefer the real talent UUID.
+	const candidateId = tokenTalentId || storedTalentId || "";
 
 	const [candidateProfile, setCandidateProfile] = useState<CandidateProfileForm>({
 		studentCode: "",
@@ -116,13 +139,15 @@ const ProfilePage: React.FC = () => {
 	}, [candidateProfile.skills]);
 
 	useEffect(() => {
-		if (!isTalentRole) return;
-		if (!token) {
+		// Only call GET-by-id when token role permits it.
+		if (!canReadByTalentId) return;
+		if (!tokenStr) {
 			setProfileError("Vui lòng đăng nhập để tải hồ sơ cá nhân.");
 			return;
 		}
 		if (!candidateId) {
-			setProfileError("Không tìm thấy ID hồ sơ cá nhân.");
+			// With USER role (before becoming TALENT), backend doesn't provide a GET-by-user endpoint.
+			setProfileError(null);
 			return;
 		}
 
@@ -132,6 +157,9 @@ const ProfilePage: React.FC = () => {
 			.then((res) => {
 				const data = res?.data?.data || res?.data || {};
 				setCandidateRecordId(data.id || null);
+				if (data?.id) {
+					localStorage.setItem("talentId", String(data.id));
+				}
 				setCandidateProfile({
 					studentCode: data.studentCode || data.student_code || "",
 					major: data.major || "",
@@ -158,7 +186,7 @@ const ProfilePage: React.FC = () => {
 				setProfileError(message);
 			})
 			.finally(() => setProfileLoading(false));
-	}, [candidateId, isTalentRole, token]);
+	}, [candidateId, canReadByTalentId, tokenStr]);
 
 	const quickActions = useMemo(() => {
 		const role = (user?.role || "") as UserRole;
@@ -279,16 +307,12 @@ const ProfilePage: React.FC = () => {
 		setProfileSuccess(null);
 		setProfileError(null);
 
-		if (!token) {
+		if (!tokenStr) {
 			setProfileError("Vui lòng đăng nhập để cập nhật hồ sơ.");
 			return;
 		}
-		if (!isTalentRole) {
+		if (!canUpdateViaPut && !canCreateOrUpdateViaPost) {
 			setProfileError("Tài khoản không có quyền cập nhật hồ sơ cá nhân.");
-			return;
-		}
-		if (!candidateId && !candidateRecordId) {
-			setProfileError("Không tìm thấy ID hồ sơ cá nhân.");
 			return;
 		}
 		if (!candidateProfile.studentCode?.trim()) {
@@ -309,7 +333,9 @@ const ProfilePage: React.FC = () => {
 				linkedinUrl: candidateProfile.linkedinUrl || undefined,
 			};
 
-			if (candidateRecordId) {
+			// Prefer PUT when token has TALENT/SYSTEM_ADMIN and we know the talentId.
+			// Otherwise fall back to POST which updates/creates by current authenticated user (USER/SYSTEM_ADMIN).
+			if (canUpdateViaPut && candidateRecordId) {
 				const res = await updateCandidateProfile(String(candidateRecordId), payload);
 				const data = res?.data?.data || res?.data || {};
 				setCandidateProfile({
@@ -324,9 +350,16 @@ const ProfilePage: React.FC = () => {
 				});
 				setProfileSuccess("Cập nhật hồ sơ thành công.");
 			} else {
+				if (!canCreateOrUpdateViaPost) {
+					setProfileError("Token hiện tại không có quyền cập nhật bằng role USER. Vui lòng đăng nhập lại.");
+					return;
+				}
 				const res = await createCandidateProfile(payload);
 				const data = res?.data?.data || res?.data || {};
-				setCandidateRecordId(data.id || null);
+				if (data?.id) {
+					setCandidateRecordId(String(data.id));
+					localStorage.setItem("talentId", String(data.id));
+				}
 				setCandidateProfile({
 					studentCode: data.studentCode || data.student_code || payload.studentCode,
 					major: data.major ?? payload.major ?? "",
@@ -337,7 +370,11 @@ const ProfilePage: React.FC = () => {
 					githubUrl: data.githubUrl || data.github_url || payload.githubUrl || "",
 					linkedinUrl: data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
 				});
-				setProfileSuccess("Tạo hồ sơ thành công.");
+				setProfileSuccess(
+					tokenRoles.includes("TALENT")
+						? "Lưu hồ sơ thành công."
+						: "Lưu hồ sơ thành công. Nếu vừa tạo mới hồ sơ, hãy đăng xuất/đăng nhập lại để nhận role TALENT trong token.",
+				);
 			}
 		} catch (err: any) {
 			const apiData = err?.response?.data;
@@ -631,7 +668,7 @@ const ProfilePage: React.FC = () => {
 				</Card>
 			</div>
 
-			{isTalentRole && (
+			{(canUpdateViaPut || canCreateOrUpdateViaPost) && (
 				<Card
 					title="Cập nhật hồ sơ cá nhân"
 					subtitle="Kỹ năng, chứng chỉ và portfolio"

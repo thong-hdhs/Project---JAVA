@@ -74,22 +74,22 @@ const ValidateProjects: React.FC = () => {
       setLoading(true);
       const token = getAuthToken();
       if (!token) {
-        toast.error('Bạn cần đăng nhập để xem danh sách dự án.');
+        toast.error('You must be logged in to view projects.');
         setProjects([]);
         return;
       }
       const roles = getRolesFromToken(token);
       if (!roles.includes('LAB_ADMIN')) {
-        toast.error('Tài khoản không có role LAB_ADMIN.');
+        toast.error('Your account does not have the LAB_ADMIN role.');
         setProjects([]);
         return;
       }
 
       const list = await projectService.listPendingProjectsForValidation();
       setProjects(list);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading projects:', error);
-      toast.error(error?.message || 'Không thể tải danh sách dự án đang chờ duyệt');
+      toast.error(error?.message || 'Failed to load pending projects');
     } finally {
       setLoading(false);
     }
@@ -99,11 +99,11 @@ const ValidateProjects: React.FC = () => {
     try {
       setActionLoading(true);
       await projectService.approvePendingProject(project.id, labAdminId);
-      toast.success('Đã duyệt dự án');
+      toast.success('Project approved');
       await loadProjects();
     } catch (error: any) {
       console.error('Error approving project:', error);
-      toast.error(error?.message || 'Duyệt dự án thất bại');
+      toast.error(error?.message || 'Approve failed');
     } finally {
       setActionLoading(false);
     }
@@ -117,20 +117,20 @@ const ValidateProjects: React.FC = () => {
 
   const handleReject = async () => {
     if (!selectedProject || !rejectionReason.trim()) {
-      toast.error('Vui lòng nhập lý do từ chối');
+      toast.error('Please enter a rejection reason');
       return;
     }
 
     try {
       setActionLoading(true);
       await projectService.rejectPendingProject(selectedProject.id, rejectionReason.trim(), labAdminId);
-      toast.success('Đã từ chối dự án');
+      toast.success('Project rejected');
       await loadProjects();
       setShowRejectModal(false);
       setSelectedProject(null);
     } catch (error: any) {
       console.error('Error rejecting project:', error);
-      toast.error(error?.message || 'Từ chối dự án thất bại');
+      toast.error(error?.message || 'Reject failed');
     } finally {
       setActionLoading(false);
     }
@@ -179,7 +179,7 @@ const ValidateProjects: React.FC = () => {
     {
       key: 'actions',
       header: 'Actions',
-      render: (value: any, item: ProjectWithCompany) => (
+      render: (_value: any, item: ProjectWithCompany) => (
         <div className="flex space-x-2">
           <button
             onClick={() => handleApprove(item)}

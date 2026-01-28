@@ -115,18 +115,6 @@ const LoginForm = () => {
         className="btn btn-dark block w-full text-center "
         isLoading={isLoading}
       />
-
-      {/* Demo credentials */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h4>
-        <div className="text-xs text-blue-700 space-y-1">
-          <div><strong>System Admin:</strong> admin@labodc.com / password</div>
-          <div><strong>Lab Admin:</strong> lab@labodc.com / password</div>
-          <div><strong>Company:</strong> company@techcorp.com / password</div>
-          <div><strong>Mentor:</strong> mentor@expert.com / password</div>
-          <div><strong>Talent:</strong> talent1@example.com / password</div>
-        </div>
-      </div>
     </form>
   );
 };

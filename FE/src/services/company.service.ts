@@ -111,6 +111,40 @@ export const companyService = {
     }
   },
 
+  async getCompanyByIdFromBackend(id: string): Promise<BackendCompanyResponse> {
+    const response = await apiClient.get<BackendApiResponse<BackendCompanyResponse>>(`/api/v1/companies/${id}`);
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load company';
+      throw new Error(msg);
+    }
+
+    if (!response.data?.data) {
+      throw new Error('Failed to load company: empty response');
+    }
+
+    return response.data.data;
+  },
+
+  async updateCompanyProfileBackend(id: string, data: BackendCompanyCreateRequest): Promise<BackendCompanyResponse> {
+    const response = await apiClient.put<BackendApiResponse<BackendCompanyResponse>>(`/api/v1/companies/${id}`, data);
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Company update failed';
+      throw new Error(msg);
+    }
+
+    if (!response.data?.data) {
+      throw new Error('Company update failed: empty response');
+    }
+
+    return response.data.data;
+  },
+
+  async deleteCompanyFromBackend(id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/companies/${id}`);
+  },
+
   async getCompanies(params?: {
     status?: string;
     industry?: string;

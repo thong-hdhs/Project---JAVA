@@ -83,24 +83,40 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
-            title: "Company Approvals",
+            title: "Companies",
             icon: "heroicons-outline:building-office-2",
-            link: "lab-admin/company-approvals",
+            child: [
+              {
+                childtitle: "Company Approvals",
+                childlink: "lab-admin/company-approvals",
+              },
+              {
+                childtitle: "Approved Companies",
+                childlink: "lab-admin/approved-companies",
+              },
+              {
+                childtitle: "Rejected Companies",
+                childlink: "lab-admin/rejected-companies",
+              },
+            ],
           },
           {
-            title: "Approved Companies",
-            icon: "heroicons-outline:building-office",
-            link: "lab-admin/approved-companies",
-          },
-          {
-            title: "Validate Projects",
-            icon: "heroicons-outline:document-check",
-            link: "lab-admin/validate-projects",
-          },
-          {
-            title: "Approved Projects",
-            icon: "heroicons-outline:check-badge",
-            link: "lab-admin/approved-projects",
+            title: "Projects",
+            icon: "heroicons-outline:briefcase",
+            child: [
+              {
+                childtitle: "Validate Projects",
+                childlink: "lab-admin/validate-projects",
+              },
+              {
+                childtitle: "Approved Projects",
+                childlink: "lab-admin/approved-projects",
+              },
+              {
+                childtitle: "Rejected Projects",
+                childlink: "lab-admin/rejected-projects",
+              },
+            ],
           },
           {
             title: "Mentors",
@@ -108,9 +124,9 @@ export const useMenuItems = () => {
             link: "lab-admin/mentors",
           },
           {
-            title: "Students",
+            title: "Talents",
             icon: "heroicons-outline:academic-cap",
-            link: "lab-admin/students",
+            link: "lab-admin/talents",
           },
           {
             title: "Payments Overview",
@@ -123,11 +139,6 @@ export const useMenuItems = () => {
             link: "lab-admin/fund-allocations",
           },
           {
-            title: "Fund Distributions",
-            icon: "heroicons-outline:credit-card",
-            link: "lab-admin/fund-distributions",
-          },
-          {
             title: "Lab Fund Advances",
             icon: "heroicons-outline:banknotes",
             link: "lab-admin/lab-fund-advances",
@@ -138,7 +149,7 @@ export const useMenuItems = () => {
             link: "lab-admin/transparency-report",
           },
           {
-            title: "Change Requests",
+            title: "Project Change Requests",
             icon: "heroicons-outline:arrow-path",
             link: "lab-admin/change-request-approvals",
           },

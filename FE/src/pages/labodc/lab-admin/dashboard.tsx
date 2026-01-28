@@ -1,16 +1,82 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Card from '@/components/ui/Card';
 import MetricCard from '@/components/ui/MetricCard';
-import Button from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
-// Using emoji icons
+import { toast } from 'react-toastify';
+import { requireRoleFromToken } from '@/utils/auth';
+import { projectService } from '@/services/project.service';
+import { companyService } from '@/services/company.service';
+import { paymentService } from '@/services/payment.service';
 
 const LabAdminDashboard: React.FC = () => {
-  const [stats] = useState({
-    pendingProjects: 5,
-    totalPayments: 250000,
-    activeProjects: 12,
+  const [stats, setStats] = useState({
+    pendingProjects: 0,
+    activeProjects: 0,
+    totalPayments: 0,
   });
+
+  const parseAmount = useCallback((amount: unknown): number => {
+    if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+    if (typeof amount === 'string') {
+      const n = Number(amount);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  }, []);
+
+  const load = useCallback(async () => {
+    try {
+      const auth = requireRoleFromToken('LAB_ADMIN');
+      if (!auth.ok) {
+        toast.error(auth.reason);
+        return;
+      }
+
+      const pendingProjectsPromise = projectService.listPendingProjectsForValidation();
+      const allProjectsPromise = projectService.listAllProjectsFromBackend();
+      const companiesPromise = companyService.listAllCompanies();
+
+      const [pendingProjects, allProjects, companies] = await Promise.all([
+        pendingProjectsPromise,
+        allProjectsPromise,
+        companiesPromise,
+      ]);
+
+      const activeProjects = (allProjects || []).filter(
+        (p: any) => String(p?.validation_status || '').toUpperCase() === 'APPROVED',
+      );
+
+      const approvedCompanyIds = (companies || [])
+        .filter((c) => Boolean(c?.id))
+        .filter((c) => String(c?.status || '').toUpperCase() === 'APPROVED')
+        .map((c) => c.id);
+
+      const settled = await Promise.allSettled(
+        approvedCompanyIds.map((companyId) => paymentService.listPaymentsByCompany(companyId)),
+      );
+      let totalPayments = 0;
+      for (const r of settled) {
+        if (r.status === 'fulfilled') {
+          for (const p of r.value || []) {
+            totalPayments += parseAmount((p as any).amount);
+          }
+        }
+      }
+
+      setStats({
+        pendingProjects: (pendingProjects || []).length,
+        activeProjects: activeProjects.length,
+        totalPayments,
+      });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to load dashboard stats');
+    } finally {
+    }
+  }, [parseAmount]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <div className="space-y-6">
@@ -22,8 +88,13 @@ const LabAdminDashboard: React.FC = () => {
               Lab Administration
             </h1>
             <p className="text-gray-600 mt-1">
-              Manage companies, projects, and fund distributions
+              Manage companies, projects, payments, and allocations
             </p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" className="btn btn-outline-dark" onClick={() => void load()}>
+              Refresh
+            </button>
           </div>
         </div>
       </div>
@@ -69,7 +140,9 @@ const LabAdminDashboard: React.FC = () => {
                 <div className="mt-4">
                   <div className="-mx-2 -my-1.5 flex">
                     <Link to="/lab-admin/validate-projects" className="ml-3">
-                      <Button text="Review Projects" className="bg-yellow-600 text-white text-xs" />
+                      <span className="inline-flex items-center px-3 py-2 bg-yellow-600 text-white text-xs rounded">
+                        Review Projects
+                      </span>
                     </Link>
                   </div>
                 </div>
@@ -90,7 +163,9 @@ const LabAdminDashboard: React.FC = () => {
               </div>
               <div className="mt-4">
                 <Link to="/lab-admin/company-approvals">
-                  <Button text="Review Companies" className="bg-purple-600 text-white text-xs" />
+                  <span className="inline-flex items-center px-3 py-2 bg-purple-600 text-white text-xs rounded">
+                    Review Companies
+                  </span>
                 </Link>
               </div>
             </div>
@@ -100,18 +175,18 @@ const LabAdminDashboard: React.FC = () => {
         <Card className="border-l-4 border-blue-400">
           <div className="flex">
             <div className="flex-shrink-0">
-              <span className="text-blue-400">💰</span>
+              <span className="text-blue-400">📊</span>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-gray-800">
-                Fund Distribution
-              </h3>
+              <h3 className="text-sm font-medium text-gray-800">Fund Allocation</h3>
               <div className="mt-2 text-sm text-gray-700">
-                <p>Manage fund allocations and distributions for completed projects.</p>
+                <p>Allocate funds using the 7/2/1/10 ratio (Team/Mentor/Lab/Total).</p>
               </div>
               <div className="mt-4">
                 <Link to="/lab-admin/fund-allocations">
-                  <Button text="Manage Funds" className="bg-blue-600 text-white text-xs" />
+                  <span className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs rounded">
+                    Manage Allocations
+                  </span>
                 </Link>
               </div>
             </div>
@@ -127,9 +202,34 @@ const LabAdminDashboard: React.FC = () => {
             <span className="text-sm font-medium text-gray-900">Company Approvals</span>
           </Link>
 
+          <Link to="/lab-admin/approved-companies" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-green-600 mx-auto mb-2 block">✅</span>
+            <span className="text-sm font-medium text-gray-900">Approved Companies</span>
+          </Link>
+
           <Link to="/lab-admin/validate-projects" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <span className="text-2xl text-blue-600 mx-auto mb-2 block">📄</span>
             <span className="text-sm font-medium text-gray-900">Validate Projects</span>
+          </Link>
+
+          <Link to="/lab-admin/approved-projects" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-green-600 mx-auto mb-2 block">✅</span>
+            <span className="text-sm font-medium text-gray-900">Approved Projects</span>
+          </Link>
+
+          <Link to="/lab-admin/mentors" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-indigo-600 mx-auto mb-2 block">🧑‍🏫</span>
+            <span className="text-sm font-medium text-gray-900">Mentors</span>
+          </Link>
+
+          <Link to="/lab-admin/rejected-projects" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-red-600 mx-auto mb-2 block">⛔</span>
+            <span className="text-sm font-medium text-gray-900">Rejected Projects</span>
+          </Link>
+
+          <Link to="/lab-admin/rejected-companies" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <span className="text-2xl text-red-600 mx-auto mb-2 block">🏢</span>
+            <span className="text-sm font-medium text-gray-900">Rejected Companies</span>
           </Link>
 
           <Link to="/lab-admin/payments-overview" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">

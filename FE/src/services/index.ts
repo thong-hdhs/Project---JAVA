@@ -8,3 +8,5 @@ export { paymentService } from "./payment.service";
 export { companyService } from "./company.service";
 export { systemService } from "./system.service";
 export { notificationService } from "./notification.service";
+export { labFundAdvanceService } from "./labFundAdvance.service";
+export { companyRiskRecordService } from "./companyRiskRecord.service";

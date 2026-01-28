@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Card from '@/components/ui/Card';
 import { toast } from 'react-toastify';
 import { mentorService, type BackendMentorResponse } from '@/services/mentor.service';
+import { requireRoleFromToken } from '@/utils/auth';
 
 const MentorsManagement: React.FC = () => {
   const [items, setItems] = useState<BackendMentorResponse[]>([]);
@@ -11,12 +12,18 @@ const MentorsManagement: React.FC = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      const auth = requireRoleFromToken('LAB_ADMIN');
+      if (!auth.ok) {
+        toast.error(auth.reason);
+        setItems([]);
+        return;
+      }
       const list = statusFilter === 'ALL'
         ? await mentorService.listAllMentors()
         : await mentorService.listMentorsByStatus(statusFilter);
       setItems(list || []);
     } catch (e: any) {
-      toast.error(e?.message || 'Không thể tải danh sách mentor');
+      toast.error(e?.message || 'Failed to load mentors');
       setItems([]);
     } finally {
       setLoading(false);
