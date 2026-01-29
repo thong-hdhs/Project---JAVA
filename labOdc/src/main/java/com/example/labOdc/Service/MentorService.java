@@ -79,6 +79,13 @@ public interface MentorService {
     void breakdownTasks(String projectId, String excelTemplate);
 
     /**
+     * Phân tích nhiệm vụ từ file Excel upload.
+     * @param projectId ID dự án
+     * @param file file Excel (.xlsx)
+     */
+    void breakdownTasksFromFile(String projectId, org.springframework.web.multipart.MultipartFile file);
+
+    /**
      * Tạo nhiệm vụ riêng lẻ cho dự án.
      * @param projectId ID dự án
      * @param taskDTO Thông tin nhiệm vụ (bao gồm taskName, description, priority, assignedTo, v.v)

@@ -86,6 +86,9 @@ const CandidateReviews = lazy(
 const MentorProjectWorkspace = lazy(
   () => import("./pages/labodc/mentor/project-workspace"),
 );
+const MentorApplications = lazy(
+  () => import("./pages/labodc/mentor/applications"),
+);
 const MentorReports = lazy(() => import("./pages/labodc/mentor/reports"));
 const FundApprovals = lazy(
   () => import("./pages/labodc/mentor/fund-approvals"),
@@ -197,6 +200,10 @@ function App() {
               path="candidate/browse-projects"
               element={<BrowseProjects />}
             />
+            <Route
+              path="candidate/view-projects"
+              element={<BrowseProjects />}
+            />
             <Route path="candidate/project/:id" element={<ProjectDetail />} />
             <Route path="candidate/applications" element={<MyApplications />} />
             <Route path="candidate/my-projects" element={<MyProjects />} />
@@ -251,6 +258,11 @@ function App() {
               path="mentor/candidate-reviews"
               element={<CandidateReviews />}
             />
+            <Route
+              path="mentor/applications"
+              element={<MentorApplications />}
+            />
+            <Route path="mentor/project" element={<MentorProjectWorkspace />} />
             <Route
               path="mentor/project/:id"
               element={<MentorProjectWorkspace />}

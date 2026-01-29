@@ -345,7 +345,7 @@ public MentorResponse createMentor(MentorDTO mentorDTO) {
 
     @Override
     public void breakdownTasks(String projectId, String excelTemplate) {
-        // Validate project exists
+        // Validate input and download bytes
         projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
@@ -353,128 +353,162 @@ public MentorResponse createMentor(MentorDTO mentorDTO) {
             throw new RuntimeException("Empty excel template URL");
         }
 
-        java.io.InputStream is = null;
+        byte[] data;
         try {
-            byte[] data;
-            
-            // Download file từ URL (Google Driver, file server, etc.)
             java.net.URL url = new java.net.URL(excelTemplate);
             java.net.URLConnection conn = url.openConnection();
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
-            
             try (java.io.InputStream urlStream = conn.getInputStream()) {
                 data = urlStream.readAllBytes();
             }
-            
-            if (data == null || data.length == 0) {
-                throw new RuntimeException("Excel file downloaded from URL is empty");
-            }
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to download excel template from URL: " + e.getMessage(), e);
+        }
 
-            // Save uploaded file to local storage (uploads/excel/{projectId}/{timestamp}.xlsx)
+        if (data == null || data.length == 0) {
+            throw new RuntimeException("Excel file downloaded from URL is empty");
+        }
+
+        String currentUserId = getCurrentUserIdSafe();
+        processTaskBreakdownExcelBytes(projectId, data, currentUserId, "task-breakdown-url");
+    }
+
+    @Override
+    public void breakdownTasksFromFile(String projectId, org.springframework.web.multipart.MultipartFile file) {
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Empty excel file");
+        }
+
+        final byte[] data;
+        try {
+            data = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to read uploaded excel file: " + e.getMessage(), e);
+        }
+
+        String currentUserId = getCurrentUserIdSafe();
+        String originalName = file.getOriginalFilename();
+        String prefix = (originalName != null && !originalName.isBlank()) ? originalName : "task-breakdown-upload";
+        processTaskBreakdownExcelBytes(projectId, data, currentUserId, prefix);
+    }
+
+    private void processTaskBreakdownExcelBytes(
+            String projectId,
+            byte[] data,
+            String currentUserId,
+            String filePrefix
+    ) {
+        if (data == null || data.length == 0) {
+            throw new RuntimeException("Excel data is empty");
+        }
+
+        // Save file to local storage (uploads/excel/{projectId}/{timestamp}.xlsx)
+        String fileUrl;
+        try {
             java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads", "excel", projectId);
             java.nio.file.Files.createDirectories(uploadDir);
-            String filename = "task-breakdown-" + System.currentTimeMillis() + ".xlsx";
+            String safePrefix = (filePrefix == null ? "task-breakdown" : filePrefix).replaceAll("[^a-zA-Z0-9._-]", "-");
+            String filename = safePrefix + "-" + System.currentTimeMillis() + ".xlsx";
             java.nio.file.Path outPath = uploadDir.resolve(filename);
             java.nio.file.Files.write(outPath, data);
-            String fileUrl = outPath.toAbsolutePath().toString();
+            fileUrl = outPath.toAbsolutePath().toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to persist uploaded excel file: " + e.getMessage(), e);
+        }
 
-            // Record submission
-            String currentUserId = getCurrentUserIdSafe();
-            try {
-                excelSubmissionService.submitExcel(projectId, null, TemplateType.TASK_BREAKDOWN, fileUrl, currentUserId);
-            } catch (Exception e) {
-                System.err.println("Failed to record Excel submission: " + e.getMessage());
+        // Record submission
+        try {
+            excelSubmissionService.submitExcel(projectId, null, TemplateType.TASK_BREAKDOWN, fileUrl, currentUserId);
+        } catch (Exception e) {
+            System.err.println("Failed to record Excel submission: " + e.getMessage());
+        }
+
+        // Parse XLSX
+        try (
+                java.io.InputStream is = new java.io.ByteArrayInputStream(data);
+                org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook(is)
+        ) {
+            org.apache.poi.ss.usermodel.Sheet sheet = null;
+            if (workbook.getNumberOfSheets() > 0) {
+                sheet = workbook.getSheet("TASKS");
+                if (sheet == null) sheet = workbook.getSheetAt(0);
+            }
+            if (sheet == null) {
+                throw new RuntimeException("Excel template contains no sheets");
             }
 
-            // Parse XLSX using Apache POI from byte[]
-            is = new java.io.ByteArrayInputStream(data);
-            try (org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook(is)) {
-                org.apache.poi.ss.usermodel.Sheet sheet = null;
-                // Prefer a sheet named TASKS
-                if (workbook.getNumberOfSheets() > 0) {
-                    sheet = workbook.getSheet("TASKS");
-                    if (sheet == null) sheet = workbook.getSheetAt(0);
-                }
-                if (sheet == null) {
-                    throw new RuntimeException("Excel template contains no sheets");
-                }
+            java.util.List<Task> tasksToSave = new java.util.ArrayList<>();
+            java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-                java.util.List<Task> tasksToSave = new java.util.ArrayList<>();
-                java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            // Assume first row is header; start from row 1
+            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+                if (row == null) continue;
 
-                // Assume first row is header; start from row 1
-                for (int r = 1; r <= sheet.getLastRowNum(); r++) {
-                    org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
-                    if (row == null) continue;
+                String taskName = getCellString(row.getCell(0));
+                if (taskName == null || taskName.isBlank()) continue;
+                String description = getCellString(row.getCell(1));
+                String priorityStr = getCellString(row.getCell(2));
+                String startDateStr = getCellString(row.getCell(3));
+                String dueDateStr = getCellString(row.getCell(4));
+                String estHoursStr = getCellString(row.getCell(5));
+                String assignedTo = getCellString(row.getCell(6));
 
-                    String taskName = getCellString(row.getCell(0));
-                    if (taskName == null || taskName.isBlank()) continue;
-                    String description = getCellString(row.getCell(1));
-                    String priorityStr = getCellString(row.getCell(2));
-                    String startDateStr = getCellString(row.getCell(3));
-                    String dueDateStr = getCellString(row.getCell(4));
-                    String estHoursStr = getCellString(row.getCell(5));
-                    String assignedTo = getCellString(row.getCell(6));
+                Task task = Task.builder()
+                        .projectId(projectId)
+                        .taskName(taskName.trim())
+                        .description(description)
+                        .status(Task.Status.TODO)
+                        .priority(parsePriority(priorityStr))
+                        .excelTemplateUrl(fileUrl)
+                        .createdBy(currentUserId)
+                        .build();
 
-                    Task task = Task.builder()
-                            .projectId(projectId)
-                            .taskName(taskName.trim())
-                            .description(description)
-                            .status(Task.Status.TODO)
-                            .priority(parsePriority(priorityStr))
-                            .excelTemplateUrl(fileUrl)
-                            .createdBy(currentUserId)
-                            .build();
-
-                    try {
-                        if (startDateStr != null && !startDateStr.isBlank()) {
-                            task.setStartDate(java.time.LocalDate.parse(startDateStr.trim(), dateFormatter));
-                        }
-                    } catch (Exception ex) {
-                        // ignore parse
+                try {
+                    if (startDateStr != null && !startDateStr.isBlank()) {
+                        task.setStartDate(java.time.LocalDate.parse(startDateStr.trim(), dateFormatter));
                     }
-
-                    try {
-                        if (dueDateStr != null && !dueDateStr.isBlank()) {
-                            task.setDueDate(java.time.LocalDate.parse(dueDateStr.trim(), dateFormatter));
-                        }
-                    } catch (Exception ex) {
-                        // ignore parse
-                    }
-
-                    try {
-                        if (estHoursStr != null && !estHoursStr.isBlank()) {
-                            task.setEstimatedHours(new java.math.BigDecimal(estHoursStr.trim()));
-                        }
-                    } catch (Exception ex) {
-                        // ignore parse
-                    }
-
-                    // Validate talent ID from Excel
-                    if (assignedTo != null && !assignedTo.isBlank()) {
-                        String trimmedTalentId = assignedTo.trim();
-                        if (talentRepository.findById(trimmedTalentId).isPresent()) {
-                            // Talent hợp lệ - assign luôn
-                            task.setAssignedTo(trimmedTalentId);
-                        } else {
-                            // Talent không hợp lệ - để trống, dùng assignTask sau
-                            System.out.println("Warning: Talent ID '" + trimmedTalentId + "' not found in row " + (r + 1) + ". Task created without assignment.");
-                        }
-                    }
-
-                    tasksToSave.add(task);
+                } catch (Exception ex) {
+                    // ignore parse
                 }
 
-                if (!tasksToSave.isEmpty()) {
-                    taskRepository.saveAll(tasksToSave);
+                try {
+                    if (dueDateStr != null && !dueDateStr.isBlank()) {
+                        task.setDueDate(java.time.LocalDate.parse(dueDateStr.trim(), dateFormatter));
+                    }
+                } catch (Exception ex) {
+                    // ignore parse
                 }
+
+                try {
+                    if (estHoursStr != null && !estHoursStr.isBlank()) {
+                        task.setEstimatedHours(new java.math.BigDecimal(estHoursStr.trim()));
+                    }
+                } catch (Exception ex) {
+                    // ignore parse
+                }
+
+                if (assignedTo != null && !assignedTo.isBlank()) {
+                    String trimmedTalentId = assignedTo.trim();
+                    if (talentRepository.findById(trimmedTalentId).isPresent()) {
+                        task.setAssignedTo(trimmedTalentId);
+                    } else {
+                        System.out.println("Warning: Talent ID '" + trimmedTalentId + "' not found in row " + (r + 1) + ". Task created without assignment.");
+                    }
+                }
+
+                tasksToSave.add(task);
             }
 
-        } catch (java.io.IOException ex) {
-            throw new RuntimeException("Failed to download or parse excel template from URL: " + ex.getMessage(), ex);
-        } finally {
-            if (is != null) try { is.close(); } catch (Exception e) { /* ignore */ }
+            if (!tasksToSave.isEmpty()) {
+                taskRepository.saveAll(tasksToSave);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse task breakdown excel: " + e.getMessage(), e);
         }
     }
 

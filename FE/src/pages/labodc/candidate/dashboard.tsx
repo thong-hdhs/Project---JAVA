@@ -22,12 +22,13 @@ const parseDateOrUndefined = (v: unknown): Date | undefined => {
 const mapBackendTalentTaskToTask = (t: BackendTalentTaskResponse): Task => {
   const createdAt = parseDateOrUndefined(t.createdAt) || new Date();
   const updatedAt = parseDateOrUndefined(t.updatedAt) || createdAt;
+  const rawStatus = String(t.status || "TODO").toUpperCase();
   return {
     id: String(t.id || ""),
     project_id: String(t.projectId || ""),
     title: String(t.taskName || ""),
     description: String(t.description || ""),
-    status: String(t.status || "TODO").toUpperCase() as Task["status"],
+    status: (rawStatus === "DONE" ? "COMPLETED" : rawStatus) as Task["status"],
     priority: String(t.priority || "MEDIUM").toUpperCase() as Task["priority"],
     assigned_to: t.assignedTo ? String(t.assignedTo) : undefined,
     created_by: String(t.createdBy || ""),
@@ -53,6 +54,7 @@ const CandidateDashboard: React.FC = () => {
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingTaskId, setUpdatingTaskId] = useState<string>("");
 
   useEffect(() => {
     loadDashboardData();
@@ -106,6 +108,18 @@ const CandidateDashboard: React.FC = () => {
     }
   };
 
+  const markDone = async (taskId: string) => {
+    try {
+      setUpdatingTaskId(taskId);
+      await talentService.updateTaskProgress(taskId, "DONE");
+      await loadDashboardData();
+    } catch (e) {
+      console.error("Failed to mark task done", e);
+    } finally {
+      setUpdatingTaskId("");
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -134,7 +148,7 @@ const CandidateDashboard: React.FC = () => {
             </p>
           </div>
           <div className="flex space-x-3">
-            <Link to="/candidate/browse-projects">
+            <Link to="/candidate/view-projects">
               <Button
                 text="Browse Projects"
                 className="bg-primary-500 text-white"
@@ -252,9 +266,25 @@ const CandidateDashboard: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <Link to={`/candidate/task/${task.id}`}>
-                    <Button text="View" className="btn-outline-dark btn-sm" />
-                  </Link>
+                  <Button
+                    text={
+                      task.status === "COMPLETED"
+                        ? "Completed"
+                        : updatingTaskId === task.id
+                          ? "Saving..."
+                          : "Done"
+                    }
+                    className={
+                      task.status === "COMPLETED"
+                        ? "btn-outline-dark btn-sm"
+                        : "bg-primary-500 text-white btn-sm"
+                    }
+                    disabled={
+                      updatingTaskId === task.id || task.status === "COMPLETED"
+                    }
+                    isLoading={updatingTaskId === task.id}
+                    onClick={() => markDone(task.id)}
+                  />
                 </div>
               ))
             )}
@@ -266,7 +296,7 @@ const CandidateDashboard: React.FC = () => {
       <Card title="Quick Actions">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link
-            to="/candidate/browse-projects"
+            to="/candidate/view-projects"
             className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <span className="text-2xl text-primary-600 mx-auto mb-2 block">

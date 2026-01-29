@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { projectService } from '@/services/project.service';
-import { Project } from '@/types';
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { projectService } from "@/services/project.service";
+import { Project } from "@/types";
 // Using emoji icons instead of heroicons
 
 const ProjectDetail: React.FC = () => {
@@ -22,10 +23,11 @@ const ProjectDetail: React.FC = () => {
   const loadProject = async () => {
     try {
       setLoading(true);
-      const projectData = await projectService.getProject(id!);
+      const projectData = await projectService.getProjectFromBackend(id!);
       setProject(projectData);
     } catch (error) {
-      console.error('Error loading project:', error);
+      console.error("Error loading project:", error);
+      toast.error((error as any)?.message || "Failed to load project");
     } finally {
       setLoading(false);
     }
@@ -36,18 +38,25 @@ const ProjectDetail: React.FC = () => {
 
     try {
       setApplying(true);
-      await projectService.applyForProject({
-        project_id: project.id,
-        cover_letter: 'I am very interested in this project and believe my skills align well with the requirements.',
-      });
+      await projectService.applyToProjectAsTalent(
+        project.id,
+        "I am very interested in this project and believe my skills align well with the requirements.",
+      );
+      toast.success("Applied successfully");
       // Refresh project data
       await loadProject();
     } catch (error) {
-      console.error('Error applying for project:', error);
+      console.error("Error applying for project:", error);
+      toast.error((error as any)?.message || "Apply failed");
     } finally {
       setApplying(false);
     }
   };
+
+  const canApply =
+    Boolean(project) &&
+    String((project as any).validation_status || "").toUpperCase() ===
+      "APPROVED";
 
   if (loading) {
     return (
@@ -65,7 +74,20 @@ const ProjectDetail: React.FC = () => {
       <div className="text-center py-12">
         <p className="text-gray-500">Project not found.</p>
         <Link to="/candidate/browse-projects">
-          <Button text="Back to Projects" className="mt-4" isLoading={false} disabled={false} children="" icon="" loadingClass="" iconPosition="left" iconClass="" link="" onClick={() => {}} div={false} />
+          <Button
+            text="Back to Projects"
+            className="mt-4"
+            isLoading={false}
+            disabled={false}
+            children=""
+            icon=""
+            loadingClass=""
+            iconPosition="left"
+            iconClass=""
+            link=""
+            onClick={() => {}}
+            div={false}
+          />
         </Link>
       </div>
     );
@@ -93,7 +115,9 @@ const ProjectDetail: React.FC = () => {
             />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.project_name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {project.project_name}
+            </h1>
             <p className="text-gray-600">Project Details</p>
           </div>
         </div>
@@ -104,7 +128,7 @@ const ProjectDetail: React.FC = () => {
             className="bg-primary-500 text-white"
             onClick={handleApply}
             isLoading={applying}
-            disabled={false}
+            disabled={!canApply || applying}
             children=""
             icon=""
             loadingClass=""
@@ -120,7 +144,12 @@ const ProjectDetail: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Description */}
-          <Card title="Project Description" subtitle="" headerslot="" noborder={false}>
+          <Card
+            title="Project Description"
+            subtitle=""
+            headerslot=""
+            noborder={false}
+          >
             <div className="prose max-w-none">
               <p className="text-gray-700">{project.description}</p>
             </div>
@@ -134,7 +163,12 @@ const ProjectDetail: React.FC = () => {
           </Card>
 
           {/* Required Skills */}
-          <Card title="Required Skills" subtitle="" headerslot="" noborder={false}>
+          <Card
+            title="Required Skills"
+            subtitle=""
+            headerslot=""
+            noborder={false}
+          >
             <div className="flex flex-wrap gap-2">
               {project.required_skills.map((skill, index) => (
                 <span
@@ -150,13 +184,20 @@ const ProjectDetail: React.FC = () => {
 
         {/* Project Info Sidebar */}
         <div className="space-y-6">
-          <Card title="Project Information" subtitle="" headerslot="" noborder={false}>
+          <Card
+            title="Project Information"
+            subtitle=""
+            headerslot=""
+            noborder={false}
+          >
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <span className="text-green-600">💰</span>
                 <div>
                   <p className="text-sm text-gray-600">Budget</p>
-                  <p className="font-semibold">${project.budget.toLocaleString()}</p>
+                  <p className="font-semibold">
+                    ${project.budget.toLocaleString()}
+                  </p>
                 </div>
               </div>
 
@@ -164,7 +205,9 @@ const ProjectDetail: React.FC = () => {
                 <span className="text-blue-600">📅</span>
                 <div>
                   <p className="text-sm text-gray-600">Duration</p>
-                  <p className="font-semibold">{project.duration_months} months</p>
+                  <p className="font-semibold">
+                    {project.duration_months} months
+                  </p>
                 </div>
               </div>
 
@@ -172,7 +215,9 @@ const ProjectDetail: React.FC = () => {
                 <span className="text-purple-600">👥</span>
                 <div>
                   <p className="text-sm text-gray-600">Team Size</p>
-                  <p className="font-semibold">{project.max_team_size} members</p>
+                  <p className="font-semibold">
+                    {project.max_team_size} members
+                  </p>
                 </div>
               </div>
 
@@ -191,13 +236,17 @@ const ProjectDetail: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Start Date</p>
                 <p className="font-medium">
-                  {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'TBD'}
+                  {project.start_date
+                    ? new Date(project.start_date).toLocaleDateString()
+                    : "TBD"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">End Date</p>
                 <p className="font-medium">
-                  {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'TBD'}
+                  {project.end_date
+                    ? new Date(project.end_date).toLocaleDateString()
+                    : "TBD"}
                 </p>
               </div>
             </div>
@@ -205,7 +254,9 @@ const ProjectDetail: React.FC = () => {
 
           {/* Apply Button */}
           <div className="bg-primary-50 p-4 rounded-lg">
-            <h3 className="font-medium text-primary-900 mb-2">Ready to Apply?</h3>
+            <h3 className="font-medium text-primary-900 mb-2">
+              Ready to Apply?
+            </h3>
             <p className="text-sm text-primary-700 mb-4">
               Submit your application and cover letter to join this project.
             </p>
@@ -214,7 +265,7 @@ const ProjectDetail: React.FC = () => {
               className="w-full bg-primary-500 text-white"
               onClick={handleApply}
               isLoading={applying}
-              disabled={false}
+              disabled={!canApply || applying}
               children=""
               icon=""
               loadingClass=""
@@ -223,6 +274,11 @@ const ProjectDetail: React.FC = () => {
               link=""
               div={false}
             />
+            {!canApply ? (
+              <div className="text-xs text-primary-700 mt-2">
+                Applications are available after the project is approved.
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

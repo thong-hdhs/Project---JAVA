@@ -23,12 +23,13 @@ const parseDateOrUndefined = (v: unknown): Date | undefined => {
 const mapBackendTalentTaskToTask = (t: BackendTalentTaskResponse): Task => {
   const createdAt = parseDateOrUndefined(t.createdAt) || new Date();
   const updatedAt = parseDateOrUndefined(t.updatedAt) || createdAt;
+  const rawStatus = String(t.status || "TODO").toUpperCase();
   return {
     id: String(t.id || ""),
     project_id: String(t.projectId || ""),
     title: String(t.taskName || ""),
     description: String(t.description || ""),
-    status: String(t.status || "TODO").toUpperCase() as Task["status"],
+    status: (rawStatus === "DONE" ? "COMPLETED" : rawStatus) as Task["status"],
     priority: String(t.priority || "MEDIUM").toUpperCase() as Task["priority"],
     assigned_to: t.assignedTo ? String(t.assignedTo) : undefined,
     created_by: String(t.createdBy || ""),
@@ -48,6 +49,7 @@ const CandidateTasks: React.FC = () => {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingTaskId, setUpdatingTaskId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [priorityFilter, setPriorityFilter] = useState<string>("");
 
@@ -93,28 +95,15 @@ const CandidateTasks: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    // For TALENT endpoint we filter client-side.
-    const isTalent = user?.role?.toString().includes("TALENT");
-    if (!isTalent) {
-      loadTasks();
-      return;
-    }
-
-    setTasks((prev) =>
-      prev.filter((t) => {
-        if (statusFilter && String(t.status).toUpperCase() !== statusFilter)
-          return false;
-        if (
-          priorityFilter &&
-          String(t.priority).toUpperCase() !== priorityFilter
-        )
-          return false;
-        return true;
-      }),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, priorityFilter]);
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (statusFilter && String(t.status).toUpperCase() !== statusFilter)
+        return false;
+      if (priorityFilter && String(t.priority).toUpperCase() !== priorityFilter)
+        return false;
+      return true;
+    });
+  }, [tasks, statusFilter, priorityFilter]);
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -122,6 +111,29 @@ const CandidateTasks: React.FC = () => {
     const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS").length;
     return { total, completed, inProgress };
   }, [tasks]);
+
+  const markDone = async (taskId: string) => {
+    try {
+      setUpdatingTaskId(taskId);
+      await talentService.updateTaskProgress(taskId, "DONE");
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: "COMPLETED",
+                completed_at: new Date(),
+                updated_at: new Date(),
+              }
+            : t,
+        ),
+      );
+    } catch (e) {
+      console.error("Failed to mark task done", e);
+    } finally {
+      setUpdatingTaskId("");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -192,7 +204,7 @@ const CandidateTasks: React.FC = () => {
               No tasks assigned yet.
             </div>
           ) : (
-            tasks.map((task) => (
+            filteredTasks.map((task) => (
               <div
                 key={task.id}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
@@ -214,9 +226,27 @@ const CandidateTasks: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <Link to={`/candidate/task/${task.id}`}>
-                  <Button text="View" className="btn-outline-dark btn-sm" />
-                </Link>
+                <Button
+                  text={
+                    task.status === "COMPLETED"
+                      ? "Completed"
+                      : updatingTaskId === task.id
+                        ? "Saving..."
+                        : "Done"
+                  }
+                  className={
+                    task.status === "COMPLETED"
+                      ? "btn-outline-dark btn-sm"
+                      : "bg-primary-500 text-white btn-sm"
+                  }
+                  disabled={
+                    loading ||
+                    updatingTaskId === task.id ||
+                    task.status === "COMPLETED"
+                  }
+                  isLoading={updatingTaskId === task.id}
+                  onClick={() => markDone(task.id)}
+                />
               </div>
             ))
           )}

@@ -12,6 +12,8 @@ import com.example.labOdc.Model.ProjectTeam;
 public interface ProjectTeamRepository extends JpaRepository<ProjectTeam, String> {
     boolean existsByProjectIdAndTalentId(String projectId, String talentId);
 
+    Optional<ProjectTeam> findByProjectIdAndTalentId(String projectId, String talentId);
+
     List<ProjectTeam> findByProjectIdOrderByCreatedAtDesc(String projectId);
 
     List<ProjectTeam> findByTalentId(String talentId);

@@ -24,6 +24,7 @@ import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.ProjectTeamRepository;
 import com.example.labOdc.Repository.TalentRepository;
 import com.example.labOdc.Repository.UserRepository;
+import com.example.labOdc.Repository.MentorRepository;
 import com.example.labOdc.Service.ProjectApplicationService;
 
 import lombok.AllArgsConstructor;
@@ -39,6 +40,22 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
     private final TalentRepository talentRepository;
     private final UserRepository userRepository;
     private final ProjectTeamRepository projectTeamRepository;
+    private final MentorRepository mentorRepository;
+
+    private User resolveUserByLogin(String login) {
+        if (login == null || login.isBlank()) {
+            throw new AccessDeniedException("Unauthenticated user");
+        }
+        return userRepository.findByUsername(login)
+                .or(() -> userRepository.findByEmail(login))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private com.example.labOdc.Model.Mentor resolveMentorByLogin(String login) {
+        User user = resolveUserByLogin(login);
+        return mentorRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new AccessDeniedException("Mentor profile not found"));
+    }
 
     /**
      * Chức năng: Tạo đơn ứng tuyển dự án mới.
@@ -174,15 +191,53 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
      * Repository: ProjectApplicationRepository.findById(), UserRepository.findById(), save() - Cập nhật trạng thái và thông tin phê duyệt.
      */
     @Override
-    public ProjectApplicationResponse approveApplication(String id, String reviewerId) {
+    @org.springframework.transaction.annotation.Transactional
+    public ProjectApplicationResponse approveApplication(String id, String reviewerUsername) {
         logger.info("Phê duyệt đơn ứng tuyển ID: {}", id);
         ProjectApplication pa = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
-        // Placeholder: Tìm reviewer từ UserRepository
-        // User reviewer = userRepository.findById(reviewerId).orElseThrow(() -> new ResourceNotFoundException("Reviewer not found"));
+
+        // Enforce: only the mentor assigned to this project can approve.
+        final var mentor = resolveMentorByLogin(reviewerUsername);
+        if (pa.getProject() == null || pa.getProject().getMentor() == null
+                || pa.getProject().getMentor().getId() == null
+                || !pa.getProject().getMentor().getId().equals(mentor.getId())) {
+            throw new AccessDeniedException("Not allowed to approve applications for this project");
+        }
+
+        final User reviewer = resolveUserByLogin(reviewerUsername);
+
         pa.setStatus(ProjectApplication.Status.APPROVED);
-        // pa.setReviewedBy(reviewer);
+        pa.setReviewedBy(reviewer);
         pa.setReviewedAt(LocalDateTime.now());
+
+        // Ensure talent is added to project team after approval (idempotent)
+        if (pa.getProject() != null && pa.getTalent() != null) {
+            final String projectId = pa.getProject().getId();
+            final String talentId = pa.getTalent().getId();
+            if (projectId != null && talentId != null) {
+                ProjectTeam team = projectTeamRepository
+                        .findByProjectIdAndTalentId(projectId, talentId)
+                        .orElse(null);
+
+                if (team == null) {
+                    team = ProjectTeam.builder()
+                            .project(pa.getProject())
+                            .talent(pa.getTalent())
+                            .joinedDate(java.time.LocalDate.now())
+                            .status(ProjectTeamStatus.ACTIVE)
+                            .build();
+                } else {
+                    team.setStatus(ProjectTeamStatus.ACTIVE);
+                    if (team.getJoinedDate() == null) {
+                        team.setJoinedDate(java.time.LocalDate.now());
+                    }
+                    team.setLeftDate(null);
+                }
+                projectTeamRepository.save(team);
+            }
+        }
+
         ProjectApplication saved = applicationRepository.save(pa);
         return ProjectApplicationResponse.from(saved);
     }
@@ -192,17 +247,48 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
      * Repository: ProjectApplicationRepository.findById(), UserRepository.findById(), save() - Cập nhật trạng thái và lý do từ chối.
      */
     @Override
-    public ProjectApplicationResponse rejectApplication(String id, String reviewerId, String reason) {
+    public ProjectApplicationResponse rejectApplication(String id, String reviewerUsername, String reason) {
         logger.info("Từ chối đơn ứng tuyển ID: {} với lý do: {}", id, reason);
         ProjectApplication pa = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
-        // User reviewer = userRepository.findById(reviewerId).orElseThrow(() -> new ResourceNotFoundException("Reviewer not found"));
+
+        // Enforce: only the mentor assigned to this project can reject.
+        final var mentor = resolveMentorByLogin(reviewerUsername);
+        if (pa.getProject() == null || pa.getProject().getMentor() == null
+                || pa.getProject().getMentor().getId() == null
+                || !pa.getProject().getMentor().getId().equals(mentor.getId())) {
+            throw new AccessDeniedException("Not allowed to reject applications for this project");
+        }
+
+        final User reviewer = resolveUserByLogin(reviewerUsername);
+
         pa.setStatus(ProjectApplication.Status.REJECTED);
-        // pa.setReviewedBy(reviewer);
+        pa.setReviewedBy(reviewer);
         pa.setReviewedAt(LocalDateTime.now());
         pa.setRejectionReason(reason);
         ProjectApplication saved = applicationRepository.save(pa);
         return ProjectApplicationResponse.from(saved);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<ProjectApplicationResponse> getPendingApplicationsForMentor(String mentorUsername) {
+        final var mentor = resolveMentorByLogin(mentorUsername);
+        final List<String> projectIds = projectRepository.findByMentorId(mentor.getId())
+                .stream()
+                .map(Project::getId)
+                .filter(id -> id != null && !id.isBlank())
+                .toList();
+
+        if (projectIds.isEmpty()) {
+            return List.of();
+        }
+
+        return applicationRepository
+                .findByProjectIdInAndStatus(projectIds, ProjectApplication.Status.PENDING)
+                .stream()
+                .map(ProjectApplicationResponse::from)
+                .toList();
     }
 
     

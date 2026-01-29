@@ -4,6 +4,8 @@ import MetricCard from "@/components/ui/MetricCard";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { Link } from "react-router-dom";
+import { mentorService } from "@/services/mentor.service";
+import type { Project } from "@/types";
 // Using emoji icons
 
 const MentorDashboard: React.FC = () => {
@@ -13,6 +15,31 @@ const MentorDashboard: React.FC = () => {
     pendingReviews: 5,
     totalEarnings: 15000,
   });
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState<string>("");
+
+  const loadMyProjects = async () => {
+    try {
+      setProjectsError("");
+      setProjectsLoading(true);
+      const list = await mentorService.getMyAssignedProjects();
+      setProjects(list);
+      setStats((s) => ({ ...s, activeProjects: list.length }));
+    } catch (e: any) {
+      setProjects([]);
+      setStats((s) => ({ ...s, activeProjects: 0 }));
+      setProjectsError(e?.message || "Failed to load projects");
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMyProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -109,39 +136,50 @@ const MentorDashboard: React.FC = () => {
         <Card
           title="My Projects"
           headerslot={
-            <Button text="View All" className="btn-outline-dark btn-sm" />
+            <Button
+              text={projectsLoading ? "Loading…" : "Refresh"}
+              className="btn-outline-dark btn-sm"
+              onClick={loadMyProjects}
+              disabled={projectsLoading}
+            />
           }
         >
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div>
-                <h4 className="font-medium text-gray-900">
-                  E-commerce Platform
-                </h4>
-                <p className="text-sm text-gray-600">Mentoring 4 students</p>
-                <div className="flex items-center mt-2">
-                  <StatusBadge status="IN_PROGRESS" />
-                </div>
-              </div>
-              <Link to="/mentor/project/1">
-                <Button text="View" className="btn-outline-dark btn-sm" />
-              </Link>
-            </div>
+            {projectsError ? (
+              <div className="text-sm text-red-600">{projectsError}</div>
+            ) : null}
 
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div>
-                <h4 className="font-medium text-gray-900">
-                  Mobile App Development
-                </h4>
-                <p className="text-sm text-gray-600">Mentoring 3 students</p>
-                <div className="flex items-center mt-2">
-                  <StatusBadge status="IN_PROGRESS" />
-                </div>
+            {projectsLoading ? (
+              <div className="text-sm text-gray-600">Loading projects…</div>
+            ) : projects.length === 0 ? (
+              <div className="text-sm text-gray-600">
+                No assigned projects yet.
               </div>
-              <Link to="/mentor/project/2">
-                <Button text="View" className="btn-outline-dark btn-sm" />
-              </Link>
-            </div>
+            ) : (
+              projects.slice(0, 5).map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                >
+                  <div>
+                    <h4 className="font-medium text-gray-900">
+                      {p.project_name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {p.project_code
+                        ? `Code: ${p.project_code}`
+                        : "Assigned project"}
+                    </p>
+                    <div className="flex items-center mt-2">
+                      <StatusBadge status={p.status as any} />
+                    </div>
+                  </div>
+                  <Link to={`/mentor/project/${p.id}`}>
+                    <Button text="View" className="btn-outline-dark btn-sm" />
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 

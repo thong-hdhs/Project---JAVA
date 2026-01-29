@@ -99,6 +99,7 @@ public class TaskController {
     @PreAuthorize("""
     hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN')
     or hasAuthority('MENTOR_REVIEW_TASK')
+    or hasRole('MENTOR')
     or hasAuthority('TALENT_VIEW_ASSIGNED_TASK')
 """)
     public ApiResponse<TaskResponse> getTaskById(@PathVariable String id) {
@@ -109,6 +110,7 @@ public class TaskController {
     @PreAuthorize("""
     hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN')
     or hasAuthority('MENTOR_REVIEW_TASK')
+    or hasRole('MENTOR')
     or hasAuthority('TALENT_VIEW_ASSIGNED_TASK')
 """)
     public ApiResponse<List<TaskResponse>> getTasksByProject(@PathVariable String projectId) {
@@ -124,6 +126,7 @@ public class TaskController {
     @PreAuthorize("""
     hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN')
     or hasAuthority('MENTOR_REVIEW_TASK')
+    or hasRole('MENTOR')
     or hasAuthority('TALENT_VIEW_ASSIGNED_TASK')
 """)
     public ApiResponse<List<TaskResponse>> getTasksByAssignee(@PathVariable String talentId) {

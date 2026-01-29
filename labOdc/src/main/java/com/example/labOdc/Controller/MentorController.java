@@ -3,6 +3,7 @@ package com.example.labOdc.Controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.MentorDTO;
@@ -182,23 +184,20 @@ public class MentorController {
         return ApiResponse.success("Tasks broken down", "OK", HttpStatus.OK);
     }
 
-    // /**
-    //  * Phân tích nhiệm vụ từ file Excel (multipart upload).
-    //  * Endpoint: POST /api/v1/mentors/tasks/breakdown-file/{projectId}
-    //  * Content-Type: multipart/form-data
-    //  */
-    // @PostMapping(value = "/tasks/breakdown-file/{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    // @PreAuthorize("hasRole('MENTOR')")
-    // public ApiResponse<String> breakdownTasksFromFile(@PathVariable String projectId, @RequestParam("file") MultipartFile file) {
-    //     try {
-    //         byte[] bytes = file.getBytes();
-    //         String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
-    //         mentorService.breakdownTasks(projectId, base64);
-    //         return ApiResponse.success("Tasks broken down from uploaded file", "OK", HttpStatus.OK);
-    //     } catch (Exception e) {
-    //         return ApiResponse.error(java.util.List.of(e.getMessage()));
-    //     }
-    // }
+    /**
+     * Phân tích nhiệm vụ từ file Excel (multipart upload).
+     * Endpoint: POST /api/v1/mentors/tasks/breakdown-file/{projectId}
+     * Content-Type: multipart/form-data
+     */
+    @PostMapping(value = "/tasks/breakdown-file/{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<String> breakdownTasksFromFile(
+            @PathVariable String projectId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        mentorService.breakdownTasksFromFile(projectId, file);
+        return ApiResponse.success("Tasks broken down from uploaded file", "OK", HttpStatus.OK);
+    }
 
     /**
      * Giao nhiệm vụ cho talent.
@@ -221,14 +220,18 @@ public class MentorController {
      */
     @PostMapping("/projects/{projectId}/tasks")
     @PreAuthorize("hasRole('MENTOR')")
-    public ApiResponse<TaskResponse> createTask(@PathVariable String projectId, @Validated @RequestBody TaskDTO taskDTO, BindingResult result) {
-        if (result.hasErrors()) {
-            StringBuilder errorMessage = new StringBuilder();
-            for (FieldError error : result.getFieldErrors()) {
-                errorMessage.append(error.getField()).append(": ").append(error.getDefaultMessage()).append("; ");
-            }
-            return ApiResponse.error(errorMessage.toString(), HttpStatus.BAD_REQUEST);
+    public ApiResponse<TaskResponse> createTask(@PathVariable String projectId, @RequestBody TaskDTO taskDTO) {
+        if (taskDTO == null) {
+            return ApiResponse.error("Request body is required", HttpStatus.BAD_REQUEST);
         }
+
+        // projectId comes from path; FE doesn't need to send it in body.
+        taskDTO.setProjectId(projectId);
+
+        if (taskDTO.getTaskName() == null || taskDTO.getTaskName().isBlank()) {
+            return ApiResponse.error("taskName: must not be blank", HttpStatus.BAD_REQUEST);
+        }
+
         TaskResponse response = mentorService.createTask(projectId, taskDTO);
         return ApiResponse.success(response, "Task created successfully", HttpStatus.CREATED);
     }

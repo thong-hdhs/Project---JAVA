@@ -305,7 +305,7 @@ const ProfilePage: React.FC = () => {
     return [
       {
         label: "Browse Projects",
-        to: "/candidate/browse-projects",
+        to: "/candidate/view-projects",
         icon: "heroicons-outline:magnifying-glass",
       },
       {

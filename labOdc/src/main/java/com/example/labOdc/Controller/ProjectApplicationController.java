@@ -140,9 +140,12 @@ public class ProjectApplicationController {
      * Service: ProjectApplicationService.approveApplication() - Cập nhật trạng thái thành APPROVED.
      */
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasRole('LAB_ADMIN')")
-    public ApiResponse<ProjectApplicationResponse> approve(@PathVariable String id, @RequestParam String reviewerId) {
-        ProjectApplicationResponse response = applicationService.approveApplication(id, reviewerId);
+    @PreAuthorize("hasAnyRole('MENTOR', 'SYSTEM_ADMIN')")
+    public ApiResponse<ProjectApplicationResponse> approve(@PathVariable String id, Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ApiResponse.error(List.of("Unauthenticated user"));
+        }
+        ProjectApplicationResponse response = applicationService.approveApplication(id, principal.getName());
         return ApiResponse.success(response, "Approved", HttpStatus.OK);
     }
 
@@ -151,10 +154,26 @@ public class ProjectApplicationController {
      * Service: ProjectApplicationService.rejectApplication() - Cập nhật trạng thái thành REJECTED.
      */
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasRole('LAB_ADMIN')")
-    public ApiResponse<ProjectApplicationResponse> reject(@PathVariable String id, @RequestParam String reviewerId, @RequestParam String reason) {
-        ProjectApplicationResponse response = applicationService.rejectApplication(id, reviewerId, reason);
+    @PreAuthorize("hasAnyRole('MENTOR', 'SYSTEM_ADMIN')")
+    public ApiResponse<ProjectApplicationResponse> reject(@PathVariable String id, @RequestParam String reason, Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ApiResponse.error(List.of("Unauthenticated user"));
+        }
+        ProjectApplicationResponse response = applicationService.rejectApplication(id, principal.getName(), reason);
         return ApiResponse.success(response, "Rejected", HttpStatus.OK);
+    }
+
+    /**
+     * Mentor: lấy danh sách applications đang PENDING thuộc các dự án mentor phụ trách.
+     */
+    @GetMapping("/pending/me")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<List<ProjectApplicationResponse>> getMyPendingApplications(Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ApiResponse.error(List.of("Unauthenticated user"));
+        }
+        List<ProjectApplicationResponse> list = applicationService.getPendingApplicationsForMentor(principal.getName());
+        return ApiResponse.success(list, "OK", HttpStatus.OK);
     }
 
     /**

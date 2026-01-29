@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient from "./apiClient";
 
 type BackendApiResponse<T> = {
   success: boolean;
@@ -9,7 +9,7 @@ type BackendApiResponse<T> = {
   statusCode?: number;
 };
 
-export type BackendTalentStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | string;
+export type BackendTalentStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED" | string;
 
 export type BackendTalentResponse = {
   id: string;
@@ -59,10 +59,16 @@ const getApiErrorMessage = (error: any, fallback: string): string => {
 
 export const talentService = {
   async listAllTalents(): Promise<BackendTalentResponse[]> {
-    const response = await apiClient.get<BackendApiResponse<BackendTalentResponse[]>>('/api/v1/talents/');
+    const response =
+      await apiClient.get<BackendApiResponse<BackendTalentResponse[]>>(
+        "/api/v1/talents/",
+      );
 
     if (!response.data?.success) {
-      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load talents';
+      const msg =
+        response.data?.message ||
+        response.data?.errors?.[0] ||
+        "Failed to load talents";
       throw new Error(msg);
     }
 
@@ -70,28 +76,58 @@ export const talentService = {
   },
 
   async listTalentsByStatus(status: string): Promise<BackendTalentResponse[]> {
-    const response = await apiClient.get<BackendApiResponse<BackendTalentResponse[]>>(`/api/v1/talents/status/${status}`);
+    const response = await apiClient.get<
+      BackendApiResponse<BackendTalentResponse[]>
+    >(`/api/v1/talents/status/${status}`);
 
     if (!response.data?.success) {
-      const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load talents';
+      const msg =
+        response.data?.message ||
+        response.data?.errors?.[0] ||
+        "Failed to load talents";
       throw new Error(msg);
     }
 
     return response.data?.data || [];
   },
 
+  async getTalentById(id: string): Promise<BackendTalentResponse> {
+    try {
+      const response = await apiClient.get<
+        BackendApiResponse<BackendTalentResponse>
+      >(`/api/v1/talents/${id}`);
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg =
+          response.data?.message ||
+          response.data?.errors?.[0] ||
+          "Failed to load talent";
+        throw new Error(msg);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, "Failed to load talent"));
+    }
+  },
+
   async getMyTasks(): Promise<BackendTalentTaskResponse[]> {
     try {
-      const response = await apiClient.get<BackendApiResponse<BackendTalentTaskResponse[]>>('/api/v1/talents/tasks');
+      const response = await apiClient.get<
+        BackendApiResponse<BackendTalentTaskResponse[]>
+      >("/api/v1/talents/tasks");
 
       if (!response.data?.success) {
-        const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load tasks';
+        const msg =
+          response.data?.message ||
+          response.data?.errors?.[0] ||
+          "Failed to load tasks";
         throw new Error(msg);
       }
 
       return response.data?.data || [];
     } catch (error: any) {
-      throw new Error(getApiErrorMessage(error, 'Failed to load tasks'));
+      throw new Error(getApiErrorMessage(error, "Failed to load tasks"));
     }
   },
 
@@ -104,11 +140,16 @@ export const talentService = {
       );
 
       if (!response.data?.success) {
-        const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to update task progress';
+        const msg =
+          response.data?.message ||
+          response.data?.errors?.[0] ||
+          "Failed to update task progress";
         throw new Error(msg);
       }
     } catch (error: any) {
-      throw new Error(getApiErrorMessage(error, 'Failed to update task progress'));
+      throw new Error(
+        getApiErrorMessage(error, "Failed to update task progress"),
+      );
     }
   },
 };

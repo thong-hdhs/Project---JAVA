@@ -505,6 +505,59 @@ export const projectService = {
     }
   },
 
+  // ====== Mentor: review applications (BE: /api/v1/applications) ======
+  async getMyPendingApplicationsAsMentor(): Promise<ProjectApplication[]> {
+    const response = await apiClient.get<
+      BackendApiResponse<TalentProjectApplicationResponse[]>
+    >("/api/v1/applications/pending/me");
+
+    if (!response.data?.success) {
+      const msg =
+        response.data?.message ||
+        response.data?.errors?.[0] ||
+        "Failed to load pending applications";
+      throw new Error(msg);
+    }
+
+    return (response.data?.data || []).map(
+      mapTalentApplicationToProjectApplication,
+    );
+  },
+
+  async approveApplicationAsMentor(applicationId: string): Promise<void> {
+    const response = await apiClient.put<BackendApiResponse<any>>(
+      `/api/v1/applications/${applicationId}/approve`,
+      null,
+    );
+
+    if (!response.data?.success) {
+      const msg =
+        response.data?.message ||
+        response.data?.errors?.[0] ||
+        "Approve application failed";
+      throw new Error(msg);
+    }
+  },
+
+  async rejectApplicationAsMentor(
+    applicationId: string,
+    reason: string,
+  ): Promise<void> {
+    const response = await apiClient.put<BackendApiResponse<any>>(
+      `/api/v1/applications/${applicationId}/reject`,
+      null,
+      { params: { reason } },
+    );
+
+    if (!response.data?.success) {
+      const msg =
+        response.data?.message ||
+        response.data?.errors?.[0] ||
+        "Reject application failed";
+      throw new Error(msg);
+    }
+  },
+
   // ====== Company: create + submit project for appraisal (BE: /api/projects) ======
   async listAllProjectsFromBackend(): Promise<Project[]> {
     try {

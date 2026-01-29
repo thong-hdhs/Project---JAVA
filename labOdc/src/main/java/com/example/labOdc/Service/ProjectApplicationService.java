@@ -30,13 +30,18 @@ public interface ProjectApplicationService {
      * Chức năng: Phê duyệt đơn ứng tuyển dự án.
      * Service: Cập nhật trạng thái thành APPROVED, ghi nhận người phê duyệt và thời gian.
      */
-    ProjectApplicationResponse approveApplication(String id, String reviewerId);
+    ProjectApplicationResponse approveApplication(String id, String reviewerUsername);
 
     /**
      * Chức năng: Từ chối đơn ứng tuyển dự án.
      * Service: Cập nhật trạng thái thành REJECTED, ghi nhận lý do từ chối và người phê duyệt.
      */
-    ProjectApplicationResponse rejectApplication(String id, String reviewerId, String reason);
+    ProjectApplicationResponse rejectApplication(String id, String reviewerUsername, String reason);
+
+    /**
+     * Chức năng: Mentor lấy danh sách applications PENDING thuộc các dự án mentor phụ trách.
+     */
+    List<ProjectApplicationResponse> getPendingApplicationsForMentor(String mentorUsername);
 
     /**
      * Chức năng: Hủy đơn ứng tuyển dự án.

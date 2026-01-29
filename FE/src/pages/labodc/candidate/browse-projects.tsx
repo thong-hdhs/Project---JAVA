@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component<
         <div className="p-8 text-center">
           <h2 className="text-xl font-semibold mb-2">Browse Projects</h2>
           <p className="text-gray-600">
-            Đã xảy ra lỗi khi hiển thị trang. Hiển thị giao diện dự phòng.
+            An error occurred while rendering this page. Showing a fallback UI.
           </p>
           <div className="mt-6 max-w-3xl mx-auto text-left">
             <div className="bg-white dark:bg-slate-800 p-4 rounded border">

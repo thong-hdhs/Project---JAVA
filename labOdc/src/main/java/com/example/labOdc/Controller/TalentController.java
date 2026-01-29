@@ -158,7 +158,7 @@ public class TalentController {
     @PreAuthorize("hasRole('TALENT')")
     public ApiResponse<String> applyToProject(
             @PathVariable String projectId,
-            @RequestParam String coverLetter) {
+            @RequestParam(required = false, defaultValue = "") String coverLetter) {
         talentService.applyToProject(projectId, coverLetter);
         return ApiResponse.success("Application submitted successfully", "OK", HttpStatus.CREATED);
     }

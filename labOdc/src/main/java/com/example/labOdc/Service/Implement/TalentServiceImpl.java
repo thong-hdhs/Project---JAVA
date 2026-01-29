@@ -23,6 +23,7 @@ import com.example.labOdc.Model.Talent;
 import com.example.labOdc.Model.Task;
 import com.example.labOdc.Model.User;
 import com.example.labOdc.Model.UserRole;
+import com.example.labOdc.Model.ValidationStatus;
 import com.example.labOdc.Repository.FundAllocationRepository;
 import com.example.labOdc.Repository.FundDistributionRepository;
 import com.example.labOdc.Repository.ProjectApplicationRepository;
@@ -198,6 +199,32 @@ public class TalentServiceImpl implements TalentService {
         Talent talent = getCurrentTalent();
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        if (project.getValidationStatus() != ValidationStatus.APPROVED) {
+            throw new IllegalStateException("This project is not approved yet");
+        }
+
+        if (projectTeamRepository.existsByProjectIdAndTalentId(projectId, talent.getId())) {
+            throw new IllegalStateException("You are already a member of this project");
+        }
+
+        ProjectApplication existing = projectApplicationRepository
+                .findByProjectIdAndTalentId(projectId, talent.getId())
+                .orElse(null);
+
+        if (existing != null) {
+            if (existing.getStatus() == ProjectApplication.Status.WITHDRAWN) {
+                existing.setStatus(ProjectApplication.Status.PENDING);
+                existing.setCoverLetter(coverLetter);
+                existing.setAppliedAt(java.time.LocalDateTime.now());
+                projectApplicationRepository.save(existing);
+                logger.info("Re-submitted withdrawn application for talent: {}", talent.getId());
+                return;
+            }
+
+            throw new IllegalStateException("You already have an application for this project (status: "
+                    + existing.getStatus() + ")");
+        }
         
         ProjectApplication application = ProjectApplication.builder()
                 .project(project)
@@ -214,6 +241,8 @@ public class TalentServiceImpl implements TalentService {
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ProjectResponse> getAvailableProjects() {
         logger.debug("Fetching available projects for talent application");
+        // Per UI requirement: talent can browse all projects.
+        // Applying to a project can still enforce additional business rules elsewhere.
         return projectRepository.findAll().stream()
                 .map(ProjectResponse::fromProject)
                 .toList();

@@ -218,9 +218,9 @@ export const useMenuItems = () => {
             link: "mentor/invitations",
           },
           {
-            title: "Candidate Reviews",
-            icon: "heroicons-outline:document-magnifying-glass",
-            link: "mentor/candidate-reviews",
+            title: "Talent Applications",
+            icon: "heroicons-outline:clipboard-document-check",
+            link: "mentor/applications",
           },
           {
             title: "My Projects",
@@ -228,7 +228,7 @@ export const useMenuItems = () => {
             child: [
               {
                 childtitle: "Project Workspace",
-                childlink: "mentor/project/1", // This should be dynamic
+                childlink: "mentor/project",
               },
               {
                 childtitle: "Project Reports",
@@ -253,9 +253,9 @@ export const useMenuItems = () => {
             link: "candidate/reports",
           },
           {
-            title: "Browse Projects",
+            title: "View Projects",
             icon: "heroicons-outline:magnifying-glass",
-            link: "candidate/browse-projects",
+            link: "candidate/view-projects",
           },
           {
             title: "My Tasks",
