@@ -7,6 +7,8 @@ import com.example.labOdc.DTO.MentorDTO;
 import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
+import com.example.labOdc.DTO.Response.TaskResponse;
+import com.example.labOdc.DTO.TaskDTO;
 import com.example.labOdc.Model.Mentor;
 
 public interface MentorService {
@@ -77,11 +79,20 @@ public interface MentorService {
     void breakdownTasks(String projectId, String excelTemplate);
 
     /**
-     * Giao nhiệm vụ cho talent.
+     * Tạo nhiệm vụ riêng lẻ cho dự án.
+     * @param projectId ID dự án
+     * @param taskDTO Thông tin nhiệm vụ (bao gồm taskName, description, priority, assignedTo, v.v)
+     * @return TaskResponse DTO của task vừa tạo
+     */
+    TaskResponse createTask(String projectId, TaskDTO taskDTO);
+
+    /**
+     * Giao nhiệm vụ cho talent và trả về TaskResponse DTO.
      * @param taskId ID nhiệm vụ
      * @param talentId ID talent
+     * @return TaskResponse DTO của task đã được gán
      */
-    void assignTask(String taskId, String talentId);
+    TaskResponse assignTask(String taskId, String talentId);
 
     /**
      * Cập nhật trạng thái nhiệm vụ.

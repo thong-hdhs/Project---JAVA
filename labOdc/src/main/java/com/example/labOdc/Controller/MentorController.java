@@ -23,6 +23,8 @@ import com.example.labOdc.DTO.MentorDTO;
 import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
+import com.example.labOdc.DTO.Response.TaskResponse;
+import com.example.labOdc.DTO.TaskDTO;
 import com.example.labOdc.Service.MentorService;
 
 import jakarta.annotation.security.PermitAll;
@@ -180,16 +182,55 @@ public class MentorController {
         return ApiResponse.success("Tasks broken down", "OK", HttpStatus.OK);
     }
 
+    // /**
+    //  * Phân tích nhiệm vụ từ file Excel (multipart upload).
+    //  * Endpoint: POST /api/v1/mentors/tasks/breakdown-file/{projectId}
+    //  * Content-Type: multipart/form-data
+    //  */
+    // @PostMapping(value = "/tasks/breakdown-file/{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // @PreAuthorize("hasRole('MENTOR')")
+    // public ApiResponse<String> breakdownTasksFromFile(@PathVariable String projectId, @RequestParam("file") MultipartFile file) {
+    //     try {
+    //         byte[] bytes = file.getBytes();
+    //         String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
+    //         mentorService.breakdownTasks(projectId, base64);
+    //         return ApiResponse.success("Tasks broken down from uploaded file", "OK", HttpStatus.OK);
+    //     } catch (Exception e) {
+    //         return ApiResponse.error(java.util.List.of(e.getMessage()));
+    //     }
+    // }
+
     /**
      * Giao nhiệm vụ cho talent.
+     * Endpoint: POST /api/v1/mentors/tasks/{taskId}/assign/{talentId}
      * @param taskId ID nhiệm vụ
      * @param talentId ID talent
      */
     @PostMapping("/tasks/{taskId}/assign/{talentId}")
     @PreAuthorize("hasRole('MENTOR')")
-    public ApiResponse<String> assignTask(@PathVariable String taskId, @PathVariable String talentId) {
-        mentorService.assignTask(taskId, talentId);
-        return ApiResponse.success("Task assigned", "OK", HttpStatus.OK);
+    public ApiResponse<TaskResponse> assignTask(@PathVariable String taskId, @PathVariable String talentId) {
+        TaskResponse response = mentorService.assignTask(taskId, talentId);
+        return ApiResponse.success(response, "Task assigned to talent successfully", HttpStatus.OK);
+    }
+
+    /**
+     * Tạo nhiệm vụ riêng lẻ cho dự án.
+     * Endpoint: POST /api/v1/mentors/projects/{projectId}/tasks
+     * @param projectId ID dự án
+     * @param taskDTO Thông tin nhiệm vụ
+     */
+    @PostMapping("/projects/{projectId}/tasks")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<TaskResponse> createTask(@PathVariable String projectId, @Validated @RequestBody TaskDTO taskDTO, BindingResult result) {
+        if (result.hasErrors()) {
+            StringBuilder errorMessage = new StringBuilder();
+            for (FieldError error : result.getFieldErrors()) {
+                errorMessage.append(error.getField()).append(": ").append(error.getDefaultMessage()).append("; ");
+            }
+            return ApiResponse.error(errorMessage.toString(), HttpStatus.BAD_REQUEST);
+        }
+        TaskResponse response = mentorService.createTask(projectId, taskDTO);
+        return ApiResponse.success(response, "Task created successfully", HttpStatus.CREATED);
     }
 
     /**

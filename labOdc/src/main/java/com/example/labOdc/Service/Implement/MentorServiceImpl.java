@@ -11,18 +11,26 @@ import com.example.labOdc.DTO.MentorDTO;
 import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
+import com.example.labOdc.DTO.Response.TaskResponse;
+import com.example.labOdc.DTO.TaskDTO;
+import com.example.labOdc.Enum.TemplateType;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.Mentor;
 import com.example.labOdc.Model.MentorInvitation;
 import com.example.labOdc.Model.MentorInvitationStatus;
 import com.example.labOdc.Model.RoleEntity;
+import com.example.labOdc.Model.Task;
 import com.example.labOdc.Model.User;
 import com.example.labOdc.Model.UserRole;
 import com.example.labOdc.Repository.MentorInvitationRepository;
 import com.example.labOdc.Repository.MentorRepository;
 import com.example.labOdc.Repository.ProjectMentorRepository;
+import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.RoleRepository;
+import com.example.labOdc.Repository.TalentRepository;
+import com.example.labOdc.Repository.TaskRepository;
 import com.example.labOdc.Repository.UserRepository;
+import com.example.labOdc.Service.ExcelSubmissionService;
 import com.example.labOdc.Service.MentorService;
 
 import jakarta.transaction.Transactional;
@@ -37,6 +45,10 @@ public class MentorServiceImpl implements MentorService {
     private final RoleRepository roleRepository;
     private final MentorInvitationRepository mentorInvitationRepository;
     private final ProjectMentorRepository projectMentorRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final TalentRepository talentRepository;
+    private final ExcelSubmissionService excelSubmissionService;
 
     @Override
 @Transactional
@@ -333,14 +345,235 @@ public MentorResponse createMentor(MentorDTO mentorDTO) {
 
     @Override
     public void breakdownTasks(String projectId, String excelTemplate) {
-        // Placeholder: Phân tích template Excel và tạo tasks
-        System.out.println("Breaking down tasks for project: " + projectId + " with template: " + excelTemplate);
+        // Validate project exists
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        if (excelTemplate == null || excelTemplate.isBlank()) {
+            throw new RuntimeException("Empty excel template URL");
+        }
+
+        java.io.InputStream is = null;
+        try {
+            byte[] data;
+            
+            // Download file từ URL (Google Driver, file server, etc.)
+            java.net.URL url = new java.net.URL(excelTemplate);
+            java.net.URLConnection conn = url.openConnection();
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            
+            try (java.io.InputStream urlStream = conn.getInputStream()) {
+                data = urlStream.readAllBytes();
+            }
+            
+            if (data == null || data.length == 0) {
+                throw new RuntimeException("Excel file downloaded from URL is empty");
+            }
+
+            // Save uploaded file to local storage (uploads/excel/{projectId}/{timestamp}.xlsx)
+            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads", "excel", projectId);
+            java.nio.file.Files.createDirectories(uploadDir);
+            String filename = "task-breakdown-" + System.currentTimeMillis() + ".xlsx";
+            java.nio.file.Path outPath = uploadDir.resolve(filename);
+            java.nio.file.Files.write(outPath, data);
+            String fileUrl = outPath.toAbsolutePath().toString();
+
+            // Record submission
+            String currentUserId = getCurrentUserIdSafe();
+            try {
+                excelSubmissionService.submitExcel(projectId, null, TemplateType.TASK_BREAKDOWN, fileUrl, currentUserId);
+            } catch (Exception e) {
+                System.err.println("Failed to record Excel submission: " + e.getMessage());
+            }
+
+            // Parse XLSX using Apache POI from byte[]
+            is = new java.io.ByteArrayInputStream(data);
+            try (org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook(is)) {
+                org.apache.poi.ss.usermodel.Sheet sheet = null;
+                // Prefer a sheet named TASKS
+                if (workbook.getNumberOfSheets() > 0) {
+                    sheet = workbook.getSheet("TASKS");
+                    if (sheet == null) sheet = workbook.getSheetAt(0);
+                }
+                if (sheet == null) {
+                    throw new RuntimeException("Excel template contains no sheets");
+                }
+
+                java.util.List<Task> tasksToSave = new java.util.ArrayList<>();
+                java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+                // Assume first row is header; start from row 1
+                for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+                    org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
+                    if (row == null) continue;
+
+                    String taskName = getCellString(row.getCell(0));
+                    if (taskName == null || taskName.isBlank()) continue;
+                    String description = getCellString(row.getCell(1));
+                    String priorityStr = getCellString(row.getCell(2));
+                    String startDateStr = getCellString(row.getCell(3));
+                    String dueDateStr = getCellString(row.getCell(4));
+                    String estHoursStr = getCellString(row.getCell(5));
+                    String assignedTo = getCellString(row.getCell(6));
+
+                    Task task = Task.builder()
+                            .projectId(projectId)
+                            .taskName(taskName.trim())
+                            .description(description)
+                            .status(Task.Status.TODO)
+                            .priority(parsePriority(priorityStr))
+                            .excelTemplateUrl(fileUrl)
+                            .createdBy(currentUserId)
+                            .build();
+
+                    try {
+                        if (startDateStr != null && !startDateStr.isBlank()) {
+                            task.setStartDate(java.time.LocalDate.parse(startDateStr.trim(), dateFormatter));
+                        }
+                    } catch (Exception ex) {
+                        // ignore parse
+                    }
+
+                    try {
+                        if (dueDateStr != null && !dueDateStr.isBlank()) {
+                            task.setDueDate(java.time.LocalDate.parse(dueDateStr.trim(), dateFormatter));
+                        }
+                    } catch (Exception ex) {
+                        // ignore parse
+                    }
+
+                    try {
+                        if (estHoursStr != null && !estHoursStr.isBlank()) {
+                            task.setEstimatedHours(new java.math.BigDecimal(estHoursStr.trim()));
+                        }
+                    } catch (Exception ex) {
+                        // ignore parse
+                    }
+
+                    // Validate talent ID from Excel
+                    if (assignedTo != null && !assignedTo.isBlank()) {
+                        String trimmedTalentId = assignedTo.trim();
+                        if (talentRepository.findById(trimmedTalentId).isPresent()) {
+                            // Talent hợp lệ - assign luôn
+                            task.setAssignedTo(trimmedTalentId);
+                        } else {
+                            // Talent không hợp lệ - để trống, dùng assignTask sau
+                            System.out.println("Warning: Talent ID '" + trimmedTalentId + "' not found in row " + (r + 1) + ". Task created without assignment.");
+                        }
+                    }
+
+                    tasksToSave.add(task);
+                }
+
+                if (!tasksToSave.isEmpty()) {
+                    taskRepository.saveAll(tasksToSave);
+                }
+            }
+
+        } catch (java.io.IOException ex) {
+            throw new RuntimeException("Failed to download or parse excel template from URL: " + ex.getMessage(), ex);
+        } finally {
+            if (is != null) try { is.close(); } catch (Exception e) { /* ignore */ }
+        }
+    }
+
+    private String getCellString(org.apache.poi.ss.usermodel.Cell cell) {
+        if (cell == null) return null;
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+                    java.time.LocalDate dt = cell.getLocalDateTimeCellValue().toLocalDate();
+                    return dt.toString();
+                }
+                return String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                try { return cell.getStringCellValue(); } catch (Exception e) { return String.valueOf(cell.getNumericCellValue()); }
+            default:
+                return null;
+        }
+    }
+
+    private Task.Priority parsePriority(String p) {
+        if (p == null) return null;
+        try {
+            return Task.Priority.valueOf(p.trim().toUpperCase());
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private String getCurrentUserIdSafe() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) return null;
+            String username = auth.getName();
+            if (username == null) return null;
+            User u = userRepository.findByUsername(username).orElse(null);
+            return u != null ? u.getId() : null;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     @Override
-    public void assignTask(String taskId, String talentId) {
-        // Placeholder: Giao task cho talent
-        System.out.println("Assigning task: " + taskId + " to talent: " + talentId);
+    @Transactional
+    public TaskResponse createTask(String projectId, TaskDTO taskDTO) {
+        // Validate project exists
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        
+        // Validate talent exists if assignedTo is provided
+        if (taskDTO.getAssignedTo() != null && !taskDTO.getAssignedTo().isBlank()) {
+            String trimmedTalentId = taskDTO.getAssignedTo().trim();
+            if (!talentRepository.findById(trimmedTalentId).isPresent()) {
+                throw new ResourceNotFoundException("Talent ID '" + trimmedTalentId + "' not found");
+            }
+            taskDTO.setAssignedTo(trimmedTalentId);
+        }
+        
+        // Get current user ID
+        String currentUserId = getCurrentUserIdSafe();
+        
+        // Build and save task
+        Task task = Task.builder()
+                .projectId(projectId)
+                .taskName(taskDTO.getTaskName())
+                .description(taskDTO.getDescription())
+                .priority(taskDTO.getPriority() != null ? taskDTO.getPriority() : Task.Priority.MEDIUM)
+                .status(Task.Status.TODO)
+                .startDate(taskDTO.getStartDate())
+                .dueDate(taskDTO.getDueDate())
+                .estimatedHours(taskDTO.getEstimatedHours())
+                .attachments(taskDTO.getAttachments())
+                .assignedTo(taskDTO.getAssignedTo())
+                .createdBy(currentUserId)
+                .build();
+        
+        Task savedTask = taskRepository.save(task);
+        return TaskResponse.fromEntity(savedTask);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse assignTask(String taskId, String talentId) {
+        // Validate task exists
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        
+        // Validate talent exists
+        talentRepository.findById(talentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
+        
+        // Assign task to talent
+        task.setAssignedTo(talentId);
+        Task updatedTask = taskRepository.save(task);
+        
+        return TaskResponse.fromEntity(updatedTask);
     }
 
     @Override
