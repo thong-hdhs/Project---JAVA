@@ -145,10 +145,10 @@ const UserManagement: React.FC = () => {
       setShowEdit(false);
       setSelectedUser(null);
       fetchUsers();
-      alert("Cập nhật user thành công");
+      alert("User updated successfully");
     } catch (err) {
       console.error("UPDATE USER ERROR:", err);
-      alert("Cập nhật user thất bại");
+      alert("Failed to update user");
     }
   };
 
@@ -156,14 +156,14 @@ const UserManagement: React.FC = () => {
   // DISABLE USER
   // ======================
   const handleDeleteUser = async (id: string) => {
-    if (!window.confirm("Bạn có chắc muốn disable user này không?")) return;
+    if (!window.confirm("Are you sure you want to disable this user?")) return;
 
     try {
       await axios.put(`${API_BASE}/${id}/disable`);
       fetchUsers();
     } catch (err) {
       console.error("DISABLE USER ERROR:", err);
-      alert("Disable user thất bại");
+      alert("Failed to disable user");
     }
   };
 
@@ -283,7 +283,6 @@ const UserManagement: React.FC = () => {
               <option value="LAB_ADMIN">LAB_ADMIN</option>
               <option value="MENTOR">MENTOR</option>
               <option value="TALENT">TALENT</option>
-        
             </select>
 
             <div className="flex justify-end gap-2 pt-3">

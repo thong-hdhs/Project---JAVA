@@ -39,6 +39,39 @@ public class TalentController {
     private final TalentService talentService;
 
     /**
+     * 4.5.1 - Lấy hồ sơ Talent của chính mình
+     * GET /api/v1/talents/me
+     */
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('TALENT')")
+    public ApiResponse<TalentResponse> getMyTalent() {
+        TalentResponse response = talentService.getMyTalent();
+        return ApiResponse.success(response, "Talent retrieved", HttpStatus.OK);
+    }
+
+    /**
+     * 4.5.1 - Cập nhật hồ sơ Talent của chính mình
+     * PUT /api/v1/talents/me
+     */
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('TALENT')")
+    public ApiResponse<TalentResponse> updateMyTalent(
+            @Valid @RequestBody TalentDTO talentDTO,
+            BindingResult result) {
+
+        if (result.hasErrors()) {
+            List<String> errorMessages = result.getFieldErrors()
+                    .stream()
+                    .map(FieldError::getDefaultMessage)
+                    .toList();
+            return ApiResponse.error(errorMessages);
+        }
+
+        TalentResponse response = talentService.updateMyTalent(talentDTO);
+        return ApiResponse.success(response, "Talent updated successfully", HttpStatus.OK);
+    }
+
+    /**
      * 4.5.1 - Tạo/Cập nhật hồ sơ Talent
      * POST /api/v1/talents
      */

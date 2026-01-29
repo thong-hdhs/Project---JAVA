@@ -94,6 +94,22 @@ public class TalentServiceImpl implements TalentService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public TalentResponse getMyTalent() {
+        Talent talent = getCurrentTalent();
+        return TalentResponse.fromTalent(talent);
+    }
+
+    @Override
+    @Transactional
+    public TalentResponse updateMyTalent(TalentDTO talentDTO) {
+        Talent talent = getCurrentTalent();
+        updateTalentFields(talent, talentDTO);
+        Talent updated = talentRepository.save(talent);
+        return TalentResponse.fromTalent(updated);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public TalentResponse getTalentById(String id) {
         logger.debug("Fetching talent with ID: {}", id);
         Talent talent = talentRepository.findById(id)

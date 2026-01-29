@@ -7,81 +7,153 @@ import Button from "@/components/ui/Button";
 import InputGroup from "@/components/ui/InputGroup";
 import Textarea from "@/components/ui/Textarea";
 
-import { getMyCandidateProfile, updateMyCandidateProfile, type CandidateProfilePayload } from "@/services";
+import {
+  createCandidateProfile,
+  getMyCandidateProfile,
+  updateMyCandidateProfile,
+  type CandidateProfilePayload,
+} from "@/services";
+
+type FieldErrors = Partial<Record<keyof CandidateProfilePayload, string>>;
+
+const isValidHttpUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
 
 const ProfileUpdatePage: React.FC = () => {
   const navigate = useNavigate();
-  const { token, roles: authRoles, user } = useSelector((state: any) => state.auth);
+  const {
+    token,
+    roles: authRoles,
+    user,
+  } = useSelector((state: any) => state.auth);
 
   const tokenRoles = useMemo(() => {
     const raw = Array.isArray(authRoles) ? authRoles : [];
-    return raw.map((r: any) => String(r).replace(/^ROLE_/, "").toUpperCase());
+    return raw.map((r: any) =>
+      String(r)
+        .replace(/^ROLE_/, "")
+        .toUpperCase(),
+    );
   }, [authRoles]);
 
   const isTalent = tokenRoles.includes("TALENT") || user?.role === "TALENT";
+  const isUser = tokenRoles.includes("USER") || user?.role === "USER";
 
-  const [profile, setProfile] = useState<CandidateProfilePayload>({
-    studentCode: "",
-  });
+  const emptyProfile: CandidateProfilePayload = useMemo(
+    () => ({
+      studentCode: "",
+      major: "",
+      year: undefined,
+      skills: "",
+      certifications: "",
+      portfolioUrl: "",
+      githubUrl: "",
+      linkedinUrl: "",
+    }),
+    [],
+  );
+
+  const [profile, setProfile] = useState<CandidateProfilePayload>(emptyProfile);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  useEffect(() => {
-    if (!isTalent) return;
+  const prefillFromMyProfile = async () => {
     setLoading(true);
     setError(null);
-    getMyCandidateProfile()
-      .then((res) => {
-        const data = res?.data?.data || res?.data || {};
-        setProfile({
-          studentCode: data.studentCode || data.student_code || "",
-          major: data.major || "",
-          year: data.year ?? undefined,
-          skills: data.skills || "",
-          certifications: data.certifications || "",
-          portfolioUrl: data.portfolioUrl || data.portfolio_url || "",
-          githubUrl: data.githubUrl || data.github_url || "",
-          linkedinUrl: data.linkedinUrl || data.linkedin_url || "",
-        });
-      })
-      .catch((err) => {
-        const status = err?.response?.status;
-        if (status === 403) {
-          setError("Bạn không có quyền cập nhật hồ sơ này.");
-          return;
-        }
-        const apiData = err?.response?.data;
-        const message = apiData?.errors?.join?.("; ") || apiData?.message || "Không thể tải hồ sơ cá nhân.";
-        setError(message);
-      })
-      .finally(() => setLoading(false));
-  }, [isTalent]);
+    setSuccess(null);
+    setFieldErrors({});
+    try {
+      const res = await getMyCandidateProfile();
+      const data = res?.data?.data || res?.data || {};
+      setProfile({
+        studentCode: data.studentCode || data.student_code || "",
+        major: data.major || "",
+        year: data.year ?? undefined,
+        skills: data.skills || "",
+        certifications: data.certifications || "",
+        portfolioUrl: data.portfolioUrl || data.portfolio_url || "",
+        githubUrl: data.githubUrl || data.github_url || "",
+        linkedinUrl: data.linkedinUrl || data.linkedin_url || "",
+      });
+    } catch (err: any) {
+      const apiData = err?.response?.data;
+      const status = err?.response?.status;
+      if (status === 403) {
+        setError("You don't have permission to load this profile.");
+        return;
+      }
+      setError(
+        apiData?.errors?.join?.("; ") ||
+          apiData?.message ||
+          "Failed to load profile.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setProfile((prev) => ({
       ...prev,
-      [name]: name === "year" ? (value === "" ? undefined : Number(value)) : value,
+      [name]:
+        name === "year" ? (value === "" ? undefined : Number(value)) : value,
     }));
+    setFieldErrors((prev) => ({ ...prev, [name]: undefined }) as any);
+  };
+
+  const validateForm = (): boolean => {
+    const next: FieldErrors = {};
+
+    if (!profile.studentCode?.trim()) {
+      next.studentCode = "Student ID is required.";
+    }
+
+    const portfolioUrl = profile.portfolioUrl?.trim();
+    if (portfolioUrl && !isValidHttpUrl(portfolioUrl)) {
+      next.portfolioUrl = "Invalid URL. Use http(s)://...";
+    }
+
+    const githubUrl = profile.githubUrl?.trim();
+    if (githubUrl && !isValidHttpUrl(githubUrl)) {
+      next.githubUrl = "Invalid URL. Use http(s)://...";
+    }
+
+    const linkedinUrl = profile.linkedinUrl?.trim();
+    if (linkedinUrl && !isValidHttpUrl(linkedinUrl)) {
+      next.linkedinUrl = "Invalid URL. Use http(s)://...";
+    }
+
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setFieldErrors({});
 
     if (!token) {
-      setError("Vui lòng đăng nhập để cập nhật hồ sơ.");
+      setError("Please sign in to update your profile.");
       return;
     }
-    if (!isTalent) {
-      setError("Tài khoản hiện tại không phải TALENT.");
+    if (!isTalent && !isUser) {
+      setError("Your account is not allowed to update this profile.");
       return;
     }
-    if (!profile.studentCode?.trim()) {
-      setError("Mã sinh viên là bắt buộc.");
+    if (!validateForm()) {
       return;
     }
 
@@ -98,68 +170,69 @@ const ProfileUpdatePage: React.FC = () => {
         linkedinUrl: profile.linkedinUrl || undefined,
       };
 
-      const res = await updateMyCandidateProfile(payload);
+      const res = isTalent
+        ? await updateMyCandidateProfile(payload)
+        : await createCandidateProfile(payload);
       const data = res?.data?.data || res?.data || {};
       setProfile({
-        studentCode: data.studentCode || data.student_code || payload.studentCode,
+        studentCode:
+          data.studentCode || data.student_code || payload.studentCode,
         major: data.major ?? payload.major ?? "",
         year: data.year ?? payload.year,
         skills: data.skills ?? payload.skills ?? "",
         certifications: data.certifications ?? payload.certifications ?? "",
-        portfolioUrl: data.portfolioUrl || data.portfolio_url || payload.portfolioUrl || "",
+        portfolioUrl:
+          data.portfolioUrl || data.portfolio_url || payload.portfolioUrl || "",
         githubUrl: data.githubUrl || data.github_url || payload.githubUrl || "",
-        linkedinUrl: data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
+        linkedinUrl:
+          data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
       });
 
-      setSuccess("Lưu thay đổi thành công.");
-      // Optional: navigate back after a short delay
-      setTimeout(() => navigate("/candidate/profile"), 400);
+      setSuccess("Saved successfully.");
+      setTimeout(() => navigate("/candidate/profile"), 300);
     } catch (err: any) {
       const apiData = err?.response?.data;
-      const message = apiData?.errors?.join?.("; ") || apiData?.message || "Cập nhật hồ sơ thất bại.";
+      const message =
+        apiData?.errors?.join?.("; ") ||
+        apiData?.message ||
+        "Profile update failed.";
       setError(message);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!isTalent) {
-    return (
-      <Card title="Cập nhật hồ sơ" subtitle="Chỉ áp dụng cho Talent" bodyClass="p-6">
-        <div className="text-slate-600 dark:text-slate-300">
-          Tài khoản hiện tại không phải TALENT nên không thể cập nhật hồ sơ Talent.
-        </div>
-        <div className="mt-4">
-          <Link to="/candidate/profile">
-            <Button text="Quay lại" className="btn-outline-dark" />
-          </Link>
-        </div>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <Card title="Cập nhật hồ sơ cá nhân" subtitle="Kỹ năng, chứng chỉ và portfolio" bodyClass="p-6">
+      <Card
+        title="Update Profile"
+        subtitle="Skills, certifications, and portfolio"
+        bodyClass="p-6"
+      >
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputGroup
-              label="Mã sinh viên"
+              label="Student ID"
               name="studentCode"
               value={profile.studentCode}
               onChange={handleChange}
               disabled={false}
-              placeholder="Mã sinh viên"
+              placeholder="Student ID"
+              error={
+                fieldErrors.studentCode
+                  ? { message: fieldErrors.studentCode }
+                  : undefined
+              }
             />
             <InputGroup
-              label="Ngành học"
+              label="Major"
               name="major"
               value={profile.major || ""}
               onChange={handleChange}
-              placeholder="Công nghệ thông tin"
+              placeholder="Computer Science"
             />
             <InputGroup
-              label="Năm học"
+              label="Year"
               type="number"
               name="year"
               value={profile.year ?? ""}
@@ -172,13 +245,23 @@ const ProfileUpdatePage: React.FC = () => {
               value={profile.portfolioUrl || ""}
               onChange={handleChange}
               placeholder="https://portfolio.example.com"
+              error={
+                fieldErrors.portfolioUrl
+                  ? { message: fieldErrors.portfolioUrl }
+                  : undefined
+              }
             />
             <InputGroup
-              label="Github URL"
+              label="GitHub URL"
               name="githubUrl"
               value={profile.githubUrl || ""}
               onChange={handleChange}
               placeholder="https://github.com/username"
+              error={
+                fieldErrors.githubUrl
+                  ? { message: fieldErrors.githubUrl }
+                  : undefined
+              }
             />
             <InputGroup
               label="LinkedIn URL"
@@ -186,11 +269,16 @@ const ProfileUpdatePage: React.FC = () => {
               value={profile.linkedinUrl || ""}
               onChange={handleChange}
               placeholder="https://linkedin.com/in/username"
+              error={
+                fieldErrors.linkedinUrl
+                  ? { message: fieldErrors.linkedinUrl }
+                  : undefined
+              }
             />
           </div>
 
           <Textarea
-            label="Kỹ năng (phân tách bằng dấu phẩy)"
+            label="Skills (comma-separated)"
             name="skills"
             row={3}
             value={profile.skills || ""}
@@ -198,7 +286,7 @@ const ProfileUpdatePage: React.FC = () => {
             placeholder="Java, Spring Boot, React"
           />
           <Textarea
-            label="Chứng chỉ"
+            label="Certifications"
             name="certifications"
             row={3}
             value={profile.certifications || ""}
@@ -212,15 +300,47 @@ const ProfileUpdatePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <Button
               type="submit"
-              text={saving ? "Đang lưu..." : "Lưu thay đổi"}
+              text={
+                saving
+                  ? "Saving..."
+                  : isTalent
+                    ? "Save Changes"
+                    : "Create Profile"
+              }
               isLoading={saving}
               disabled={saving || loading || !token}
               className="btn-primary"
             />
+            <Button
+              type="button"
+              text="Clear"
+              className="btn-outline-dark"
+              disabled={saving || loading}
+              onClick={() => {
+                setProfile(emptyProfile);
+                setFieldErrors({});
+                setError(null);
+                setSuccess(null);
+              }}
+            />
+            {isTalent && (
+              <Button
+                type="button"
+                text={
+                  loading ? "Loading..." : "Prefill from my current profile"
+                }
+                className="btn-outline-dark"
+                disabled={saving || loading}
+                isLoading={loading}
+                onClick={prefillFromMyProfile}
+              />
+            )}
             <Link to="/candidate/profile">
-              <Button text="Hủy" className="btn-outline-dark" />
+              <Button text="Cancel" className="btn-outline-dark" />
             </Link>
-            {loading && <span className="text-sm text-slate-500">Đang tải hồ sơ...</span>}
+            {loading && (
+              <span className="text-sm text-slate-500">Loading...</span>
+            )}
           </div>
         </form>
       </Card>

@@ -24,132 +24,136 @@ import Loading from "@/components/Loading";
 // Lazy load all LabOdc pages
 // Candidate/Talent pages
 const CandidateDashboard = lazy(
-  () => import("./pages/labodc/candidate/dashboard")
+  () => import("./pages/labodc/candidate/dashboard"),
 );
 const CandidateProfile = lazy(() => import("./pages/labodc/candidate/profile"));
 const CandidateProfileUpdate = lazy(
-  () => import("./pages/labodc/candidate/profile-update")
+  () => import("./pages/labodc/candidate/profile-update"),
 );
 const BrowseProjects = lazy(
-  () => import("./pages/labodc/candidate/browse-projects")
+  () => import("./pages/labodc/candidate/browse-projects"),
 );
 const ProjectDetail = lazy(
-  () => import("./pages/labodc/candidate/project-detail")
+  () => import("./pages/labodc/candidate/project-detail"),
 );
 const MyApplications = lazy(
-  () => import("./pages/labodc/candidate/applications")
+  () => import("./pages/labodc/candidate/applications"),
 );
 const MyProjects = lazy(() => import("./pages/labodc/candidate/my-projects"));
 const TaskDetail = lazy(() => import("./pages/labodc/candidate/task-detail"));
+const CandidateTasks = lazy(() => import("./pages/labodc/candidate/tasks.tsx"));
 const FundDistributions = lazy(
-  () => import("./pages/labodc/candidate/fund-distributions")
+  () => import("./pages/labodc/candidate/fund-distributions"),
 );
 const TeamVotes = lazy(() => import("./pages/labodc/candidate/team-votes"));
-const CompanyVerification = lazy(
-  () => import("./pages/labodc/candidate/company-verification")
-);
 const CandidateReports = lazy(() => import("./pages/labodc/candidate/reports"));
 
 // Company/Enterprise pages
 const EnterpriseDashboard = lazy(
-  () => import("./pages/labodc/enterprise/dashboard")
+  () => import("./pages/labodc/enterprise/dashboard"),
 );
 // CompanyProfile removed - use common `profile` page
 const ProjectList = lazy(() => import("./pages/labodc/enterprise/projects"));
 const CreateProject = lazy(
-  () => import("./pages/labodc/enterprise/create-project")
+  () => import("./pages/labodc/enterprise/create-project"),
 );
 const EditProject = lazy(
-  () => import("./pages/labodc/enterprise/edit-project")
+  () => import("./pages/labodc/enterprise/edit-project"),
 );
 const ProjectDetailEnterprise = lazy(
-  () => import("./pages/labodc/enterprise/project-detail")
+  () => import("./pages/labodc/enterprise/project-detail"),
 );
 const Payments = lazy(() => import("./pages/labodc/enterprise/payments"));
 const ChangeRequests = lazy(
-  () => import("./pages/labodc/enterprise/change-requests")
+  () => import("./pages/labodc/enterprise/change-requests"),
 );
 const CompanyEvaluations = lazy(
-  () => import("./pages/labodc/enterprise/evaluations")
+  () => import("./pages/labodc/enterprise/evaluations"),
 );
-const EnterpriseReports = lazy(() => import("./pages/labodc/enterprise/reports"));
+const EnterpriseReports = lazy(
+  () => import("./pages/labodc/enterprise/reports"),
+);
 
 // Mentor pages
 const MentorDashboard = lazy(() => import("./pages/labodc/mentor/dashboard"));
 // MentorProfile removed - use common `profile` page
 const MentorInvitations = lazy(
-  () => import("./pages/labodc/mentor/invitations")
+  () => import("./pages/labodc/mentor/invitations"),
 );
 const CandidateReviews = lazy(
-  () => import("./pages/labodc/mentor/candidate-reviews")
+  () => import("./pages/labodc/mentor/candidate-reviews"),
 );
 const MentorProjectWorkspace = lazy(
-  () => import("./pages/labodc/mentor/project-workspace")
+  () => import("./pages/labodc/mentor/project-workspace"),
 );
 const MentorReports = lazy(() => import("./pages/labodc/mentor/reports"));
 const FundApprovals = lazy(
-  () => import("./pages/labodc/mentor/fund-approvals")
+  () => import("./pages/labodc/mentor/fund-approvals"),
 );
 
 // Lab Admin pages
 const LabAdminDashboard = lazy(
-  () => import("./pages/labodc/lab-admin/dashboard")
+  () => import("./pages/labodc/lab-admin/dashboard"),
 );
 const ValidateProjects = lazy(
-  () => import("./pages/labodc/lab-admin/validate-projects")
+  () => import("./pages/labodc/lab-admin/validate-projects"),
 );
 const PaymentsOverview = lazy(
-  () => import("./pages/labodc/lab-admin/payments-overview")
+  () => import("./pages/labodc/lab-admin/payments-overview"),
 );
 const FundAllocations = lazy(
-  () => import("./pages/labodc/lab-admin/fund-allocations")
+  () => import("./pages/labodc/lab-admin/fund-allocations"),
 );
 const LabFundAdvances = lazy(
-  () => import("./pages/labodc/lab-admin/lab-fund-advances")
+  () => import("./pages/labodc/lab-admin/lab-fund-advances"),
 );
 const TransparencyReport = lazy(
-  () => import("./pages/labodc/lab-admin/transparency-report")
+  () => import("./pages/labodc/lab-admin/transparency-report"),
 );
 const ChangeRequestApprovals = lazy(
-  () => import("./pages/labodc/lab-admin/change-request-approvals")
+  () => import("./pages/labodc/lab-admin/change-request-approvals"),
 );
 const RejectedProjects = lazy(
-  () => import("./pages/labodc/lab-admin/rejected-projects")
+  () => import("./pages/labodc/lab-admin/rejected-projects"),
 );
 const RejectedCompanies = lazy(
-  () => import("./pages/labodc/lab-admin/rejected-companies")
+  () => import("./pages/labodc/lab-admin/rejected-companies"),
 );
 const RiskRecords = lazy(() => import("./pages/labodc/lab-admin/risk-records"));
 const CompanyApprovals = lazy(
-  () => import("./pages/labodc/lab-admin/company-approvals")
+  () => import("./pages/labodc/lab-admin/company-approvals"),
 );
 const ApprovedCompanies = lazy(
-  () => import("./pages/labodc/lab-admin/approved-companies")
+  () => import("./pages/labodc/lab-admin/approved-companies"),
 );
 const ApprovedProjects = lazy(
-  () => import("./pages/labodc/lab-admin/approved-projects")
+  () => import("./pages/labodc/lab-admin/approved-projects"),
 );
-const MentorsManagement = lazy(() => import("./pages/labodc/lab-admin/mentors"));
-const TalentsManagement = lazy(() => import("./pages/labodc/lab-admin/talents"));
+const MentorsManagement = lazy(
+  () => import("./pages/labodc/lab-admin/mentors"),
+);
+const TalentsManagement = lazy(
+  () => import("./pages/labodc/lab-admin/talents"),
+);
 const LabAdminReports = lazy(() => import("./pages/labodc/lab-admin/reports"));
 
 // System Admin pages
 const SystemAdminDashboard = lazy(
-  () => import("./pages/labodc/system-admin/dashboard")
+  () => import("./pages/labodc/system-admin/dashboard"),
 );
 const UserManagement = lazy(
-  () => import("./pages/labodc/system-admin/user-management")
+  () => import("./pages/labodc/system-admin/user-management"),
 );
 const Settings = lazy(() => import("./pages/labodc/system-admin/settings"));
 const ExcelTemplates = lazy(
-  () => import("./pages/labodc/system-admin/excel-templates")
+  () => import("./pages/labodc/system-admin/excel-templates"),
 );
 const EmailTemplates = lazy(
-  () => import("./pages/labodc/system-admin/email-templates")
+  () => import("./pages/labodc/system-admin/email-templates"),
 );
 const AuditLogs = lazy(() => import("./pages/labodc/system-admin/audit-logs"));
 const MentorRoleRequests = lazy(
-  () => import("./pages/labodc/system-admin/mentor-role-requests")
+  () => import("./pages/labodc/system-admin/mentor-role-requests"),
 );
 
 // Common pages
@@ -180,7 +184,10 @@ function App() {
         >
           {/* Candidate/Talent (Users) routes */}
           <Route element={<UserRoute />}>
-            <Route path="candidate/dashboard" element={<CandidateDashboard />} />
+            <Route
+              path="candidate/dashboard"
+              element={<CandidateDashboard />}
+            />
             <Route path="candidate/profile" element={<CandidateProfile />} />
             <Route
               path="candidate/profile/update"
@@ -193,16 +200,13 @@ function App() {
             <Route path="candidate/project/:id" element={<ProjectDetail />} />
             <Route path="candidate/applications" element={<MyApplications />} />
             <Route path="candidate/my-projects" element={<MyProjects />} />
+            <Route path="candidate/tasks" element={<CandidateTasks />} />
             <Route path="candidate/task/:id" element={<TaskDetail />} />
             <Route
               path="candidate/fund-distributions"
               element={<FundDistributions />}
             />
             <Route path="candidate/team-votes" element={<TeamVotes />} />
-            <Route
-              path="candidate/company-verification"
-              element={<CompanyVerification />}
-            />
             <Route path="candidate/reports" element={<CandidateReports />} />
           </Route>
 

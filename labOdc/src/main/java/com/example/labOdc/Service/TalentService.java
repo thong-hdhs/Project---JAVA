@@ -13,6 +13,11 @@ public interface TalentService {
     // ===== CRUD Core =====
     TalentResponse createTalent(TalentDTO talentDTO);
 
+    // ===== Self profile (current TALENT) =====
+    TalentResponse getMyTalent();
+
+    TalentResponse updateMyTalent(TalentDTO talentDTO);
+
     List<TalentResponse> getAllTalents();
 
     TalentResponse getTalentById(String id);

@@ -99,11 +99,8 @@ const BrowseProjects: React.FC = () => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const response = await projectService.getProjects();
-      const availableProjects = response.data.filter(
-        (project: Project) => project.validation_status === "APPROVED"
-      );
-      setProjects(availableProjects);
+      const response = await projectService.getAvailableProjectsForTalent();
+      setProjects(response.data);
     } catch (error) {
       console.error("Error loading projects:", error);
     } finally {
@@ -114,11 +111,10 @@ const BrowseProjects: React.FC = () => {
   const handleApply = async (projectId: string) => {
     try {
       setApplyingId(projectId);
-      await projectService.applyForProject({
-        project_id: projectId,
-        cover_letter:
-          "I am very interested in this project and believe my skills align well with the requirements.",
-      });
+      await projectService.applyToProjectAsTalent(
+        projectId,
+        "I am interested in this project and believe my skills align with the requirements.",
+      );
       toast.success("Applied successfully");
     } catch (error: any) {
       const apiData = error?.response?.data;
@@ -147,9 +143,9 @@ const BrowseProjects: React.FC = () => {
             const s =
               typeof skill === "string"
                 ? skill
-                : skill.label ?? skill.value ?? "";
+                : (skill.label ?? skill.value ?? "");
             return s.toLowerCase().includes(searchTerm.toLowerCase());
-          })
+          }),
       );
     }
 
@@ -159,22 +155,22 @@ const BrowseProjects: React.FC = () => {
         selectedSkills.every((skill) =>
           (project.required_skills || [])
             .map((s: any) =>
-              typeof s === "string" ? s : s.value ?? s.label ?? ""
+              typeof s === "string" ? s : (s.value ?? s.label ?? ""),
             )
-            .includes(skill)
-        )
+            .includes(skill),
+        ),
       );
     }
 
     // Budget filter
     if (budgetRange.min) {
       filtered = filtered.filter(
-        (project) => (project.budget ?? 0) >= parseInt(budgetRange.min)
+        (project) => (project.budget ?? 0) >= parseInt(budgetRange.min),
       );
     }
     if (budgetRange.max) {
       filtered = filtered.filter(
-        (project) => (project.budget ?? 0) <= parseInt(budgetRange.max)
+        (project) => (project.budget ?? 0) <= parseInt(budgetRange.max),
       );
     }
 
@@ -182,7 +178,7 @@ const BrowseProjects: React.FC = () => {
     if (durationFilter) {
       const months = parseInt(durationFilter);
       filtered = filtered.filter(
-        (project) => (project.duration_months ?? 0) <= months
+        (project) => (project.duration_months ?? 0) <= months,
       );
     }
 
@@ -214,7 +210,7 @@ const BrowseProjects: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
   const paginatedProjects = filteredProjects.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   const goToPage = (p: number) => {
@@ -286,7 +282,7 @@ const BrowseProjects: React.FC = () => {
                   value={selectedSkills}
                   onChange={(e: any) => {
                     const opts = Array.from(e.target.selectedOptions || []).map(
-                      (o: any) => o.value
+                      (o: any) => o.value,
                     );
                     setSelectedSkills(opts);
                   }}
@@ -460,9 +456,9 @@ const BrowseProjects: React.FC = () => {
                             const label =
                               typeof skill === "string"
                                 ? skill
-                                : skill.label ??
+                                : (skill.label ??
                                   skill.value ??
-                                  JSON.stringify(skill);
+                                  JSON.stringify(skill));
                             return (
                               <span
                                 key={index}

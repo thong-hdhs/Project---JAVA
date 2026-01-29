@@ -253,14 +253,14 @@ export const useMenuItems = () => {
             link: "candidate/reports",
           },
           {
-            title: "Company Verification",
-            icon: "heroicons-outline:building-office",
-            link: "candidate/company-verification",
-          },
-          {
             title: "Browse Projects",
             icon: "heroicons-outline:magnifying-glass",
             link: "candidate/browse-projects",
+          },
+          {
+            title: "My Tasks",
+            icon: "heroicons-outline:clipboard-document-check",
+            link: "candidate/tasks",
           },
           {
             title: "My Applications",

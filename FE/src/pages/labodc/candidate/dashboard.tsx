@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import Card from '@/components/ui/Card';
-import MetricCard from '@/components/ui/MetricCard';
-import Button from '@/components/ui/Button';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { Link } from 'react-router-dom';
-import { projectService } from '@/services/project.service';
-import { taskService } from '@/services/task.service';
-import { talentService, type BackendTalentTaskResponse } from '@/services/talent.service';
-import { Project, Task } from '@/types';
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import Card from "@/components/ui/Card";
+import MetricCard from "@/components/ui/MetricCard";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { Link } from "react-router-dom";
+import { projectService } from "@/services/project.service";
+import { taskService } from "@/services/task.service";
+import {
+  talentService,
+  type BackendTalentTaskResponse,
+} from "@/services/talent.service";
+import { Project, Task } from "@/types";
 
 const parseDateOrUndefined = (v: unknown): Date | undefined => {
   if (!v) return undefined;
@@ -20,15 +23,17 @@ const mapBackendTalentTaskToTask = (t: BackendTalentTaskResponse): Task => {
   const createdAt = parseDateOrUndefined(t.createdAt) || new Date();
   const updatedAt = parseDateOrUndefined(t.updatedAt) || createdAt;
   return {
-    id: String(t.id || ''),
-    project_id: String(t.projectId || ''),
-    title: String(t.taskName || ''),
-    description: String(t.description || ''),
-    status: (String(t.status || 'TODO').toUpperCase() as Task['status']),
-    priority: (String(t.priority || 'MEDIUM').toUpperCase() as Task['priority']),
+    id: String(t.id || ""),
+    project_id: String(t.projectId || ""),
+    title: String(t.taskName || ""),
+    description: String(t.description || ""),
+    status: String(t.status || "TODO").toUpperCase() as Task["status"],
+    priority: String(t.priority || "MEDIUM").toUpperCase() as Task["priority"],
     assigned_to: t.assignedTo ? String(t.assignedTo) : undefined,
-    created_by: String(t.createdBy || ''),
-    excel_template_url: t.excelTemplateUrl ? String(t.excelTemplateUrl) : undefined,
+    created_by: String(t.createdBy || ""),
+    excel_template_url: t.excelTemplateUrl
+      ? String(t.excelTemplateUrl)
+      : undefined,
     attachments: Array.isArray(t.attachments) ? t.attachments : undefined,
     due_date: parseDateOrUndefined(t.dueDate),
     completed_at: parseDateOrUndefined(t.completedDate),
@@ -62,14 +67,12 @@ const CandidateDashboard: React.FC = () => {
       const userProjects = myProjectsResponse.data;
 
       // Load available projects for browsing
-      const projectsResponse = await projectService.getProjects();
-
-      const availableProjects = projectsResponse.data.filter(project =>
-        project.validation_status === 'APPROVED'
-      );
+      const projectsResponse =
+        await projectService.getAvailableProjectsForTalent();
+      const availableProjects = projectsResponse.data;
 
       // Load user's tasks (TALENT endpoints are under /api/v1/talents)
-      const tasksResponse = user?.role?.toString().includes('TALENT')
+      const tasksResponse = user?.role?.toString().includes("TALENT")
         ? (await talentService.getMyTasks()).map(mapBackendTalentTaskToTask)
         : await taskService.getMyTasks();
 
@@ -77,9 +80,15 @@ const CandidateDashboard: React.FC = () => {
       const myApplications = await projectService.getMyApplications();
 
       // Calculate stats
-      const activeProjects = userProjects.filter((p: Project) => p.status === 'IN_PROGRESS').length;
-      const pendingApplications = myApplications.filter((a) => a.status === 'PENDING').length;
-      const completedTasks = tasksResponse.filter(task => task.status === 'COMPLETED').length;
+      const activeProjects = userProjects.filter(
+        (p: Project) => p.status === "IN_PROGRESS",
+      ).length;
+      const pendingApplications = myApplications.filter(
+        (a) => a.status === "PENDING",
+      ).length;
+      const completedTasks = tasksResponse.filter(
+        (task) => task.status === "COMPLETED",
+      ).length;
 
       setStats({
         activeProjects,
@@ -90,9 +99,8 @@ const CandidateDashboard: React.FC = () => {
 
       setRecentProjects(userProjects.slice(0, 3));
       setMyTasks(tasksResponse.slice(0, 5));
-
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error("Error loading dashboard data:", error);
     } finally {
       setLoading(false);
     }
@@ -127,10 +135,16 @@ const CandidateDashboard: React.FC = () => {
           </div>
           <div className="flex space-x-3">
             <Link to="/candidate/browse-projects">
-              <Button text="Browse Projects" className="bg-primary-500 text-white" />
+              <Button
+                text="Browse Projects"
+                className="bg-primary-500 text-white"
+              />
             </Link>
             <Link to="/candidate/profile/update">
-              <Button text="Update Profile" className="bg-white border border-gray-300 text-gray-700" />
+              <Button
+                text="Update Profile"
+                className="bg-white border border-gray-300 text-gray-700"
+              />
             </Link>
           </div>
         </div>
@@ -166,22 +180,33 @@ const CandidateDashboard: React.FC = () => {
       {/* Recent Projects & Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* My Projects */}
-        <Card title="My Projects" headerslot={
-          <Link to="/candidate/my-projects">
-            <Button text="View All" className="btn-outline-dark btn-sm" />
-          </Link>
-        }>
+        <Card
+          title="My Projects"
+          headerslot={
+            <Link to="/candidate/my-projects">
+              <Button text="View All" className="btn-outline-dark btn-sm" />
+            </Link>
+          }
+        >
           <div className="space-y-4">
             {recentProjects.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No active projects yet. Browse available projects to get started!
+                No active projects yet. Browse available projects to get
+                started!
               </div>
             ) : (
               recentProjects.map((project) => (
-                <div key={project.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div
+                  key={project.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                >
                   <div>
-                    <h4 className="font-medium text-gray-900">{project.project_name}</h4>
-                    <p className="text-sm text-gray-600 line-clamp-1">{project.description}</p>
+                    <h4 className="font-medium text-gray-900">
+                      {project.project_name}
+                    </h4>
+                    <p className="text-sm text-gray-600 line-clamp-1">
+                      {project.description}
+                    </p>
                     <div className="flex items-center mt-2">
                       <StatusBadge status={project.status} />
                     </div>
@@ -196,11 +221,14 @@ const CandidateDashboard: React.FC = () => {
         </Card>
 
         {/* Recent Tasks */}
-        <Card title="My Tasks" headerslot={
-          <Link to="/candidate/tasks">
-            <Button text="View All" className="btn-outline-dark btn-sm" />
-          </Link>
-        }>
+        <Card
+          title="My Tasks"
+          headerslot={
+            <Link to="/candidate/tasks">
+              <Button text="View All" className="btn-outline-dark btn-sm" />
+            </Link>
+          }
+        >
           <div className="space-y-4">
             {myTasks.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -208,13 +236,20 @@ const CandidateDashboard: React.FC = () => {
               </div>
             ) : (
               myTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                >
                   <div>
                     <h4 className="font-medium text-gray-900">{task.title}</h4>
-                    <p className="text-sm text-gray-600 line-clamp-1">{task.description}</p>
+                    <p className="text-sm text-gray-600 line-clamp-1">
+                      {task.description}
+                    </p>
                     <div className="flex items-center mt-2 space-x-2">
                       <StatusBadge status={task.status} />
-                      <span className="text-xs text-gray-500">Priority: {task.priority}</span>
+                      <span className="text-xs text-gray-500">
+                        Priority: {task.priority}
+                      </span>
                     </div>
                   </div>
                   <Link to={`/candidate/task/${task.id}`}>
@@ -230,29 +265,52 @@ const CandidateDashboard: React.FC = () => {
       {/* Quick Actions */}
       <Card title="Quick Actions">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link to="/candidate/company-verification" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <span className="text-2xl text-purple-600 mx-auto mb-2 block">🏢</span>
-            <span className="text-sm font-medium text-gray-900">Verify Company</span>
+          <Link
+            to="/candidate/browse-projects"
+            className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-2xl text-primary-600 mx-auto mb-2 block">
+              🔍
+            </span>
+            <span className="text-sm font-medium text-gray-900">
+              Browse Projects
+            </span>
           </Link>
 
-          <Link to="/candidate/browse-projects" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <span className="text-2xl text-primary-600 mx-auto mb-2 block">🔍</span>
-            <span className="text-sm font-medium text-gray-900">Browse Projects</span>
+          <Link
+            to="/candidate/applications"
+            className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-2xl text-green-600 mx-auto mb-2 block">
+              📄
+            </span>
+            <span className="text-sm font-medium text-gray-900">
+              My Applications
+            </span>
           </Link>
 
-          <Link to="/candidate/applications" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <span className="text-2xl text-green-600 mx-auto mb-2 block">📄</span>
-            <span className="text-sm font-medium text-gray-900">My Applications</span>
+          <Link
+            to="/candidate/fund-distributions"
+            className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-2xl text-blue-600 mx-auto mb-2 block">
+              💰
+            </span>
+            <span className="text-sm font-medium text-gray-900">
+              Fund Distribution
+            </span>
           </Link>
 
-          <Link to="/candidate/fund-distributions" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <span className="text-2xl text-blue-600 mx-auto mb-2 block">💰</span>
-            <span className="text-sm font-medium text-gray-900">Fund Distribution</span>
-          </Link>
-
-          <Link to="/candidate/profile" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <span className="text-2xl text-yellow-600 mx-auto mb-2 block">👤</span>
-            <span className="text-sm font-medium text-gray-900">Update Profile</span>
+          <Link
+            to="/candidate/profile"
+            className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-2xl text-yellow-600 mx-auto mb-2 block">
+              👤
+            </span>
+            <span className="text-sm font-medium text-gray-900">
+              Update Profile
+            </span>
           </Link>
         </div>
       </Card>

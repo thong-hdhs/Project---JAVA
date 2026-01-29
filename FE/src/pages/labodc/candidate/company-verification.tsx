@@ -34,7 +34,9 @@ const decodeJwtPayload = (token: string): any => {
 
 const tokenHasUserRole = (token: string): boolean => {
   const payload = decodeJwtPayload(token) || {};
-  const rolesRaw = Array.isArray(payload.roles) ? payload.roles.map(String) : [];
+  const rolesRaw = Array.isArray(payload.roles)
+    ? payload.roles.map(String)
+    : [];
   const roles = rolesRaw.map((r) => r.replace(/^ROLE_/, ""));
   return roles.includes("USER") || roles.includes("SYSTEM_ADMIN");
 };
@@ -134,11 +136,13 @@ const CompanyVerification: React.FC = () => {
 
     const token = getAuthToken();
     if (!token) {
-      toast.error("Bạn cần đăng nhập để gửi đăng ký doanh nghiệp.");
+      toast.error("Please sign in to submit a company registration.");
       return;
     }
     if (!tokenHasUserRole(token)) {
-      toast.error("Tài khoản không có role USER để đăng ký doanh nghiệp.");
+      toast.error(
+        "Your account must have the USER role to register a company.",
+      );
       return;
     }
 
@@ -152,11 +156,11 @@ const CompanyVerification: React.FC = () => {
     }
 
     if (!companyName.trim()) {
-      toast.error("Vui lòng nhập Company Name.");
+      toast.error("Please enter Company Name.");
       return;
     }
     if (!taxCode.trim()) {
-      toast.error("Vui lòng nhập Tax Code.");
+      toast.error("Please enter Tax Code.");
       return;
     }
 
@@ -178,7 +182,7 @@ const CompanyVerification: React.FC = () => {
       setSubmitting(true);
       const created = await companyService.registerCompanyProfile(payload);
       localStorage.setItem(storageKeyForUser(user.id), JSON.stringify(created));
-      toast.success("Đã gửi đăng ký hồ sơ doanh nghiệp.");
+      toast.success("Company registration submitted.");
 
       setCompanyName("");
       setTaxCode("");
@@ -190,7 +194,7 @@ const CompanyVerification: React.FC = () => {
       setNote("");
       setRefreshKey((k) => k + 1);
     } catch (err: any) {
-      toast.error(err?.message || "Gửi đăng ký thất bại");
+      toast.error(err?.message || "Registration failed");
     } finally {
       setSubmitting(false);
     }
@@ -209,8 +213,12 @@ const CompanyVerification: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Register as a Company</h1>
-        <p className="text-gray-600 mt-1">Submit your company information for Lab Admin approval</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Register as a Company
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Submit your company information for Lab Admin approval
+        </p>
       </div>
 
       <Card title="Current Status">
@@ -220,14 +228,25 @@ const CompanyVerification: React.FC = () => {
         {myRequest ? (
           <div className="mt-3 text-sm text-gray-700 space-y-1">
             <div>
-              Company: <span className="font-semibold">{myRequest.companyName}</span>
+              Company:{" "}
+              <span className="font-semibold">{myRequest.companyName}</span>
             </div>
-            {myRequest.taxCode ? <div>Tax code: {myRequest.taxCode}</div> : null}
-            {myRequest.createdAt ? <div>Submitted: {new Date(myRequest.createdAt).toLocaleString()}</div> : null}
-            {myRequest.rejectionReason ? <div>Rejection: {myRequest.rejectionReason}</div> : null}
+            {myRequest.taxCode ? (
+              <div>Tax code: {myRequest.taxCode}</div>
+            ) : null}
+            {myRequest.createdAt ? (
+              <div>
+                Submitted: {new Date(myRequest.createdAt).toLocaleString()}
+              </div>
+            ) : null}
+            {myRequest.rejectionReason ? (
+              <div>Rejection: {myRequest.rejectionReason}</div>
+            ) : null}
           </div>
         ) : (
-          <div className="mt-2 text-gray-500 text-sm">No request submitted yet.</div>
+          <div className="mt-2 text-gray-500 text-sm">
+            No request submitted yet.
+          </div>
         )}
       </Card>
 
@@ -310,11 +329,19 @@ const CompanyVerification: React.FC = () => {
           <button
             type="button"
             className={`btn inline-flex justify-center bg-primary-600 text-white ${
-              !companyName.trim() || !taxCode.trim() || myRequest?.status === "PENDING" || submitting
+              !companyName.trim() ||
+              !taxCode.trim() ||
+              myRequest?.status === "PENDING" ||
+              submitting
                 ? "opacity-40 cursor-not-allowed"
                 : ""
             }`}
-            disabled={!companyName.trim() || !taxCode.trim() || myRequest?.status === "PENDING" || submitting}
+            disabled={
+              !companyName.trim() ||
+              !taxCode.trim() ||
+              myRequest?.status === "PENDING" ||
+              submitting
+            }
             onClick={submit}
           >
             {myRequest?.status === "PENDING"

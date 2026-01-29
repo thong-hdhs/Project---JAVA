@@ -1,29 +1,33 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import Card from '@/components/ui/Card';
-import { toast } from 'react-toastify';
-import { talentService, type BackendTalentResponse } from '@/services/talent.service';
-import { requireRoleFromToken } from '@/utils/auth';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Card from "@/components/ui/Card";
+import { toast } from "react-toastify";
+import {
+  talentService,
+  type BackendTalentResponse,
+} from "@/services/talent.service";
+import { requireRoleFromToken } from "@/utils/auth";
 
 const StudentsManagement: React.FC = () => {
   const [items, setItems] = useState<BackendTalentResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const auth = requireRoleFromToken('LAB_ADMIN');
+      const auth = requireRoleFromToken("LAB_ADMIN");
       if (!auth.ok) {
         toast.error(auth.reason);
         setItems([]);
         return;
       }
-      const list = statusFilter === 'ALL'
-        ? await talentService.listAllTalents()
-        : await talentService.listTalentsByStatus(statusFilter);
+      const list =
+        statusFilter === "ALL"
+          ? await talentService.listAllTalents()
+          : await talentService.listTalentsByStatus(statusFilter);
       setItems(list || []);
     } catch (e: any) {
-      toast.error(e?.message || 'Không thể tải danh sách sinh viên');
+      toast.error(e?.message || "Failed to load students list");
       setItems([]);
     } finally {
       setLoading(false);
@@ -57,7 +61,8 @@ const StudentsManagement: React.FC = () => {
               <option value="SUSPENDED">SUSPENDED</option>
             </select>
             <div className="text-sm text-gray-600">
-              Total: <span className="font-semibold text-gray-900">{total}</span>
+              Total:{" "}
+              <span className="font-semibold text-gray-900">{total}</span>
             </div>
           </div>
         </div>
@@ -84,11 +89,13 @@ const StudentsManagement: React.FC = () => {
               <tbody>
                 {items.map((t) => (
                   <tr key={t.id} className="border-t">
-                    <td className="py-3 font-medium text-gray-900">{t.studentCode || '-'}</td>
-                    <td className="py-3">{t.major || '-'}</td>
-                    <td className="py-3">{t.year ?? '-'}</td>
-                    <td className="py-3">{t.gpa ?? '-'}</td>
-                    <td className="py-3">{t.status || '-'}</td>
+                    <td className="py-3 font-medium text-gray-900">
+                      {t.studentCode || "-"}
+                    </td>
+                    <td className="py-3">{t.major || "-"}</td>
+                    <td className="py-3">{t.year ?? "-"}</td>
+                    <td className="py-3">{t.gpa ?? "-"}</td>
+                    <td className="py-3">{t.status || "-"}</td>
                     <td className="py-3 text-gray-600">{t.id}</td>
                   </tr>
                 ))}

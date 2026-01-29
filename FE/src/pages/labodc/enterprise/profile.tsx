@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { getMyCandidateProfile, updateMyCandidateProfile } from "../../../services";
+import {
+  getMyCandidateProfile,
+  updateMyCandidateProfile,
+} from "../../../services";
 
 type CandidateProfile = {
   studentCode: string;
@@ -50,25 +53,25 @@ const Profile = () => {
     try {
       setSaving(true);
       await updateMyCandidateProfile(profile);
-      alert("Cập nhật hồ sơ thành công");
+      alert("Profile updated successfully");
     } catch (err) {
       console.error("Update failed", err);
-      alert("Cập nhật thất bại");
+      alert("Update failed");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <p>Đang tải hồ sơ...</p>;
+  if (loading) return <p>Loading profile...</p>;
 
   return (
     <div style={{ maxWidth: 600 }}>
-      <h2>Hồ sơ cá nhân</h2>
+      <h2>My Profile</h2>
 
       <form onSubmit={handleSubmit}>
         {/* STUDENT CODE */}
         <div>
-          <label>Mã sinh viên</label>
+          <label>Student Code</label>
           <input
             type="text"
             name="studentCode"
@@ -79,7 +82,7 @@ const Profile = () => {
 
         {/* MAJOR */}
         <div>
-          <label>Ngành học</label>
+          <label>Major</label>
           <input
             type="text"
             name="major"
@@ -90,7 +93,7 @@ const Profile = () => {
 
         {/* YEAR */}
         <div>
-          <label>Năm học</label>
+          <label>Year</label>
           <input
             type="number"
             name="year"
@@ -101,7 +104,7 @@ const Profile = () => {
 
         {/* SKILLS */}
         <div>
-          <label>Kỹ năng</label>
+          <label>Skills</label>
           <textarea
             name="skills"
             value={profile.skills || ""}
@@ -112,7 +115,7 @@ const Profile = () => {
 
         {/* CERTIFICATIONS */}
         <div>
-          <label>Chứng chỉ</label>
+          <label>Certifications</label>
           <textarea
             name="certifications"
             value={profile.certifications || ""}
@@ -154,7 +157,7 @@ const Profile = () => {
         </div>
 
         <button type="submit" disabled={saving}>
-          {saving ? "Đang lưu..." : "Lưu thay đổi"}
+          {saving ? "Saving..." : "Save changes"}
         </button>
       </form>
     </div>
