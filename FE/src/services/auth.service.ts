@@ -56,6 +56,8 @@ const userFromBackendToken = (token: string): User => {
   const subject = String(payload.sub || payload.subject || "");
   const role = normalizeRoleFromJwt(payload.roles);
 
+  const nowIso = new Date().toISOString();
+
   return {
     id: subject || "unknown",
     email: subject || "unknown",
@@ -63,9 +65,9 @@ const userFromBackendToken = (token: string): User => {
     role,
     is_active: true,
     email_verified: true,
-    last_login_at: new Date(),
-    created_at: new Date(),
-    updated_at: new Date(),
+    last_login_at: nowIso,
+    created_at: nowIso,
+    updated_at: nowIso,
   };
 };
 

@@ -1,16 +1,60 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from '@/components/ui/Card';
 import MetricCard from '@/components/ui/MetricCard';
 import { Link } from 'react-router-dom';
+import apiClient from '@/services/apiClient';
+import { toast } from 'react-toastify';
+import { requireRoleFromToken } from '@/utils/auth';
 // Using emoji icons
 
 const SystemAdminDashboard: React.FC = () => {
-  const [stats] = useState({
-    totalUsers: 125,
-    activeUsers: 98,
-    totalSettings: 15,
-    excelTemplates: 8,
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    totalSettings: 0,
+    excelTemplates: 0,
   });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const auth = requireRoleFromToken('SYSTEM_ADMIN');
+      if (!auth.ok) {
+        toast.error(auth.reason);
+        return;
+      }
+
+      try {
+        setLoadingStats(true);
+
+        const [usersRes, excelRes] = await Promise.all([
+          apiClient.get('/api/v1/users/'),
+          apiClient.get('/api/excel-templates/active'),
+        ]);
+
+        const users: any[] = usersRes?.data?.data || [];
+        const totalUsers = Array.isArray(users) ? users.length : 0;
+        const activeUsers = Array.isArray(users)
+          ? users.filter((u) => Boolean(u?.isActive)).length
+          : 0;
+
+        const excelTemplates = Array.isArray(excelRes?.data) ? excelRes.data.length : 0;
+
+        setStats((prev) => ({
+          ...prev,
+          totalUsers,
+          activeUsers,
+          excelTemplates,
+        }));
+      } catch (e: any) {
+        toast.error(e?.message || 'Failed to load dashboard stats');
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    void load();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -32,25 +76,25 @@ const SystemAdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total Users"
-          value={stats.totalUsers.toString()}
+          value={loadingStats ? '…' : stats.totalUsers.toString()}
           icon={<span className="text-primary-600">👥</span>}
         />
 
         <MetricCard
           title="Active Users"
-          value={stats.activeUsers.toString()}
+          value={loadingStats ? '…' : stats.activeUsers.toString()}
           icon={<span className="text-green-600">✅</span>}
         />
 
         <MetricCard
           title="System Settings"
-          value={stats.totalSettings.toString()}
+          value={stats.totalSettings ? stats.totalSettings.toString() : 'N/A'}
           icon={<span className="text-blue-600">⚙️</span>}
         />
 
         <MetricCard
           title="Excel Templates"
-          value={stats.excelTemplates.toString()}
+          value={loadingStats ? '…' : stats.excelTemplates.toString()}
           icon={<span className="text-yellow-600">📄</span>}
         />
       </div>

@@ -47,13 +47,12 @@ public class Project {
     @Column(name = "project_code", length = 50, unique = true)
     private String projectCode;
 
-    @Lob
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+   @Column(name = "description", columnDefinition = "TEXT")
+private String description;
 
-    @Lob
-    @Column(name = "requirements", columnDefinition = "TEXT")
-    private String requirements;
+
+@Column(name = "requirements", columnDefinition = "TEXT")
+private String requirements;
 
     @Column(name = "budget")
     private BigDecimal budget;
@@ -87,24 +86,15 @@ public class Project {
     @Column(name = "validated_at")
     private LocalDateTime validatedAt;
 
-    @Lob
-    @Column(name = "rejection_reason")
-    private String rejectionReason;
-
-    @Lob
-    @Column(name = "cancellation_reason")
-    private String cancellationReason;
-
-    @Column(name = "cancelled_at")
-    private LocalDateTime cancelledAt;
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+private String rejectionReason;
 
     @Column(name = "max_team_size")
     @Builder.Default
     private Integer maxTeamSize = 5;
 
-    @Lob
-    @Column(name = "required_skills")
-    private String requiredSkills;
+   @Column(name = "required_skills", columnDefinition = "TEXT")
+private String requiredSkills;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

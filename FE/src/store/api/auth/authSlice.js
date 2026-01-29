@@ -74,6 +74,23 @@ const initialState = {
   isAuth: storedToken ? true : false,
 };
 
+const normalizeAuthUserDates = (user) => {
+  if (!user || typeof user !== 'object') return user;
+  const out = { ...user };
+
+  // snake_case
+  if (out.last_login_at instanceof Date) out.last_login_at = out.last_login_at.toISOString();
+  if (out.created_at instanceof Date) out.created_at = out.created_at.toISOString();
+  if (out.updated_at instanceof Date) out.updated_at = out.updated_at.toISOString();
+
+  // camelCase
+  if (out.lastLoginAt instanceof Date) out.lastLoginAt = out.lastLoginAt.toISOString();
+  if (out.createdAt instanceof Date) out.createdAt = out.createdAt.toISOString();
+  if (out.updatedAt instanceof Date) out.updatedAt = out.updatedAt.toISOString();
+
+  return out;
+};
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -101,7 +118,7 @@ export const authSlice = createSlice({
           : [];
 
       state.token = token;
-      state.user = user;
+      state.user = normalizeAuthUserDates(user);
       state.roles = roles?.length ? roles : derivedRoles;
       state.permissions = permissions?.length ? permissions : derivedPermissions;
       state.isAuthenticated = true;
@@ -112,7 +129,7 @@ export const authSlice = createSlice({
       localStorage.setItem("token", token);
 
       if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(normalizeAuthUserDates(user)));
       }
     },
 
@@ -138,7 +155,7 @@ export const authSlice = createSlice({
           : [];
       // Reuse setAuth behavior without requiring roles/permissions.
       state.token = token;
-      state.user = user;
+      state.user = normalizeAuthUserDates(user);
       state.roles = derivedRoles;
       state.permissions = derivedPermissions;
       state.isAuthenticated = true;
@@ -146,7 +163,7 @@ export const authSlice = createSlice({
 
       localStorage.setItem("access_token", token);
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("user", JSON.stringify(normalizeAuthUserDates(user)));
     },
 
     logOut: (state) => {

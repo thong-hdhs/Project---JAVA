@@ -14,5 +14,7 @@ public interface ProjectTeamRepository extends JpaRepository<ProjectTeam, String
 
     List<ProjectTeam> findByProjectIdOrderByCreatedAtDesc(String projectId);
 
+    List<ProjectTeam> findByTalentId(String talentId);
+
     Optional<ProjectTeam> findFirstByProjectIdAndIsLeaderTrue(String projectId);
 }

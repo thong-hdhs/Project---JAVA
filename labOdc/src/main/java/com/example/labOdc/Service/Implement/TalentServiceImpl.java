@@ -1,18 +1,18 @@
 package com.example.labOdc.Service.Implement;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.example.labOdc.DTO.Response.FundDistributionResponse;
+import com.example.labOdc.DTO.Response.ProjectApplicationResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.DTO.Response.TalentResponse;
+import com.example.labOdc.DTO.Response.TaskResponse;
 import com.example.labOdc.DTO.TalentDTO;
 import com.example.labOdc.Exception.ResourceNotFoundException;
 import com.example.labOdc.Model.FundDistribution;
@@ -52,124 +52,55 @@ public class TalentServiceImpl implements TalentService {
     private final FundAllocationRepository fundAllocationRepository;
     private final FundDistributionRepository fundDistributionRepository;
 
-    private User getAuthenticatedUserOrThrow() {
+    @Override
+    @Transactional
+    public TalentResponse createTalent(TalentDTO talentDTO) {
+        logger.info("Creating or updating talent profile");
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getName() == null
-                || "anonymousUser".equalsIgnoreCase(auth.getName())) {
-            throw new AccessDeniedException("Unauthenticated user");
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthenticated user");
         }
 
         String username = auth.getName();
-        return userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    }
 
-    private Talent getAuthenticatedTalentOrThrow() {
-        User user = getAuthenticatedUserOrThrow();
-        return talentRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Talent profile not found"));
-    }
+        // Check if talent profile already exists
+        Talent talent = talentRepository.findByUserId(user.getId())
+                .orElseGet(() -> Talent.builder()
+                        .user(user)
+                        .status(Talent.Status.AVAILABLE)
+                        .build()
+                );
 
-    private void assertSelfTalentId(String talentId) {
-        Talent me = getAuthenticatedTalentOrThrow();
-        if (talentId == null || !talentId.equals(me.getId())) {
-            throw new AccessDeniedException("Forbidden: cannot access another talent");
-        }
-    }
+        // Update talent fields from DTO
+        updateTalentFields(talent, talentDTO);
 
-    private static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
-    }
+        Talent savedTalent = talentRepository.save(talent);
 
-    private static void validateOptionalHttpUrl(String value, String fieldName) {
-        if (isBlank(value)) {
-            return;
-        }
-        try {
-            URI uri = new URI(value.trim());
-            String scheme = uri.getScheme();
-            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
-                throw new IllegalArgumentException(fieldName + " must start with http:// or https://");
-            }
-        } catch (URISyntaxException ex) {
-            throw new IllegalArgumentException(fieldName + " is not a valid URL");
-        }
-    }
+        // Update user role to TALENT
+        RoleEntity talentRole = roleRepository.findByRole(UserRole.TALENT)
+                .orElseThrow(() -> new ResourceNotFoundException("TALENT role not found"));
 
-   @Override
-@Transactional
-public TalentResponse createTalent(TalentDTO talentDTO) {
-    logger.info("Create or update talent");
-
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth == null || !auth.isAuthenticated()) {
-        throw new RuntimeException("Unauthenticated user");
-    }
-
-    String username = auth.getName();
-    User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    // ✅ KIỂM TRA TALENT ĐÃ TỒN TẠI CHƯA
-    Talent talent = talentRepository.findByUserId(user.getId())
-            .orElseGet(() -> Talent.builder()
-                    .user(user)
-                    .status(Talent.Status.AVAILABLE)
-                    .build()
-            );
-
-    // ✅ SET FIELD (UPDATE / CREATE đều dùng chung)
-    talent.setStudentCode(talentDTO.getStudentCode());
-    talent.setMajor(talentDTO.getMajor());
-    talent.setYear(talentDTO.getYear());
-    talent.setSkills(talentDTO.getSkills());
-    talent.setCertifications(talentDTO.getCertifications());
-    talent.setPortfolioUrl(talentDTO.getPortfolioUrl());
-    talent.setGithubUrl(talentDTO.getGithubUrl());
-    talent.setLinkedinUrl(talentDTO.getLinkedinUrl());
-
-    Talent savedTalent = talentRepository.save(talent);
-
-    // ✅ GÁN ROLE TALENT (GIỮ NGUYÊN LOGIC CŨ – ĐÚNG)
-    RoleEntity talentRole = roleRepository.findByRole(UserRole.TALENT)
-            .orElseThrow(() -> new ResourceNotFoundException("TALENT role not found"));
-
-    boolean hasTalentRole = user.getRoles().stream()
-            .anyMatch(r -> r.getRole() == UserRole.TALENT);
-
-    if (!hasTalentRole) {
+        user.getRoles().clear();
         user.getRoles().add(talentRole);
         userRepository.save(user);
-    }
+        logger.info("User role updated to TALENT: {}", username);
 
-    return TalentResponse.fromTalent(savedTalent);
-}
+        logger.info("Talent profile created/updated successfully for user: {}", username);
+        return TalentResponse.fromTalent(savedTalent);
+    }
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public TalentResponse getMyProfile() {
-        Talent talent = getAuthenticatedTalentOrThrow();
+    public TalentResponse getTalentById(String id) {
+        logger.debug("Fetching talent with ID: {}", id);
+        Talent talent = talentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
         return TalentResponse.fromTalent(talent);
     }
 
-    @Override
-    @Transactional
-    public TalentResponse updateMyProfile(TalentDTO talentDTO) {
-        // Basic validation for URLs (DTO validation like @NotBlank handled at controller level)
-        validateOptionalHttpUrl(talentDTO.getPortfolioUrl(), "portfolioUrl");
-        validateOptionalHttpUrl(talentDTO.getGithubUrl(), "githubUrl");
-        validateOptionalHttpUrl(talentDTO.getLinkedinUrl(), "linkedinUrl");
-
-        Talent talent = getAuthenticatedTalentOrThrow();
-        updateTalentFields(talent, talentDTO);
-        Talent updated = talentRepository.save(talent);
-        return TalentResponse.fromTalent(updated);
-    }
-
-    /**
-     * Chức năng: Lấy danh sách tất cả sinh viên.
-     * Repository: TalentRepository.findAll() - Truy vấn tất cả entities.
-     */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<TalentResponse> getAllTalents() {
@@ -179,10 +110,6 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
                 .toList();
     }
 
-    /**
-     * Chức năng: Xóa sinh viên theo ID.
-     * Repository: TalentRepository.findById() và delete() - Tìm và xóa entity.
-     */
     @Override
     @Transactional
     public void deleteTalent(String id) {
@@ -193,23 +120,6 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
         logger.info("Talent deleted successfully");
     }
 
-    /**
-     * Chức năng: Lấy sinh viên theo ID.
-     * Repository: TalentRepository.findById() - Truy vấn entity theo ID.
-     */
-    @Override
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public TalentResponse getTalentById(String id) {
-        logger.debug("Fetching talent with ID: {}", id);
-        Talent talent = talentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
-        return TalentResponse.fromTalent(talent);
-    }
-
-    /**
-     * Chức năng: Cập nhật sinh viên theo ID.
-     * Repository: TalentRepository.findById() và save() - Tìm và cập nhật entity.
-     */
     @Override
     @Transactional
     public TalentResponse updateTalent(TalentDTO talentDTO, String id) {
@@ -217,7 +127,6 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
         Talent talent = talentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Talent not found"));
 
-        // Update only non-null fields
         updateTalentFields(talent, talentDTO);
 
         Talent updatedTalent = talentRepository.save(talent);
@@ -249,43 +158,28 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
     }
 
     /**
-     * Chức năng: Lọc danh sách sinh viên theo ngành học.
-     * Repository: TalentRepository.findByMajor() - Truy vấn theo major.
+     * Helper method to get current logged-in talent
      */
-    @Override
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<TalentResponse> findByMajor(String major) {
-        logger.debug("Finding talents by major: {}", major);
-        return talentRepository.findByMajor(major).stream()
-                .map(TalentResponse::fromTalent)
-                .toList();
-    }
+    private Talent getCurrentTalent() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthenticated user");
+        }
 
-    /**
-     * Chức năng: Lọc danh sách sinh viên theo trạng thái.
-     * Repository: TalentRepository.findByStatus() - Truy vấn theo status.
-     */
-    @Override
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<TalentResponse> findByStatus(Talent.Status status) {
-        logger.debug("Finding talents by status: {}", status);
-        return talentRepository.findByStatus(status).stream()
-                .map(TalentResponse::fromTalent)
-                .toList();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return talentRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Talent profile not found for user: " + username));
     }
 
     @Override
-    public void setTalentAvailability(String talentId, Talent.Status status) {
-        assertSelfTalentId(talentId);
-        Talent me = getAuthenticatedTalentOrThrow();
-        me.setStatus(status);
-        talentRepository.save(me);
-    }
-
-    @Override
-    public void applyToProject(String projectId, String talentId, String coverLetter) {
-        assertSelfTalentId(talentId);
-        Talent talent = getAuthenticatedTalentOrThrow();
+    @Transactional
+    public void applyToProject(String projectId, String coverLetter) {
+        logger.info("Talent applying to project {}", projectId);
+        
+        Talent talent = getCurrentTalent();
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         
@@ -297,104 +191,96 @@ public TalentResponse createTalent(TalentDTO talentDTO) {
                 .build();
         
         projectApplicationRepository.save(application);
+        logger.info("Application created successfully for talent: {}", talent.getId());
     }
 
     @Override
-    public void withdrawApplication(String applicationId) {
-        ProjectApplication application = projectApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
-        application.setStatus(ProjectApplication.Status.WITHDRAWN);
-        projectApplicationRepository.save(application);
-    }
-
-    @Override
-    public List<ProjectApplication> getMyApplications(String talentId) {
-        assertSelfTalentId(talentId);
-        Talent me = getAuthenticatedTalentOrThrow();
-        return projectApplicationRepository.findAll().stream()
-            .filter(pa -> pa.getTalent() != null && me.getId().equals(pa.getTalent().getId()))
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<ProjectResponse> getAvailableProjects() {
+        logger.debug("Fetching available projects for talent application");
+        return projectRepository.findAll().stream()
+                .map(ProjectResponse::fromProject)
                 .toList();
     }
 
+        @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<ProjectApplicationResponse> getMyApplications() {
+    logger.debug("Fetching applications for current talent");
+
+
+    Talent talent = getCurrentTalent();
+
+
+    return projectApplicationRepository
+    .findByTalentId(talent.getId())
+    .stream()
+    .map(ProjectApplicationResponse::from)
+    .toList();
+    }
+
     @Override
-    public List<ProjectResponse> getMyProjects(String talentId) {
-        assertSelfTalentId(talentId);
-        Talent me = getAuthenticatedTalentOrThrow();
-        return projectTeamRepository.findAll().stream()
-            .filter(pt -> pt.getTalent() != null && me.getId().equals(pt.getTalent().getId()))
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<ProjectResponse> getMyProjects() {
+        logger.debug("Fetching projects for current talent");
+        
+        Talent talent = getCurrentTalent();
+        return projectTeamRepository.findByTalentId(talent.getId()).stream()
                 .map(pt -> ProjectResponse.fromProject(pt.getProject()))
                 .toList();
     }
 
     @Override
-    public List<Task> getAssignedTasks(String talentId) {
-        assertSelfTalentId(talentId);
-        return taskRepository.findAll().stream()
-                .filter(task -> talentId.equals(task.getAssignedTo()))
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<TaskResponse> getAssignedTasks() {
+        logger.debug("Fetching assigned tasks for current talent");
+
+        Talent talent = getCurrentTalent();
+
+        return taskRepository.findByAssignedTo(talent.getId())
+                .stream()
+                .map(TaskResponse::fromEntity)
                 .toList();
     }
 
     @Override
-    public void updateSkillsAndCertifications(String talentId) {
-        // Deprecated placeholder endpoint: enforce self check to avoid updating others.
-        assertSelfTalentId(talentId);
-        logger.info("updateSkillsAndCertifications invoked for talentId: {}", talentId);
-    }
-
-    @Override
+    @Transactional
     public void updateTaskProgress(String taskId, String status) {
         logger.info("Updating task progress for taskId: {} to status: {}", taskId, status);
+        
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
         
         try {
             Task.Status taskStatus = Task.Status.valueOf(status.toUpperCase());
             task.setStatus(taskStatus);
+            
             if (taskStatus == Task.Status.DONE) {
                 task.setCompletedDate(java.time.LocalDate.now());
+                logger.info("Task marked as done with completion date");
             }
+            
             taskRepository.save(task);
             logger.info("Task progress updated successfully");
         } catch (IllegalArgumentException e) {
-            logger.error("Invalid status: {}", status);
+            logger.error("Invalid task status: {}", status);
             throw new IllegalArgumentException("Invalid task status: " + status);
         }
     }
 
     @Override
-    public void submitContribution(String projectId, String contributionRequest) {
-        // Placeholder: Gửi contribution
-        System.out.println("Submitting contribution for project: " + projectId + " with: " + contributionRequest);
-    }
-
-    @Override
-    public void voteOnProposal(String projectId, String voteRequest) {
-        // Placeholder: Vote proposal
-        System.out.println("Voting on proposal for project: " + projectId + " with: " + voteRequest);
-    }
-
-    @Override
-    public void viewTeamFundDistribution(String projectId) {
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<FundDistributionResponse> viewTeamFundDistribution(String projectId) {
         logger.info("Viewing team fund distribution for projectId: {}", projectId);
-        
-        // Find fund allocation for the project
-        fundAllocationRepository.findByProjectId(projectId).ifPresentOrElse(fundAllocation -> {
-            // Find all fund distributions for this allocation
-            List<FundDistribution> distributions = fundDistributionRepository.findByFundAllocationId(fundAllocation.getId());
-            
-            if (distributions.isEmpty()) {
-                logger.info("No fund distributions found for project: {}", projectId);
-            } else {
-                logger.info("Fund distributions for project {}:", projectId);
-                distributions.forEach(dist -> {
-                    logger.info("Talent: {}, Amount: {}, Status: {}", 
-                        dist.getTalent().getUser().getUsername(), 
-                        dist.getAmount(), 
-                        dist.getStatus());
-                });
-            }
-        }, () -> {
-            logger.info("No fund allocation found for project: {}", projectId);
-        });
+
+        return fundAllocationRepository.findByProjectId(projectId)
+            .map(fundAllocation ->
+                fundDistributionRepository
+                    .findByFundAllocationId(fundAllocation.getId())
+                    .stream()
+                    .map(FundDistributionResponse::fromEntity)
+                    .toList()
+            )
+            .orElseGet(List::of); // không có allocation → trả list rỗng
     }
 }

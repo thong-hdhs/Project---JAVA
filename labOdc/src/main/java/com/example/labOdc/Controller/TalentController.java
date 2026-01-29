@@ -8,7 +8,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,11 +18,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.labOdc.APi.ApiResponse;
+import com.example.labOdc.DTO.Response.FundDistributionResponse;
+import com.example.labOdc.DTO.Response.ProjectApplicationResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.DTO.Response.TalentResponse;
+import com.example.labOdc.DTO.Response.TaskResponse;
 import com.example.labOdc.DTO.TalentDTO;
-import com.example.labOdc.Model.ProjectApplication;
-import com.example.labOdc.Model.Talent;
 import com.example.labOdc.Service.TalentService;
 
 import jakarta.annotation.security.PermitAll;
@@ -39,51 +39,12 @@ public class TalentController {
     private final TalentService talentService;
 
     /**
-     * Chức năng: Tạo hồ sơ sinh viên mới.
-     * Service: TalentService.createTalent() - Xử lý logic tạo và lưu entity.
+     * 4.5.1 - Tạo/Cập nhật hồ sơ Talent
+     * POST /api/v1/talents
      */
-   @PostMapping("/")
-@PreAuthorize("hasAnyRole('USER', 'SYSTEM_ADMIN')")
-public ApiResponse<TalentResponse> saveTalent(
-        @Valid @RequestBody TalentDTO talentDTO,
-        BindingResult result) {
-
-    if (result.hasErrors()) {
-        List<String> errorMessages = result.getFieldErrors()
-                .stream()
-                .map(FieldError::getDefaultMessage)
-                .toList();
-        return ApiResponse.error(errorMessages);
-    }
-
-    TalentResponse response = talentService.createTalent(talentDTO);
-
-    return ApiResponse.success(
-            response,
-            "Saved successfully",
-            HttpStatus.OK
-    );
-}
-
-
-    /**
-     * TALENT chỉ được xem hồ sơ của chính mình.
-     * Không nhận talentId/userId từ FE.
-     */
-    @GetMapping("/me")
-    @PreAuthorize("hasRole('TALENT')")
-    public ResponseEntity<ApiResponse<TalentResponse>> getMyProfile() {
-        TalentResponse response = talentService.getMyProfile();
-        return ResponseEntity.ok(ApiResponse.success(response, "OK", HttpStatus.OK));
-    }
-
-    /**
-     * TALENT chỉ được cập nhật hồ sơ của chính mình.
-     * Không nhận talentId/userId từ FE.
-     */
-    @PutMapping("/me")
-    @PreAuthorize("hasRole('TALENT')")
-    public ResponseEntity<ApiResponse<TalentResponse>> updateMyProfile(
+    @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'SYSTEM_ADMIN')")
+    public ApiResponse<TalentResponse> createTalent(
             @Valid @RequestBody TalentDTO talentDTO,
             BindingResult result) {
 
@@ -92,215 +53,140 @@ public ApiResponse<TalentResponse> saveTalent(
                     .stream()
                     .map(FieldError::getDefaultMessage)
                     .toList();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Validation failed", errorMessages, HttpStatus.BAD_REQUEST));
+            return ApiResponse.error(errorMessages);
         }
 
-        try {
-            TalentResponse response = talentService.updateMyProfile(talentDTO);
-            return ResponseEntity.ok(ApiResponse.success(response, "Updated", HttpStatus.OK));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST));
-        }
-    }
-
-
-    /**
-     * Chức năng: Lấy danh sách tất cả hồ sơ sinh viên.
-     * Service: TalentService.getAllTalents() - Truy vấn và trả về list.
-     */
-    @GetMapping("/")
-    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'MENTOR', 'SYSTEM_ADMIN')")
-    public ApiResponse<List<TalentResponse>> getAllTalents() {
-        List<TalentResponse> list = talentService.getAllTalents();
-        return ApiResponse.success(list, "OK", HttpStatus.OK);
+        TalentResponse response = talentService.createTalent(talentDTO);
+        return ApiResponse.success(response, "Talent profile created/updated successfully", HttpStatus.OK);
     }
 
     /**
-     * Chức năng: Xóa hồ sơ sinh viên theo ID.
-     * Service: TalentService.deleteTalent() - Xử lý xóa entity.
+     * 4.5.1 - Lấy danh sách tất cả Talent
+     * GET /api/v1/talents
      */
-    @DeleteMapping("/{id}")
+    @GetMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ResponseEntity<?> deleteTalent(@PathVariable String id) {
-        talentService.deleteTalent(id);
-        return ResponseEntity.ok("Deleted");
+    public ApiResponse<List<TalentResponse>> getAllTalents() {
+        List<TalentResponse> talents = talentService.getAllTalents();
+        return ApiResponse.success(talents, "All talents retrieved", HttpStatus.OK);
     }
 
     /**
-     * Chức năng: Lấy hồ sơ sinh viên theo ID.
-     * Service: TalentService.getTalentById() - Truy vấn entity theo ID.
+     * 4.5.1 - Lấy chi tiết hồ sơ Talent
+     * GET /api/v1/talents/{id}
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('LAB_ADMIN', 'MENTOR', 'SYSTEM_ADMIN')")
     public ApiResponse<TalentResponse> getTalentById(@PathVariable String id) {
         TalentResponse response = talentService.getTalentById(id);
-        return ApiResponse.success(response, "OK", HttpStatus.OK);
+        return ApiResponse.success(response, "Talent retrieved", HttpStatus.OK);
     }
 
     /**
-     * Chức năng: Cập nhật hồ sơ sinh viên theo ID.
-     * Service: TalentService.updateTalent() - Xử lý cập nhật entity.
+     * 4.5.1 - Cập nhật hồ sơ Talent (partial update)
+     * PUT /api/v1/talents/{id}
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
-    public ApiResponse<TalentResponse> updateTalent(@Valid @RequestBody TalentDTO talentDTO, @PathVariable String id) {
+    @PreAuthorize("hasRole('TALENT')")
+    public ApiResponse<TalentResponse> updateTalent(
+            @Valid @RequestBody TalentDTO talentDTO,
+            @PathVariable String id) {
         TalentResponse response = talentService.updateTalent(talentDTO, id);
-        return ApiResponse.success(response, "Updated", HttpStatus.OK);
+        return ApiResponse.success(response, "Talent updated successfully", HttpStatus.OK);
     }
 
     /**
-     * Chức năng: Lọc danh sách sinh viên theo ngành học.
-     * Service: TalentService.findByMajor() - Truy vấn theo major.
+     * 4.5.1 - Xóa hồ sơ Talent
+     * DELETE /api/v1/talents/{id}
      */
-    @GetMapping("/major/{major}")
-    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'MENTOR', 'SYSTEM_ADMIN')")
-    public ApiResponse<List<TalentResponse>> getTalentsByMajor(@PathVariable String major) {
-        List<TalentResponse> list = talentService.findByMajor(major);
-        return ApiResponse.success(list, "OK", HttpStatus.OK);
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public ApiResponse<String> deleteTalent(@PathVariable String id) {
+        talentService.deleteTalent(id);
+        return ApiResponse.success("Talent deleted successfully", "OK", HttpStatus.OK);
     }
 
     /**
-     * Chức năng: Lọc danh sách sinh viên theo trạng thái.
-     * Service: TalentService.findByStatus() - Truy vấn theo status.
+     * 4.5.2 - Lấy danh sách dự án khả dụng (để ứng tuyển)
+     * GET /api/v1/talents/available-projects
      */
-    @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'MENTOR', 'SYSTEM_ADMIN')")
-    public ApiResponse<List<TalentResponse>> getTalentsByStatus(@PathVariable Talent.Status status) {
-        List<TalentResponse> list = talentService.findByStatus(status);
-        return ApiResponse.success(list, "OK", HttpStatus.OK);
-    }
-
-    /**
-     * Đặt trạng thái sẵn sàng của talent.
-     * @param talentId ID talent
-     * @param status Trạng thái
-     */
-    @PostMapping("/availability/{talentId}")
+    @GetMapping("/available-projects")
     @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> setTalentAvailability(@PathVariable String talentId, @RequestParam Talent.Status status) {
-        talentService.setTalentAvailability(talentId, status);
-        return ApiResponse.success("Availability updated", "OK", HttpStatus.OK);
+    public ApiResponse<List<ProjectResponse>> getAvailableProjects() {
+        List<ProjectResponse> projects = talentService.getAvailableProjects();
+        return ApiResponse.success(projects, "Available projects retrieved", HttpStatus.OK);
     }
 
     /**
-     * Ứng tuyển vào dự án.
-     * @param projectId ID dự án
-     * @param talentId ID talent
-     * @param coverLetter Thư xin việc
-     * @return Kết quả ứng tuyển
+     * 4.5.2 - Ứng tuyển vào dự án
+     * POST /api/v1/talents/apply/{projectId}
      */
-    @PostMapping("/apply/{projectId}/{talentId}")
+    @PostMapping("/apply/{projectId}")
     @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> applyToProject(@PathVariable String projectId, @PathVariable String talentId, @RequestParam String coverLetter) {
-        talentService.applyToProject(projectId, talentId, coverLetter);
+    public ApiResponse<String> applyToProject(
+            @PathVariable String projectId,
+            @RequestParam String coverLetter) {
+        talentService.applyToProject(projectId, coverLetter);
         return ApiResponse.success("Application submitted successfully", "OK", HttpStatus.CREATED);
     }
 
     /**
-     * Rút đơn ứng tuyển.
-     * @param applicationId ID đơn ứng tuyển
-     * @return Kết quả rút đơn
+     * 4.5.2 - Lấy danh sách đơn ứng tuyển của Talent
+     * GET /api/v1/talents/applications
      */
-    @PutMapping("/withdraw/{applicationId}")
+    @GetMapping("/applications")
     @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> withdrawApplication(@PathVariable String applicationId) {
-        talentService.withdrawApplication(applicationId);
-        return ApiResponse.success("Application withdrawn successfully", "OK", HttpStatus.OK);
-    }
-
-    /**
-     * Lấy danh sách đơn ứng tuyển của talent.
-     * @param talentId ID talent
-     * @return Danh sách đơn ứng tuyển
-     */
-    @GetMapping("/applications/{talentId}")
-    @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<List<ProjectApplication>> getMyApplications(@PathVariable String talentId) {
-        List<ProjectApplication> applications = talentService.getMyApplications(talentId);
+    public ApiResponse<List<ProjectApplicationResponse>> getMyApplications() {
+        List<ProjectApplicationResponse> applications = talentService.getMyApplications();
         return ApiResponse.success(applications, "Applications retrieved", HttpStatus.OK);
     }
 
     /**
-     * Lấy danh sách dự án của talent.
-     * @param talentId ID talent
-     * @return Danh sách dự án
+     * 4.5.2 - Lấy danh sách dự án đã tham gia
+     * GET /api/v1/talents/projects
      */
-    @GetMapping("/projects/{talentId}")
+    @GetMapping("/projects")
     @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<List<ProjectResponse>> getMyProjects(@PathVariable String talentId) {
-        List<ProjectResponse> projects = talentService.getMyProjects(talentId);
+    public ApiResponse<List<ProjectResponse>> getMyProjects() {
+        List<ProjectResponse> projects = talentService.getMyProjects();
         return ApiResponse.success(projects, "Projects retrieved", HttpStatus.OK);
     }
 
     /**
-     * Lấy danh sách task được giao.
-     * @param talentId ID talent
-     * @return Danh sách task
+     * 4.5.3 - Lấy danh sách task được giao
+     * GET /api/v1/talents/tasks
      */
-    @GetMapping("/tasks/{talentId}")
+    @GetMapping("/tasks")
     @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<List<com.example.labOdc.Model.Task>> getAssignedTasks(@PathVariable String talentId) {
-        List<com.example.labOdc.Model.Task> tasks = talentService.getAssignedTasks(talentId);
+    public ApiResponse<List<TaskResponse>> getAssignedTasks() {
+        List<TaskResponse> tasks = talentService.getAssignedTasks();
         return ApiResponse.success(tasks, "Tasks retrieved", HttpStatus.OK);
     }
 
     /**
-     * Cập nhật kỹ năng và chứng chỉ.
-     * @param talentId ID talent
-     */
-    @PutMapping("/skills/{talentId}")
-    @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> updateSkillsAndCertifications(@PathVariable String talentId) {
-        talentService.updateSkillsAndCertifications(talentId);
-        return ApiResponse.success("Skills and certifications updated", "OK", HttpStatus.OK);
-    }
-
-    /**
-     * Cập nhật tiến độ task.
-     * @param taskId ID task
-     * @param status Trạng thái mới
+     * 4.5.3 - Cập nhật tiến độ task
+     * PUT /api/v1/talents/tasks/{taskId}/progress
      */
     @PutMapping("/tasks/{taskId}/progress")
     @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> updateTaskProgress(@PathVariable String taskId, @RequestParam String status) {
+    public ApiResponse<String> updateTaskProgress(
+            @PathVariable String taskId,
+            @RequestParam String status) {
         talentService.updateTaskProgress(taskId, status);
-        return ApiResponse.success("Task progress updated", "OK", HttpStatus.OK);
+        return ApiResponse.success("Task progress updated successfully", "OK", HttpStatus.OK);
     }
 
     /**
-     * Gửi đóng góp dự án.
-     * @param projectId ID dự án
-     * @param contributionRequest Nội dung đóng góp
-     */
-    @PostMapping("/contributions/{projectId}")
-    @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> submitContribution(@PathVariable String projectId, @RequestBody String contributionRequest) {
-        talentService.submitContribution(projectId, contributionRequest);
-        return ApiResponse.success("Contribution submitted", "OK", HttpStatus.OK);
-    }
-
-    /**
-     * Vote cho đề xuất.
-     * @param projectId ID dự án
-     * @param voteRequest Nội dung vote
-     */
-    @PostMapping("/votes/{projectId}")
-    @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> voteOnProposal(@PathVariable String projectId, @RequestBody String voteRequest) {
-        talentService.voteOnProposal(projectId, voteRequest);
-        return ApiResponse.success("Vote submitted", "OK", HttpStatus.OK);
-    }
-
-    /**
-     * Xem phân bổ quỹ team.
-     * @param projectId ID dự án
+     * 4.5.4 - Xem phân bổ quỹ của team
+     * GET /api/v1/talents/funds/{projectId}
      */
     @GetMapping("/funds/{projectId}")
-    @PreAuthorize("hasRole('TALENT')")
-    public ApiResponse<String> viewTeamFundDistribution(@PathVariable String projectId) {
-        talentService.viewTeamFundDistribution(projectId);
-        return ApiResponse.success("Fund distribution viewed", "OK", HttpStatus.OK);
-    }
+@PreAuthorize("hasRole('TALENT')")
+public ResponseEntity<List<FundDistributionResponse>> viewTeamFundDistribution(
+        @PathVariable String projectId
+) {
+    return ResponseEntity.ok(
+        talentService.viewTeamFundDistribution(projectId)
+    );
+}
 }

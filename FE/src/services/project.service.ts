@@ -558,6 +558,48 @@ export const projectService = {
   },
 
   // ====== Lab Admin: list pending + approve/reject (BE: /api/v1/lab-admins) ======
+  async getProjectDetailsForLabAdmin(projectId: string): Promise<Project> {
+    try {
+      const response = await apiClient.get<BackendApiResponse<BackendProjectResponse>>(
+        `/api/v1/lab-admins/projects/${projectId}`,
+      );
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load project';
+        throw new Error(msg);
+      }
+
+      return mapBackendProjectToProject(response.data.data);
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Failed to load project';
+      throw new Error(msg);
+    }
+  },
+
+  async assignMentorToProjectAsLabAdmin(projectId: string, mentorId: string): Promise<void> {
+    try {
+      const response = await apiClient.post<BackendApiResponse<string>>(
+        `/api/v1/lab-admins/assign-mentor/${projectId}`,
+        null,
+        { params: { mentorId } },
+      );
+
+      if (!response.data?.success) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Assign mentor failed';
+        throw new Error(msg);
+      }
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg = apiMsg || (Array.isArray(apiErrors) ? apiErrors[0] : null) || error?.message || 'Assign mentor failed';
+      throw new Error(msg);
+    }
+  },
+
   async listPendingProjectsForValidation(): Promise<Project[]> {
     try {
       const response = await apiClient.get<BackendApiResponse<BackendProjectResponse[]>>('/api/v1/lab-admins/pending-projects');
