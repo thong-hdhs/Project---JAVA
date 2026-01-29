@@ -4,10 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.example.labOdc.DTO.MentorDTO;
+import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.Model.Mentor;
-import com.example.labOdc.Model.MentorInvitation;
 
 public interface MentorService {
     MentorResponse createMentor(MentorDTO mentorDTO);
@@ -49,7 +49,13 @@ public interface MentorService {
      * @param mentorId ID mentor
      * @return Danh sách lời mời
      */
-    List<MentorInvitation> getMentorInvitations(String mentorId);
+    List<MentorInvitationResponse> getMentorInvitations(String mentorId);
+
+    /**
+     * Lấy danh sách lời mời gửi cho mentor đang đăng nhập (từ SecurityContext).
+     * @return Danh sách lời mời sắp xếp theo thời gian tạo mới nhất
+     */
+    List<MentorInvitationResponse> getMyMentorInvitations();
 
     /**
      * Lấy danh sách dự án được giao.

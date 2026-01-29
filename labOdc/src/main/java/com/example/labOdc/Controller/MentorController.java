@@ -1,6 +1,5 @@
 package com.example.labOdc.Controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -21,10 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.labOdc.APi.ApiResponse;
 import com.example.labOdc.DTO.MentorDTO;
+import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
-import com.example.labOdc.Model.Mentor;
-import com.example.labOdc.Model.MentorInvitation;
 import com.example.labOdc.Service.MentorService;
 
 import jakarta.annotation.security.PermitAll;
@@ -61,7 +59,7 @@ public class MentorController {
      * Service: MentorService.getAllMentors() - Truy vấn và trả về list.
      */
     @GetMapping("/")
-    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'COMPANY', 'SYSTEM_ADMIN')")
+    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<List<MentorResponse>> getAllMentors() {
         List<MentorResponse> list = mentorService.getAllMentors();
         return ApiResponse.success(list, "OK", HttpStatus.OK);
@@ -83,7 +81,7 @@ public class MentorController {
      * Service: MentorService.getMentorById() - Truy vấn entity theo ID.
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MENTOR', 'LAB_ADMIN', 'COMPANY', 'SYSTEM_ADMIN')")
+    @PreAuthorize("hasAnyRole( 'LAB_ADMIN', 'SYSTEM_ADMIN')")
     public ApiResponse<MentorResponse> getMentorById(@PathVariable String id) {
         MentorResponse response = mentorService.getMentorById(id);
         return ApiResponse.success(response, "OK", HttpStatus.OK);
@@ -100,85 +98,64 @@ public class MentorController {
         return ApiResponse.success(response, "Updated", HttpStatus.OK);
     }
 
-    /**
-     * Chức năng: Lọc danh sách Mentors theo trạng thái.
-     * Service: MentorService.findByStatus() - Truy vấn theo status.
+      /**
+     * Lấy danh sách lời mời gửi cho mentor hiện tại (đang đăng nhập).
+     * Sắp xếp theo thời gian tạo mới nhất.
+     * Endpoint: GET /api/v1/mentors/invitations/me
+     * 
+     * Response hiển thị:
+     * - id: ID lời mời
+     * - projectId: ID dự án
+     * - status: PENDING/ACCEPTED/REJECTED
+     * - proposedFeePercentage: Phí đề xuất
+     * - invitationMessage: Tin nhắn mời
+     * - createdAt: Thời gian tạo
+     * - respondedAt: Thời gian phản hồi (null nếu chưa response)
      */
-    @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'SYSTEM_ADMIN')")
-    public ApiResponse<List<MentorResponse>> getMentorsByStatus(@PathVariable Mentor.Status status) {
-        List<MentorResponse> list = mentorService.findByStatus(status);
-        return ApiResponse.success(list, "OK", HttpStatus.OK);
+    @GetMapping("/invitations/me")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<List<MentorInvitationResponse>> getMyMentorInvitations() {
+        List<MentorInvitationResponse> responses = mentorService.getMyMentorInvitations();
+        return ApiResponse.success(responses, "Your mentor invitations retrieved", HttpStatus.OK);
     }
 
-    /**
-     * Chức năng: Lọc danh sách Mentors theo rating tối thiểu.
-     * Service: MentorService.findByRatingGreaterThanEqual() - Truy vấn theo rating.
-     */
-    @GetMapping("/rating/{minRating}")
-    @PreAuthorize("hasAnyRole('LAB_ADMIN', 'COMPANY', 'SYSTEM_ADMIN')")
-    public ApiResponse<List<MentorResponse>> getMentorsByMinRating(@PathVariable BigDecimal minRating) {
-        List<MentorResponse> list = mentorService.findByRatingGreaterThanEqual(minRating);
-        return ApiResponse.success(list, "OK", HttpStatus.OK);
-    }
 
     /**
      * Chức năng: Chấp nhận lời mời làm mentor cho dự án.
      * Service: MentorService.acceptInvite() - Xử lý chấp nhận lời mời.
+     * Endpoint: POST /api/v1/mentors/accept-invite/{inviteId}
      */
     @PostMapping("/accept-invite/{inviteId}")
     @PreAuthorize("hasRole('MENTOR')")
-    public ResponseEntity<?> acceptInvite(@PathVariable String inviteId) {
+    public ApiResponse<MentorInvitationResponse> acceptInvite(@PathVariable String inviteId) {
         mentorService.acceptInvite(inviteId);
-        return ResponseEntity.ok("Invite accepted");
+        // Fetch updated invitation and convert to response
+        var mentorInvitations = mentorService.getMyMentorInvitations();
+        MentorInvitationResponse invitation = mentorInvitations.stream()
+                .filter(i -> i.getId().equals(inviteId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+        return ApiResponse.success(invitation, "Invite accepted successfully", HttpStatus.OK);
     }
 
     /**
      * Chức năng: Từ chối lời mời làm mentor cho dự án.
      * Service: MentorService.rejectInvite() - Xử lý từ chối lời mời.
+     * Endpoint: POST /api/v1/mentors/reject-invite/{inviteId}?reason=...
      */
     @PostMapping("/reject-invite/{inviteId}")
     @PreAuthorize("hasRole('MENTOR')")
-    public ResponseEntity<?> rejectInvite(@PathVariable String inviteId, @RequestParam String reason) {
+    public ApiResponse<MentorInvitationResponse> rejectInvite(@PathVariable String inviteId, @RequestParam String reason) {
         mentorService.rejectInvite(inviteId, reason);
-        return ResponseEntity.ok("Invite rejected");
+        // Fetch updated invitation and convert to response
+        var mentorInvitations = mentorService.getMyMentorInvitations();
+        MentorInvitationResponse invitation = mentorInvitations.stream()
+                .filter(i -> i.getId().equals(inviteId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+        return ApiResponse.success(invitation, "Invite rejected successfully", HttpStatus.OK);
     }
 
-    /**
-     * Đặt trạng thái sẵn sàng của mentor.
-     * @param mentorId ID mentor
-     * @param status Trạng thái
-     */
-    @PostMapping("/availability/{mentorId}")
-    @PreAuthorize("hasRole('MENTOR')")
-    public ApiResponse<String> setMentorAvailability(@PathVariable String mentorId, @RequestParam Mentor.Status status) {
-        mentorService.setMentorAvailability(mentorId, status);
-        return ApiResponse.success("Availability updated", "OK", HttpStatus.OK);
-    }
-
-    /**
-     * Lấy danh sách lời mời mentor.
-     * @param mentorId ID mentor
-     * @return Danh sách lời mời
-     */
-    @GetMapping("/invitations/{mentorId}")
-    @PreAuthorize("hasRole('MENTOR')")
-    public ApiResponse<List<MentorInvitation>> getMentorInvitations(@PathVariable String mentorId) {
-        List<MentorInvitation> invitations = mentorService.getMentorInvitations(mentorId);
-        return ApiResponse.success(invitations, "Mentor invitations retrieved", HttpStatus.OK);
-    }
-
-    /**
-     * Lấy danh sách dự án được giao.
-     * @param mentorId ID mentor
-     * @return Danh sách dự án
-     */
-    @GetMapping("/projects/{mentorId}")
-    @PreAuthorize("hasRole('MENTOR')")
-    public ApiResponse<List<ProjectResponse>> getAssignedProjects(@PathVariable String mentorId) {
-        List<ProjectResponse> projects = mentorService.getAssignedProjects(mentorId);
-        return ApiResponse.success(projects, "Assigned projects retrieved", HttpStatus.OK);
-    }
 
     /**
      * Lấy danh sách dự án được giao cho mentor đang đăng nhập.
@@ -190,6 +167,7 @@ public class MentorController {
         return ApiResponse.success(projects, "Assigned projects retrieved", HttpStatus.OK);
     }
 
+  
     /**
      * Phân tích nhiệm vụ từ template Excel.
      * @param projectId ID dự án

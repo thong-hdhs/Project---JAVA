@@ -10,8 +10,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "mentor_invitations", uniqueConstraints = @UniqueConstraint(name = "uk_project_mentor", columnNames = {
-        "project_id", "mentor_id" }))
+@Table(
+    name = "mentor_invitations",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_project_mentor",
+        columnNames = { "project_id", "mentor_id" }
+    )
+)
 @Getter
 @Setter
 @AllArgsConstructor
@@ -35,8 +40,8 @@ public class MentorInvitation {
     @JoinColumn(name = "invited_by")
     private User invitedBy;
 
-    @Lob
-    @Column(name = "invitation_message")
+    // 🔥 FIX LỖI TẠI ĐÂY
+    @Column(name = "invitation_message", columnDefinition = "TEXT")
     private String invitationMessage;
 
     @Column(name = "proposed_fee_percentage")
@@ -56,7 +61,8 @@ public class MentorInvitation {
 
     @PrePersist
     public void ensureId() {
-        if (this.id == null)
+        if (this.id == null) {
             this.id = UUID.randomUUID().toString();
+        }
     }
 }

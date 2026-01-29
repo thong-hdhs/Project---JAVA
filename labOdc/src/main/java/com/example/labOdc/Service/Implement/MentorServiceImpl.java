@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.example.labOdc.DTO.MentorDTO;
+import com.example.labOdc.DTO.Response.MentorInvitationResponse;
 import com.example.labOdc.DTO.Response.MentorResponse;
 import com.example.labOdc.DTO.Response.ProjectResponse;
 import com.example.labOdc.Exception.ResourceNotFoundException;
@@ -157,29 +158,103 @@ public MentorResponse createMentor(MentorDTO mentorDTO) {
 
     /**
      * Chức năng: Chấp nhận lời mời làm mentor cho dự án.
-     * Repository: Sử dụng MentorInvitationRepository để cập nhật trạng thái.
+     * - Verify lời mời thuộc về mentor hiện tại
+     * - Cập nhật status thành ACCEPTED
+     * - Ghi nhận thời gian phản hồi
      */
     @Override
+    @Transactional
     public void acceptInvite(String inviteId) {
         MentorInvitation invite = mentorInvitationRepository.findById(inviteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mentor invitation not found"));
+
+        // Verify the invitation belongs to the authenticated mentor
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthenticated user");
+        }
+
+        String username = auth.getName();
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Mentor currentMentor = mentorRepository.findAll().stream()
+                .filter(m -> m.getUser() != null && m.getUser().getId().equals(currentUser.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor profile not found for this user"));
+
+        if (!invite.getMentor().getId().equals(currentMentor.getId())) {
+            throw new RuntimeException("This invitation does not belong to you");
+        }
+
+        if (invite.getStatus() != MentorInvitationStatus.PENDING) {
+            throw new RuntimeException("Only PENDING invitation can be accepted. Current status: " + invite.getStatus());
+        }
+
         invite.setStatus(MentorInvitationStatus.ACCEPTED);
         invite.setRespondedAt(java.time.LocalDateTime.now());
         mentorInvitationRepository.save(invite);
     }
 
     /**
+     * Chức năng: Chấp nhận lời mời và trả về entity (dùng cho controller).
+     */
+    @Transactional
+    public MentorInvitation acceptInviteAndReturn(String inviteId) {
+        acceptInvite(inviteId);
+        return mentorInvitationRepository.findById(inviteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor invitation not found"));
+    }
+
+    /**
      * Chức năng: Từ chối lời mời làm mentor cho dự án.
-     * Repository: Sử dụng MentorInvitationRepository để cập nhật trạng thái và lý do.
+     * - Verify lời mời thuộc về mentor hiện tại
+     * - Cập nhật status thành REJECTED
+     * - Ghi nhận thời gian phản hồi
+     * TODO: Thêm rejectionReason field vào MentorInvitation entity nếu cần lưu lý do
      */
     @Override
+    @Transactional
     public void rejectInvite(String inviteId, String reason) {
         MentorInvitation invite = mentorInvitationRepository.findById(inviteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mentor invitation not found"));
+
+        // Verify the invitation belongs to the authenticated mentor
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthenticated user");
+        }
+
+        String username = auth.getName();
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Mentor currentMentor = mentorRepository.findAll().stream()
+                .filter(m -> m.getUser() != null && m.getUser().getId().equals(currentUser.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor profile not found for this user"));
+
+        if (!invite.getMentor().getId().equals(currentMentor.getId())) {
+            throw new RuntimeException("This invitation does not belong to you");
+        }
+
+        if (invite.getStatus() != MentorInvitationStatus.PENDING) {
+            throw new RuntimeException("Only PENDING invitation can be rejected. Current status: " + invite.getStatus());
+        }
+
         invite.setStatus(MentorInvitationStatus.REJECTED);
         invite.setRespondedAt(java.time.LocalDateTime.now());
-        // Note: MentorInvitation doesn't have rejectionReason field, so we might need to add it or log the reason
         mentorInvitationRepository.save(invite);
+    }
+
+    /**
+     * Chức năng: Từ chối lời mời và trả về entity (dùng cho controller).
+     */
+    @Transactional
+    public MentorInvitation rejectInviteAndReturn(String inviteId, String reason) {
+        rejectInvite(inviteId, reason);
+        return mentorInvitationRepository.findById(inviteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor invitation not found"));
     }
 
 
@@ -192,12 +267,38 @@ public MentorResponse createMentor(MentorDTO mentorDTO) {
     }
 
     @Override
-    public List<MentorInvitation> getMentorInvitations(String mentorId) {
-        Mentor mentor = mentorRepository.findById(mentorId)
+    public List<MentorInvitationResponse> getMentorInvitations(String mentorId) {
+        // Validate mentor exists
+        mentorRepository.findById(mentorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
-        return mentorInvitationRepository.findAll().stream()
-                .filter(inv -> inv.getMentor().getId().equals(mentorId))
+        // Use optimized query instead of findAll().filter()
+        return mentorInvitationRepository.findByMentorIdOrderByCreatedAtDesc(mentorId)
+                .stream()
+                .map(MentorInvitationResponse::fromMentorInvitation)
                 .toList();
+    }
+
+    /**
+     * Lấy danh sách lời mời của mentor hiện tại (từ SecurityContext).
+     * Sắp xếp theo thời gian tạo mới nhất.
+     */
+    @Override
+    public List<MentorInvitationResponse> getMyMentorInvitations() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null || auth.getName().isBlank()) {
+            throw new RuntimeException("Unauthenticated user");
+        }
+
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Mentor mentor = mentorRepository.findAll().stream()
+                .filter(m -> m.getUser() != null && m.getUser().getId().equals(user.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Mentor profile not found for this user"));
+
+        return getMentorInvitations(mentor.getId());
     }
 
     @Override
