@@ -7,7 +7,36 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { Link } from 'react-router-dom';
 import { projectService } from '@/services/project.service';
 import { taskService } from '@/services/task.service';
+import { talentService, type BackendTalentTaskResponse } from '@/services/talent.service';
 import { Project, Task } from '@/types';
+
+const parseDateOrUndefined = (v: unknown): Date | undefined => {
+  if (!v) return undefined;
+  const d = new Date(String(v));
+  return Number.isNaN(d.getTime()) ? undefined : d;
+};
+
+const mapBackendTalentTaskToTask = (t: BackendTalentTaskResponse): Task => {
+  const createdAt = parseDateOrUndefined(t.createdAt) || new Date();
+  const updatedAt = parseDateOrUndefined(t.updatedAt) || createdAt;
+  return {
+    id: String(t.id || ''),
+    project_id: String(t.projectId || ''),
+    title: String(t.taskName || ''),
+    description: String(t.description || ''),
+    status: (String(t.status || 'TODO').toUpperCase() as Task['status']),
+    priority: (String(t.priority || 'MEDIUM').toUpperCase() as Task['priority']),
+    assigned_to: t.assignedTo ? String(t.assignedTo) : undefined,
+    created_by: String(t.createdBy || ''),
+    excel_template_url: t.excelTemplateUrl ? String(t.excelTemplateUrl) : undefined,
+    attachments: Array.isArray(t.attachments) ? t.attachments : undefined,
+    due_date: parseDateOrUndefined(t.dueDate),
+    completed_at: parseDateOrUndefined(t.completedDate),
+    created_at: createdAt,
+    updated_at: updatedAt,
+  };
+};
+
 const CandidateDashboard: React.FC = () => {
   const { user } = useSelector((state: any) => state.auth);
   const [stats, setStats] = useState({
@@ -39,8 +68,10 @@ const CandidateDashboard: React.FC = () => {
         project.validation_status === 'APPROVED'
       );
 
-      // Load user's tasks
-      const tasksResponse = await taskService.getMyTasks();
+      // Load user's tasks (TALENT endpoints are under /api/v1/talents)
+      const tasksResponse = user?.role?.toString().includes('TALENT')
+        ? (await talentService.getMyTasks()).map(mapBackendTalentTaskToTask)
+        : await taskService.getMyTasks();
 
       // Load user's applications
       const myApplications = await projectService.getMyApplications();

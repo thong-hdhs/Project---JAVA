@@ -6,22 +6,22 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
 
-import { mentorService } from '@/services/mentor.service';
+import { projectService } from '@/services/project.service';
 import { reportService, type BackendReportResponse, type ReportType } from '@/services/report.service';
 import type { Project } from '@/types';
 
 const REPORT_TYPES: ReportType[] = ['WEEKLY', 'MONTHLY', 'PHASE', 'FINAL', 'INCIDENT'];
 
-const MentorReports: React.FC = () => {
+const CandidateReports: React.FC = () => {
   const { user } = useSelector((state: any) => state.auth);
-  const hasSession = Boolean(user);
 
   const [tab, setTab] = useState<'view' | 'send'>('view');
-  const [loading, setLoading] = useState(false);
 
-  const [reports, setReports] = useState<BackendReportResponse[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  const [reports, setReports] = useState<BackendReportResponse[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId),
@@ -38,46 +38,52 @@ const MentorReports: React.FC = () => {
   });
   const [pickedFileName, setPickedFileName] = useState<string>('');
 
-  const loadMyReports = async () => {
-    if (!hasSession) return;
+  const loadProjects = async () => {
+    try {
+      const res = await projectService.getMyProjects();
+      setProjects(res.data);
+      if (!selectedProjectId && res.data?.length) {
+        setSelectedProjectId(res.data[0].id);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to load my projects');
+    }
+  };
+
+  const loadReports = async (projectId: string) => {
     try {
       setLoading(true);
-      const list = await reportService.getMyReportsCurrent();
+      const list = await reportService.getReportsByProject(projectId);
       setReports(list);
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to load my reports');
+      toast.error(e?.message || 'Failed to load reports');
       setReports([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMyProjects = async () => {
-    if (!hasSession) return;
-    try {
-      const mine = await mentorService.getMyAssignedProjects();
-      setProjects(mine);
-      if (!selectedProjectId && mine.length) setSelectedProjectId(mine[0].id);
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to load assigned projects');
-      setProjects([]);
-    }
-  };
+  useEffect(() => {
+    loadProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    loadMyReports();
-    loadMyProjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasSession]);
+    if (selectedProjectId) {
+      loadReports(selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
+  const canSend = Boolean(selectedProject?.mentor_id);
 
   const onCreateDraft = async () => {
-    if (!hasSession) {
-      toast.error('Not logged in');
+    if (!selectedProject) {
+      toast.error('Please select a project');
       return;
     }
 
-    if (!selectedProjectId) {
-      toast.error('Please select a project');
+    if (!selectedProject.mentor_id) {
+      toast.error('This project has no mentor assigned yet');
       return;
     }
 
@@ -88,8 +94,8 @@ const MentorReports: React.FC = () => {
 
     try {
       setLoading(true);
-      const created = await reportService.createMyReport({
-        projectId: selectedProjectId,
+      await reportService.createReport(String(selectedProject.mentor_id), {
+        projectId: selectedProject.id,
         reportType: form.reportType,
         title: form.title.trim(),
         content: form.content?.trim() || undefined,
@@ -99,23 +105,9 @@ const MentorReports: React.FC = () => {
       });
       toast.success('Report created (DRAFT)');
       setTab('view');
-      await loadMyReports();
-      return created;
+      await loadReports(selectedProject.id);
     } catch (e: any) {
       toast.error(e?.message || 'Create report failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onSubmit = async (reportId: string) => {
-    try {
-      setLoading(true);
-      await reportService.submitReport(reportId);
-      toast.success('Report submitted');
-      await loadMyReports();
-    } catch (e: any) {
-      toast.error(e?.message || 'Submit failed');
     } finally {
       setLoading(false);
     }
@@ -125,23 +117,46 @@ const MentorReports: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Project Reports</h1>
-          <p className="mt-1 text-sm text-gray-600">View your reports and submit new ones.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <p className="mt-1 text-sm text-gray-600">View reports by project and send a new report.</p>
         </div>
         <div className="text-sm text-gray-500">Logged in as: {user?.role}</div>
       </div>
 
       <div className="flex gap-2">
-        <Button text="View" className={tab === 'view' ? '' : 'btn-outline'} onClick={() => setTab('view')} />
-        <Button text="Send" className={tab === 'send' ? '' : 'btn-outline'} onClick={() => setTab('send')} />
+        <Button text="View reports" className={tab === 'view' ? '' : 'btn-outline'} onClick={() => setTab('view')} />
+        <Button text="Send report" className={tab === 'send' ? '' : 'btn-outline'} onClick={() => setTab('send')} />
       </div>
 
+      <Card title="Project">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select project</label>
+            <select
+              className="form-control w-full"
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.project_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="md:col-span-2 text-sm text-gray-600">
+            <div>Mentor ID: {selectedProject?.mentor_id || '—'}</div>
+            <div>Status: <StatusBadge status={String(selectedProject?.status || '—')} /></div>
+          </div>
+        </div>
+      </Card>
+
       {tab === 'view' ? (
-        <Card title="My reports">
+        <Card title="Reports">
           {loading ? (
             <div className="text-sm text-gray-600">Loading…</div>
           ) : reports.length === 0 ? (
-            <div className="text-sm text-gray-600">No reports yet.</div>
+            <div className="text-sm text-gray-600">No reports found for this project.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -150,9 +165,9 @@ const MentorReports: React.FC = () => {
                     <th className="py-2 pr-3">Title</th>
                     <th className="py-2 pr-3">Type</th>
                     <th className="py-2 pr-3">Status</th>
-                    <th className="py-2 pr-3">Project</th>
                     <th className="py-2 pr-3">Created</th>
-                    <th className="py-2 pr-3">Actions</th>
+                    <th className="py-2 pr-3">Submitted</th>
+                    <th className="py-2 pr-3">Attachment</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -161,17 +176,14 @@ const MentorReports: React.FC = () => {
                       <td className="py-2 pr-3 font-medium text-gray-900">{r.title}</td>
                       <td className="py-2 pr-3">{String(r.reportType || '')}</td>
                       <td className="py-2 pr-3"><StatusBadge status={String(r.status || '')} /></td>
-                      <td className="py-2 pr-3">{r.projectId || '—'}</td>
                       <td className="py-2 pr-3">{r.createdAt ? String(r.createdAt).slice(0, 10) : '—'}</td>
+                      <td className="py-2 pr-3">{r.submittedDate || '—'}</td>
                       <td className="py-2 pr-3">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            text="Submit"
-                            className="btn-outline"
-                            onClick={() => onSubmit(r.id)}
-                            disabled={loading || String(r.status || '') !== 'DRAFT'}
-                          />
-                        </div>
+                        {r.attachmentUrl ? (
+                          <a className="text-blue-600 hover:underline" href={r.attachmentUrl} target="_blank" rel="noreferrer">Link</a>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -181,25 +193,8 @@ const MentorReports: React.FC = () => {
           )}
         </Card>
       ) : (
-        <Card title="Send report">
+        <Card title="Send report" subtitle={canSend ? undefined : 'Project must have a mentor assigned'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
-              <select
-                className="form-control w-full"
-                value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-              >
-                <option value="">Select a project…</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.project_name}</option>
-                ))}
-              </select>
-              {selectedProject ? (
-                <div className="mt-1 text-xs text-gray-500">Project ID: {selectedProject.id}</div>
-              ) : null}
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Report type</label>
               <select
@@ -219,6 +214,7 @@ const MentorReports: React.FC = () => {
                 className="form-control w-full"
                 value={form.title}
                 onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
+                placeholder="Weekly progress report…"
               />
             </div>
 
@@ -229,6 +225,7 @@ const MentorReports: React.FC = () => {
                 rows={5}
                 value={form.content}
                 onChange={(e) => setForm((s) => ({ ...s, content: e.target.value }))}
+                placeholder="Summary, issues, next steps…"
               />
             </div>
 
@@ -238,6 +235,7 @@ const MentorReports: React.FC = () => {
                 className="form-control w-full"
                 value={form.reportPeriodStart}
                 onChange={(e) => setForm((s) => ({ ...s, reportPeriodStart: e.target.value }))}
+                placeholder="2026-01-01"
               />
             </div>
 
@@ -247,6 +245,7 @@ const MentorReports: React.FC = () => {
                 className="form-control w-full"
                 value={form.reportPeriodEnd}
                 onChange={(e) => setForm((s) => ({ ...s, reportPeriodEnd: e.target.value }))}
+                placeholder="2026-01-07"
               />
             </div>
 
@@ -268,13 +267,13 @@ const MentorReports: React.FC = () => {
                     onChange={(e) => setForm((s) => ({ ...s, attachmentUrl: e.target.value }))}
                     placeholder="https://..."
                   />
+                  <div className="mt-1 text-xs text-gray-500">Backend stores `attachmentUrl` string.</div>
                 </div>
               </div>
             </div>
 
             <div className="md:col-span-2 flex items-center gap-2">
-              <Button text={loading ? 'Sending…' : 'Create (DRAFT)'} onClick={onCreateDraft} disabled={loading || !selectedProjectId || !hasSession} />
-              <Button text="Reload" className="btn-outline" onClick={loadMyReports} disabled={loading || !hasSession} />
+              <Button text={loading ? 'Sending…' : 'Create (DRAFT)'} onClick={onCreateDraft} disabled={loading || !canSend} />
             </div>
           </div>
         </Card>
@@ -283,4 +282,4 @@ const MentorReports: React.FC = () => {
   );
 };
 
-export default MentorReports;
+export default CandidateReports;

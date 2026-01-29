@@ -34,6 +34,21 @@ public interface ReportService {
 
     List<Report> getMyReportsByStatus(String mentorId, Report.Status status);
 
+    /**
+     * Current logged-in mentor reports (mentor resolved from JWT username).
+     */
+    List<Report> getMyReports();
+
+    /**
+     * Current logged-in mentor reports by status (mentor resolved from JWT username).
+     */
+    List<Report> getMyReportsByStatus(Report.Status status);
+
+    /**
+     * Create report for current logged-in mentor (mentor resolved from JWT username).
+     */
+    Report createMyReport(ReportDTO dto);
+
     List<Report> getReportsByType(Report.ReportType reportType);
 
     List<Report> getReportsByDateRange(LocalDateTime start, LocalDateTime end);

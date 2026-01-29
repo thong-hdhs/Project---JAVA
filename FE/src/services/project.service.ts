@@ -380,11 +380,8 @@ export const projectService = {
 
   // ====== Candidate/Talent: my projects + my applications (BE: /api/v1) ======
   async getMyProjects(): Promise<{ data: Project[]; total: number }> {
-    const talentId = getStoredTalentId();
-    if (!talentId) return { data: [], total: 0 };
-
     const response = await apiClient.get<BackendApiResponse<TalentProjectResponse[]>>(
-      `/api/v1/talents/projects/${talentId}`,
+      `/api/v1/talents/projects`,
     );
 
     if (!response.data?.success) {

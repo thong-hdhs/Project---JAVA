@@ -210,6 +210,26 @@ public MentorResponse createMentor(MentorDTO mentorDTO) {
                 .toList();
     }
 
+        @Override
+        public List<ProjectResponse> getMyAssignedProjects() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null || auth.getName().isBlank()) {
+            throw new RuntimeException("Unauthenticated user");
+        }
+
+        String username = auth.getName();
+
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Mentor mentor = mentorRepository.findAll().stream()
+            .filter(m -> m.getUser() != null && String.valueOf(m.getUser().getId()).equals(String.valueOf(user.getId())))
+            .findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Mentor not found"));
+
+        return getAssignedProjects(mentor.getId());
+        }
+
     @Override
     public void breakdownTasks(String projectId, String excelTemplate) {
         // Placeholder: Phân tích template Excel và tạo tasks

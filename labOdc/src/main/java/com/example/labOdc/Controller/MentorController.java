@@ -181,6 +181,16 @@ public class MentorController {
     }
 
     /**
+     * Lấy danh sách dự án được giao cho mentor đang đăng nhập.
+     */
+    @GetMapping("/projects/me")
+    @PreAuthorize("hasRole('MENTOR')")
+    public ApiResponse<List<ProjectResponse>> getMyAssignedProjects() {
+        List<ProjectResponse> projects = mentorService.getMyAssignedProjects();
+        return ApiResponse.success(projects, "Assigned projects retrieved", HttpStatus.OK);
+    }
+
+    /**
      * Phân tích nhiệm vụ từ template Excel.
      * @param projectId ID dự án
      * @param excelTemplate Template Excel

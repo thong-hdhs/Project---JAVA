@@ -12,6 +12,8 @@ import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.ReportRepository;
 import com.example.labOdc.Service.ReportService;
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -27,11 +29,33 @@ public class ReportServiceImpl implements ReportService {
     private final MentorRepository mentorRepository;
     private final LabAdminRepository labAdminRepository;
 
+    private Mentor resolveCurrentMentor() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null || auth.getName().isBlank()) {
+            throw new IllegalStateException("Unauthenticated user");
+        }
+
+        String username = auth.getName();
+
+        return mentorRepository.findAll().stream()
+                .filter(m -> m.getUser() != null && username.equals(m.getUser().getUsername()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Mentor cho user đang đăng nhập"));
+    }
+
     @Override
     public Report createReport(ReportDTO dto, String mentorId) {
 
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Project"));
+
+        if (project.getMentor() == null) {
+            throw new IllegalStateException("Project chưa được gán mentor, không thể tạo report");
+        }
+
+        if (!String.valueOf(project.getMentor().getId()).equals(String.valueOf(mentorId))) {
+            throw new IllegalStateException("MentorId không khớp với mentor của project");
+        }
 
         Mentor mentor = mentorRepository.findById(mentorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Mentor"));
@@ -150,6 +174,24 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public List<Report> getMyReportsByStatus(String mentorId, Report.Status status) {
         return reportRepository.findByMentorIdAndStatus(mentorId, status);
+    }
+
+    @Override
+    public List<Report> getMyReports() {
+        Mentor mentor = resolveCurrentMentor();
+        return reportRepository.findByMentorId(mentor.getId());
+    }
+
+    @Override
+    public List<Report> getMyReportsByStatus(Report.Status status) {
+        Mentor mentor = resolveCurrentMentor();
+        return reportRepository.findByMentorIdAndStatus(mentor.getId(), status);
+    }
+
+    @Override
+    public Report createMyReport(ReportDTO dto) {
+        Mentor mentor = resolveCurrentMentor();
+        return createReport(dto, mentor.getId());
     }
 
     @Override

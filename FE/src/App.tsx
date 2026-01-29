@@ -48,6 +48,7 @@ const TeamVotes = lazy(() => import("./pages/labodc/candidate/team-votes"));
 const CompanyVerification = lazy(
   () => import("./pages/labodc/candidate/company-verification")
 );
+const CandidateReports = lazy(() => import("./pages/labodc/candidate/reports"));
 
 // Company/Enterprise pages
 const EnterpriseDashboard = lazy(
@@ -71,6 +72,7 @@ const ChangeRequests = lazy(
 const CompanyEvaluations = lazy(
   () => import("./pages/labodc/enterprise/evaluations")
 );
+const EnterpriseReports = lazy(() => import("./pages/labodc/enterprise/reports"));
 
 // Mentor pages
 const MentorDashboard = lazy(() => import("./pages/labodc/mentor/dashboard"));
@@ -129,6 +131,7 @@ const ApprovedProjects = lazy(
 );
 const MentorsManagement = lazy(() => import("./pages/labodc/lab-admin/mentors"));
 const TalentsManagement = lazy(() => import("./pages/labodc/lab-admin/talents"));
+const LabAdminReports = lazy(() => import("./pages/labodc/lab-admin/reports"));
 
 // System Admin pages
 const SystemAdminDashboard = lazy(
@@ -200,6 +203,7 @@ function App() {
               path="candidate/company-verification"
               element={<CompanyVerification />}
             />
+            <Route path="candidate/reports" element={<CandidateReports />} />
           </Route>
 
           {/* Company/Enterprise routes */}
@@ -231,6 +235,7 @@ function App() {
               path="enterprise/evaluations"
               element={<CompanyEvaluations />}
             />
+            <Route path="enterprise/reports" element={<EnterpriseReports />} />
           </Route>
 
           {/* Mentor routes */}
@@ -301,6 +306,7 @@ function App() {
             />
             <Route path="lab-admin/mentors" element={<MentorsManagement />} />
             <Route path="lab-admin/talents" element={<TalentsManagement />} />
+            <Route path="lab-admin/reports" element={<LabAdminReports />} />
             <Route
               path="lab-admin/students"
               element={<Navigate to="/lab-admin/transparency-report" replace />}

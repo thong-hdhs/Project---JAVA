@@ -59,6 +59,11 @@ public interface MentorService {
     List<ProjectResponse> getAssignedProjects(String mentorId);
 
     /**
+     * Lấy danh sách dự án được giao cho mentor đang đăng nhập.
+     */
+    List<ProjectResponse> getMyAssignedProjects();
+
+    /**
      * Phân tích nhiệm vụ từ template Excel.
      * @param projectId ID dự án
      * @param excelTemplate Template Excel

@@ -24,8 +24,8 @@ public class ReportController {
 
     @PostMapping("/{mentorId}")
     @PreAuthorize("""
-    hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN')
-    or hasAuthority('MENTOR_SUBMIT_REPORT')
+        hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR','TALENT','COMPANY')
+        or hasAuthority('MENTOR_SUBMIT_REPORT')
 """)
     public ApiResponse<ReportResponse> createReport(
             @PathVariable String mentorId,
@@ -56,7 +56,7 @@ public class ReportController {
 
     @GetMapping("/{id}")
     @PreAuthorize("""
-    hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR')
+        hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR','TALENT','COMPANY')
     or hasAuthority('LAB_VIEW_ALL_REPORTS')
 """)
     public ApiResponse<ReportResponse> getById(@PathVariable String id) {
@@ -68,7 +68,7 @@ public class ReportController {
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("""
-    hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR')
+        hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR','TALENT','COMPANY')
     or hasAuthority('LAB_VIEW_ALL_REPORTS')
 """)
     public ApiResponse<List<ReportResponse>> getByProject(@PathVariable String projectId) {
@@ -161,9 +161,45 @@ public class ReportController {
         reportService.deleteReport(id);
         return ApiResponse.success("Xóa thành công", "OK", HttpStatus.OK);
     }
+
+        // ===== Current mentor endpoints (no mentorId param) =====
+
+        @PostMapping("/my")
+        @PreAuthorize("hasRole('MENTOR')")
+        public ApiResponse<ReportResponse> createMyReport(@Valid @RequestBody ReportDTO dto) {
+                Report report = reportService.createMyReport(dto);
+                return ApiResponse.success(
+                                ReportResponse.fromEntity(report),
+                                "Tạo report thành công",
+                                HttpStatus.CREATED);
+        }
+
+        @GetMapping("/my")
+        @PreAuthorize("hasRole('MENTOR')")
+        public ApiResponse<List<ReportResponse>> myReports() {
+                return ApiResponse.success(
+                                reportService.getMyReports()
+                                                .stream()
+                                                .map(ReportResponse::fromEntity)
+                                                .toList(),
+                                "Thành công",
+                                HttpStatus.OK);
+        }
+
+        @GetMapping("/my/status/{status}")
+        @PreAuthorize("hasRole('MENTOR')")
+        public ApiResponse<List<ReportResponse>> myReportsByStatus(@PathVariable Report.Status status) {
+                return ApiResponse.success(
+                                reportService.getMyReportsByStatus(status)
+                                                .stream()
+                                                .map(ReportResponse::fromEntity)
+                                                .toList(),
+                                "Thành công",
+                                HttpStatus.OK);
+        }
     //My Reports
     @GetMapping("/my/{mentorId}")
-    @PreAuthorize("hasAuthority('MENTOR_SUBMIT_REPORT')")
+        @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR') or hasAuthority('MENTOR_SUBMIT_REPORT')")
     public ApiResponse<List<ReportResponse>> myReports(@PathVariable String mentorId) {
 
         return ApiResponse.success(
@@ -176,7 +212,7 @@ public class ReportController {
     }
     //My Reports theo trạng thái
     @GetMapping("/my/{mentorId}/status/{status}")
-    @PreAuthorize("hasAuthority('MENTOR_SUBMIT_REPORT')")
+        @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','LAB_ADMIN','MENTOR') or hasAuthority('MENTOR_SUBMIT_REPORT')")
     public ApiResponse<List<ReportResponse>> myReportsByStatus(
             @PathVariable String mentorId,
             @PathVariable Report.Status status) {

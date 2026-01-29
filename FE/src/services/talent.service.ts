@@ -28,6 +28,35 @@ export type BackendTalentResponse = {
   updatedAt?: string;
 };
 
+export type BackendTalentTaskResponse = {
+  id: string;
+  projectId?: string;
+  assignedTo?: string;
+  createdBy?: string;
+  taskName?: string;
+  description?: string;
+  priority?: string;
+  status?: string;
+  dueDate?: string;
+  completedDate?: string;
+  excelTemplateUrl?: string;
+  attachments?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+const getApiErrorMessage = (error: any, fallback: string): string => {
+  const backendData = error?.response?.data;
+  const apiMsg = backendData?.message || backendData?.error;
+  const apiErrors = backendData?.errors;
+  return (
+    apiMsg ||
+    (Array.isArray(apiErrors) ? apiErrors[0] : null) ||
+    error?.message ||
+    fallback
+  );
+};
+
 export const talentService = {
   async listAllTalents(): Promise<BackendTalentResponse[]> {
     const response = await apiClient.get<BackendApiResponse<BackendTalentResponse[]>>('/api/v1/talents/');
@@ -49,5 +78,37 @@ export const talentService = {
     }
 
     return response.data?.data || [];
+  },
+
+  async getMyTasks(): Promise<BackendTalentTaskResponse[]> {
+    try {
+      const response = await apiClient.get<BackendApiResponse<BackendTalentTaskResponse[]>>('/api/v1/talents/tasks');
+
+      if (!response.data?.success) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to load tasks';
+        throw new Error(msg);
+      }
+
+      return response.data?.data || [];
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Failed to load tasks'));
+    }
+  },
+
+  async updateTaskProgress(taskId: string, status: string): Promise<void> {
+    try {
+      const response = await apiClient.put<BackendApiResponse<string>>(
+        `/api/v1/talents/tasks/${taskId}/progress`,
+        null,
+        { params: { status } },
+      );
+
+      if (!response.data?.success) {
+        const msg = response.data?.message || response.data?.errors?.[0] || 'Failed to update task progress';
+        throw new Error(msg);
+      }
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Failed to update task progress'));
+    }
   },
 };

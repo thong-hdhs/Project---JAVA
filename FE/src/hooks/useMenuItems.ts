@@ -83,6 +83,11 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
+            title: "Reports",
+            icon: "heroicons-outline:document-text",
+            link: "lab-admin/reports",
+          },
+          {
             title: "Companies",
             icon: "heroicons-outline:building-office-2",
             child: [
@@ -164,6 +169,11 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
+            title: "Reports",
+            icon: "heroicons-outline:document-text",
+            link: "enterprise/reports",
+          },
+          {
             title: "Projects",
             icon: "heroicons-outline:briefcase",
             child: [
@@ -197,6 +207,11 @@ export const useMenuItems = () => {
       case "MENTOR":
         return [
           ...baseMenuItems,
+          {
+            title: "Reports",
+            icon: "heroicons-outline:document-text",
+            link: "mentor/reports",
+          },
           {
             title: "Project Invitations",
             icon: "heroicons-outline:envelope",
@@ -232,6 +247,11 @@ export const useMenuItems = () => {
       case "TALENT_LEADER":
         return [
           ...baseMenuItems,
+          {
+            title: "Reports",
+            icon: "heroicons-outline:document-text",
+            link: "candidate/reports",
+          },
           {
             title: "Company Verification",
             icon: "heroicons-outline:building-office",
