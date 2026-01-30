@@ -34,10 +34,12 @@ const decodeJwtPayload = (token: string): any => {
 
 const tokenHasUserRole = (token: string): boolean => {
   const payload = decodeJwtPayload(token) || {};
-  const rolesRaw = Array.isArray(payload.roles)
-    ? payload.roles.map(String)
+  const rolesRaw: string[] = Array.isArray(payload.roles)
+    ? payload.roles.map((v: unknown) => String(v))
     : [];
-  const roles = rolesRaw.map((r) => r.replace(/^ROLE_/, ""));
+  const roles = rolesRaw.map((r: string) =>
+    r.replace(/^ROLE_/, "").toUpperCase(),
+  );
   return roles.includes("USER") || roles.includes("SYSTEM_ADMIN");
 };
 

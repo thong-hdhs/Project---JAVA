@@ -702,6 +702,34 @@ export const projectService = {
     }
   },
 
+  async requestCompleteInBackend(projectId: string): Promise<Project> {
+    try {
+      const response = await apiClient.put<
+        BackendApiResponse<BackendProjectResponse>
+      >(`/api/projects/${projectId}/request-complete`);
+
+      if (!response.data?.success || !response.data?.data) {
+        const msg =
+          response.data?.message ||
+          response.data?.errors?.[0] ||
+          "Request complete failed";
+        throw new Error(msg);
+      }
+
+      return mapBackendProjectToProject(response.data.data);
+    } catch (error: any) {
+      const backendData = error?.response?.data;
+      const apiMsg = backendData?.message || backendData?.error;
+      const apiErrors = backendData?.errors;
+      const msg =
+        apiMsg ||
+        (Array.isArray(apiErrors) ? apiErrors[0] : null) ||
+        error?.message ||
+        "Request complete failed";
+      throw new Error(msg);
+    }
+  },
+
   async updateProjectInBackend(
     projectId: string,
     project: Project,

@@ -1,21 +1,33 @@
 // Authentication & User Types
-export type UserRole = 'SYSTEM_ADMIN' | 'LAB_ADMIN' | 'COMPANY' | 'MENTOR' | 'TALENT' | 'TALENT_LEADER';
+export type UserRole = 'SYSTEM_ADMIN' | 'LAB_ADMIN' | 'COMPANY' | 'MENTOR' | 'TALENT' | 'TALENT_LEADER' | 'USER';
 
 export interface User {
   id: string;
   email: string;
+  // Canonical role used across the UI for routing/menu.
+  role: UserRole;
+
+  // Some parts of the UI/services still rely on snake_case.
+  full_name?: string;
   fullName: string;
+
   username: string;
   phone?: string;
   avatarUrl?: string;
   roles: string[];
   permissions: string[];
   isActive: boolean;
+  is_active?: boolean;
   emailVerified: boolean;
+  email_verified?: boolean;
   emailVerifiedAt?: string;
+  email_verified_at?: string;
   lastLoginAt?: string;
+  last_login_at?: string;
   createdAt: string;
+  created_at?: string;
   updatedAt: string;
+  updated_at?: string;
 }
 
 export interface AuthState {

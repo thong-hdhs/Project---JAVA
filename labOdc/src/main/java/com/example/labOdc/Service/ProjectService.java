@@ -22,6 +22,10 @@ public interface ProjectService {
 
     Project completeProject(String projectId);
 
+    /**
+     * Mentor requests to complete a project. Verifies mentor ownership and that all tasks are DONE.
+     */
+    Project requestCompleteProject(String projectId);
     Project approveProject(String projectId, String validatedBy);
 
     Project rejectProject(String projectId, String validatedBy, String rejectionReason);

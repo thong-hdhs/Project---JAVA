@@ -21,6 +21,7 @@ import com.example.labOdc.Model.Talent;
 import com.example.labOdc.Model.User;
 import com.example.labOdc.Repository.ProjectApplicationRepository;
 import com.example.labOdc.Repository.ProjectRepository;
+import com.example.labOdc.Repository.ProjectMentorRepository;
 import com.example.labOdc.Repository.ProjectTeamRepository;
 import com.example.labOdc.Repository.TalentRepository;
 import com.example.labOdc.Repository.UserRepository;
@@ -41,6 +42,7 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
     private final UserRepository userRepository;
     private final ProjectTeamRepository projectTeamRepository;
     private final MentorRepository mentorRepository;
+    private final ProjectMentorRepository projectMentorRepository;
 
     private User resolveUserByLogin(String login) {
         if (login == null || login.isBlank()) {
@@ -55,6 +57,24 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
         User user = resolveUserByLogin(login);
         return mentorRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new AccessDeniedException("Mentor profile not found"));
+    }
+
+    private boolean isMentorAssignedToProject(Project project, com.example.labOdc.Model.Mentor mentor) {
+        if (project == null || mentor == null || mentor.getId() == null) {
+            return false;
+        }
+
+        // Primary assignment via Project.mentor
+        if (project.getMentor() != null && project.getMentor().getId() != null
+                && project.getMentor().getId().equals(mentor.getId())) {
+            return true;
+        }
+
+        // Assignment via join table (ProjectMentor)
+        if (project.getId() == null || project.getId().isBlank()) {
+            return false;
+        }
+        return projectMentorRepository.existsByProjectIdAndMentorId(project.getId(), mentor.getId());
     }
 
     /**
@@ -197,11 +217,9 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
         ProjectApplication pa = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
-        // Enforce: only the mentor assigned to this project can approve.
+        // Enforce: only a mentor assigned to this project can approve.
         final var mentor = resolveMentorByLogin(reviewerUsername);
-        if (pa.getProject() == null || pa.getProject().getMentor() == null
-                || pa.getProject().getMentor().getId() == null
-                || !pa.getProject().getMentor().getId().equals(mentor.getId())) {
+        if (!isMentorAssignedToProject(pa.getProject(), mentor)) {
             throw new AccessDeniedException("Not allowed to approve applications for this project");
         }
 
@@ -252,11 +270,9 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
         ProjectApplication pa = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
-        // Enforce: only the mentor assigned to this project can reject.
+        // Enforce: only a mentor assigned to this project can reject.
         final var mentor = resolveMentorByLogin(reviewerUsername);
-        if (pa.getProject() == null || pa.getProject().getMentor() == null
-                || pa.getProject().getMentor().getId() == null
-                || !pa.getProject().getMentor().getId().equals(mentor.getId())) {
+        if (!isMentorAssignedToProject(pa.getProject(), mentor)) {
             throw new AccessDeniedException("Not allowed to reject applications for this project");
         }
 
@@ -274,11 +290,24 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ProjectApplicationResponse> getPendingApplicationsForMentor(String mentorUsername) {
         final var mentor = resolveMentorByLogin(mentorUsername);
-        final List<String> projectIds = projectRepository.findByMentorId(mentor.getId())
-                .stream()
-                .map(Project::getId)
-                .filter(id -> id != null && !id.isBlank())
-                .toList();
+
+        final List<String> directProjectIds = projectRepository.findByMentorId(mentor.getId())
+            .stream()
+            .map(Project::getId)
+            .filter(id -> id != null && !id.isBlank())
+            .toList();
+
+        final List<String> joinedProjectIds = projectMentorRepository
+            .findByMentorIdOrderByAssignedAtDesc(mentor.getId())
+            .stream()
+            .map(pm -> pm.getProject() != null ? pm.getProject().getId() : null)
+            .filter(id -> id != null && !id.isBlank())
+            .toList();
+
+        final List<String> projectIds = java.util.stream.Stream
+            .concat(directProjectIds.stream(), joinedProjectIds.stream())
+            .distinct()
+            .toList();
 
         if (projectIds.isEmpty()) {
             return List.of();

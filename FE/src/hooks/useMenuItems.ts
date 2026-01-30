@@ -1,6 +1,25 @@
 import { useSelector } from "react-redux";
 import { UserRole } from "../types";
 
+const normalizeRole = (value: unknown): UserRole | undefined => {
+  const v = String(value || "")
+    .trim()
+    .replace(/^ROLE_/, "")
+    .toUpperCase();
+  if (!v) return undefined;
+
+  const allowed: UserRole[] = [
+    "SYSTEM_ADMIN",
+    "LAB_ADMIN",
+    "COMPANY",
+    "MENTOR",
+    "TALENT",
+    "TALENT_LEADER",
+    "USER",
+  ];
+  return (allowed as string[]).includes(v) ? (v as UserRole) : undefined;
+};
+
 export const getDashboardLink = (role: UserRole): string => {
   const roleDashboards: Record<string, string> = {
     SYSTEM_ADMIN: "system-admin/dashboard",
@@ -9,6 +28,7 @@ export const getDashboardLink = (role: UserRole): string => {
     MENTOR: "mentor/dashboard",
     TALENT: "candidate/dashboard",
     TALENT_LEADER: "candidate/dashboard",
+    USER: "candidate/dashboard",
   };
   return roleDashboards[role] || "candidate/dashboard";
 };
@@ -19,7 +39,11 @@ export const useMenuItems = () => {
   const getMenuItems = () => {
     if (!user) return [];
 
-    const role = user.role as UserRole;
+    // Support both `user.role` and legacy `user.roles` array.
+    const role =
+      normalizeRole(user?.role) ||
+      normalizeRole(user?.roles?.[0]) ||
+      ("TALENT" as UserRole);
 
     const baseMenuItems = [
       {
@@ -44,6 +68,29 @@ export const useMenuItems = () => {
     ];
 
     switch (role) {
+      case "USER":
+        return [
+          ...baseMenuItems,
+          {
+            title: "Company Verification",
+            icon: "heroicons-outline:building-office-2",
+            link: "candidate/company-verification",
+          },
+         
+          {
+            title: "View Projects",
+            icon: "heroicons-outline:magnifying-glass",
+            link: "candidate/view-projects",
+          },
+          
+          {
+            title: "My Applications",
+            icon: "heroicons-outline:document-text",
+            link: "candidate/applications",
+          },
+          
+        ];
+
       case "SYSTEM_ADMIN":
         return [
           ...baseMenuItems,
@@ -286,11 +333,6 @@ export const useMenuItems = () => {
             title: "Fund Distributions",
             icon: "heroicons-outline:currency-dollar",
             link: "candidate/fund-distributions",
-          },
-          {
-            title: "Team Votes",
-            icon: "heroicons-outline:hand-raised",
-            link: "candidate/team-votes",
           },
         ];
 

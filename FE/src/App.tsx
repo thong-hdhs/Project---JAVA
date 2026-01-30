@@ -45,10 +45,12 @@ const CandidateTasks = lazy(() => import("./pages/labodc/candidate/tasks.tsx"));
 const FundDistributions = lazy(
   () => import("./pages/labodc/candidate/fund-distributions"),
 );
-const TeamVotes = lazy(() => import("./pages/labodc/candidate/team-votes"));
 const CandidateReports = lazy(() => import("./pages/labodc/candidate/reports"));
 const CandidateEvaluations = lazy(
   () => import("./pages/labodc/candidate/evaluations"),
+);
+const CompanyVerification = lazy(
+  () => import("./pages/labodc/candidate/company-verification"),
 );
 
 // Company/Enterprise pages
@@ -219,12 +221,15 @@ function App() {
               path="candidate/fund-distributions"
               element={<FundDistributions />}
             />
-            <Route path="candidate/team-votes" element={<TeamVotes />} />
             <Route path="candidate/reports" element={<CandidateReports />} />
             <Route
               path="candidate/evaluations"
               element={<CandidateEvaluations />}
             />
+              <Route
+                path="candidate/company-verification"
+                element={<CompanyVerification />}
+              />
           </Route>
 
           {/* Company/Enterprise routes */}

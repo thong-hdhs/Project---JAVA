@@ -23,6 +23,8 @@ import com.example.labOdc.Repository.LabAdminRepository;
 import com.example.labOdc.Repository.MentorRepository;
 import com.example.labOdc.Repository.ProjectRepository;
 import com.example.labOdc.Repository.ProjectTeamRepository;
+import com.example.labOdc.Repository.ProjectMentorRepository;
+import com.example.labOdc.Repository.TaskRepository;
 import com.example.labOdc.Repository.UserRepository;
 import com.example.labOdc.Service.NotificationService;
 import com.example.labOdc.Service.ProjectService;
@@ -39,6 +41,8 @@ public class ProjectServiceImpl implements ProjectService {
     private final LabAdminRepository labAdminRepository;
     private final UserRepository userRepository;
     private final ProjectTeamRepository projectTeamRepository;
+    private final ProjectMentorRepository projectMentorRepository;
+    private final TaskRepository taskRepository;
     private final NotificationService notificationService;
 
     private User getCurrentUserOrThrow() {
@@ -245,6 +249,95 @@ public class ProjectServiceImpl implements ProjectService {
         for (ProjectTeam pt : team) {
             if (pt == null || pt.getTalent() == null || pt.getTalent().getUser() == null) continue;
             // optionally notify only ACTIVE members
+            if (pt.getStatus() != null && pt.getStatus().name() != null && !pt.getStatus().name().equals("ACTIVE")) {
+                continue;
+            }
+
+            notificationService.createForUser(
+                    pt.getTalent().getUser(),
+                    "Project completed",
+                    "Project '" + projectName + "' has been marked COMPLETED.",
+                    "PROJECT_COMPLETED");
+        }
+
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Project requestCompleteProject(String projectId) {
+        Project project = getProjectById(projectId);
+
+        // verify current user is a mentor associated with the project
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+            throw new IllegalStateException("Unauthenticated request");
+        }
+
+        String usernameOrEmail = auth.getName();
+        User currentUser = userRepository.findByUsername(usernameOrEmail)
+                .or(() -> userRepository.findByEmail(usernameOrEmail))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        var currentMentor = mentorRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("You are not a mentor"));
+
+        boolean isAssigned = false;
+        if (project.getMentor() != null && project.getMentor().getId() != null
+                && project.getMentor().getId().equals(currentMentor.getId())) {
+            isAssigned = true;
+        }
+
+        if (!isAssigned) {
+            // check project_mentors table
+            isAssigned = projectMentorRepository.existsByProjectIdAndMentorId(projectId, currentMentor.getId());
+        }
+
+        if (!isAssigned) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not assigned to this project");
+        }
+
+        // verify tasks all completed
+        long totalTasks = taskRepository.countByProjectId(projectId);
+        long completed = taskRepository.countByProjectIdAndStatus(projectId, com.example.labOdc.Model.Task.Status.DONE);
+
+        if (totalTasks == 0) {
+            throw new IllegalStateException("Project has no tasks to complete");
+        }
+
+        if (completed != totalTasks) {
+            throw new IllegalStateException("All tasks must be completed before requesting project completion");
+        }
+
+        project.setStatus(ProjectStatus.COMPLETED);
+        if (project.getActualEndDate() == null) project.setActualEndDate(LocalDate.now());
+
+        Project saved = projectRepository.save(project);
+
+        // notify company & lab admins & talents (same as completeProject)
+        String projectName = saved.getProjectName() != null ? saved.getProjectName() : saved.getId();
+
+        if (saved.getMentor() != null && saved.getMentor().getUser() != null) {
+            notificationService.createForUser(
+                    saved.getMentor().getUser(),
+                    "Project completed",
+                    "Project '" + projectName + "' has been marked COMPLETED by the mentor.",
+                    "PROJECT_COMPLETED");
+        }
+
+        for (LabAdmin la : labAdminRepository.findAll()) {
+            if (la != null && la.getUser() != null) {
+                notificationService.createForUser(
+                        la.getUser(),
+                        "Project completed",
+                        "Project '" + projectName + "' has been marked COMPLETED by the mentor.",
+                        "PROJECT_COMPLETED");
+            }
+        }
+
+        List<ProjectTeam> team = projectTeamRepository.findByProjectIdOrderByCreatedAtDesc(saved.getId());
+        for (ProjectTeam pt : team) {
+            if (pt == null || pt.getTalent() == null || pt.getTalent().getUser() == null) continue;
             if (pt.getStatus() != null && pt.getStatus().name() != null && !pt.getStatus().name().equals("ACTIVE")) {
                 continue;
             }

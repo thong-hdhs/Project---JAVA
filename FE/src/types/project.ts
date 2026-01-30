@@ -6,6 +6,7 @@ export type ProjectPaymentStatus = 'NOT_REQUIRED' | 'PENDING' | 'PAID' | 'FAILED
 export interface Project {
   id: string;
   project_name: string;
+  project_code?: string;
   description: string;
   requirements: string;
   budget: number;

@@ -205,8 +205,7 @@ const CandidateDashboard: React.FC = () => {
           <div className="space-y-4">
             {recentProjects.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No active projects yet. Browse available projects to get
-                started!
+                Click on "View All" to see details.
               </div>
             ) : (
               recentProjects.map((project) => (
@@ -246,7 +245,7 @@ const CandidateDashboard: React.FC = () => {
           <div className="space-y-4">
             {myTasks.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No tasks assigned yet.
+                Click on "View All" to see details.
               </div>
             ) : (
               myTasks.map((task) => (
@@ -266,25 +265,31 @@ const CandidateDashboard: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <Button
-                    text={
-                      task.status === "COMPLETED"
-                        ? "Completed"
-                        : updatingTaskId === task.id
-                          ? "Saving..."
-                          : "Done"
-                    }
-                    className={
-                      task.status === "COMPLETED"
-                        ? "btn-outline-dark btn-sm"
-                        : "bg-primary-500 text-white btn-sm"
-                    }
-                    disabled={
-                      updatingTaskId === task.id || task.status === "COMPLETED"
-                    }
-                    isLoading={updatingTaskId === task.id}
-                    onClick={() => markDone(task.id)}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <Link to={`/candidate/task/${task.id}`}>
+                      <Button text="View" className="btn-outline-dark btn-sm" />
+                    </Link>
+                    <Button
+                      text={
+                        task.status === "COMPLETED"
+                          ? "Completed"
+                          : updatingTaskId === task.id
+                            ? "Saving..."
+                            : "Done"
+                      }
+                      className={
+                        task.status === "COMPLETED"
+                          ? "btn-outline-dark btn-sm"
+                          : "bg-primary-500 text-white btn-sm"
+                      }
+                      disabled={
+                        updatingTaskId === task.id ||
+                        task.status === "COMPLETED"
+                      }
+                      isLoading={updatingTaskId === task.id}
+                      onClick={() => markDone(task.id)}
+                    />
+                  </div>
                 </div>
               ))
             )}

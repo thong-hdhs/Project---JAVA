@@ -26,7 +26,7 @@ public class MentorInvitationController {
     private final MentorInvitationService mentorInvitationService;
 
     @PostMapping("/")
-    @PreAuthorize("hasRole('COMPANY')")
+    @PreAuthorize("hasAnyRole('COMPANY','LAB_ADMIN','SYSTEM_ADMIN')")
     public ApiResponse<MentorInvitationResponse> create(@Valid @RequestBody MentorInvitationDTO dto,
             BindingResult result) {
         if (result.hasErrors()) {

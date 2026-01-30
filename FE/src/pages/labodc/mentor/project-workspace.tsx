@@ -15,6 +15,7 @@ import {
   type BackendTalentResponse,
 } from "@/services/talent.service";
 import { taskService } from "@/services/task.service";
+import { projectService } from "@/services/project.service";
 import { devSeedService } from "@/services/devSeed.service";
 import type { Project, Task } from "@/types";
 
@@ -58,6 +59,7 @@ const MentorProjectWorkspace: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [completionLocked, setCompletionLocked] = useState(false);
 
   const [teamTalents, setTeamTalents] = useState<BackendTalentResponse[]>([]);
   const talentById = useMemo(() => {
@@ -70,6 +72,10 @@ const MentorProjectWorkspace: React.FC = () => {
     () => projects.find((p) => p.id === selectedProjectId),
     [projects, selectedProjectId],
   );
+
+  const isProjectCompleted =
+    String(selectedProject?.status || "").toUpperCase() === "COMPLETED";
+  const areProjectActionsLocked = completionLocked || isProjectCompleted;
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -183,6 +189,7 @@ const MentorProjectWorkspace: React.FC = () => {
 
   useEffect(() => {
     if (!selectedProjectId) return;
+    setCompletionLocked(false);
     loadTasks(selectedProjectId);
     loadProjectTeamTalents(selectedProjectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -333,6 +340,31 @@ const MentorProjectWorkspace: React.FC = () => {
     }
   };
 
+  const canRequestComplete = useMemo(() => {
+    if (!selectedProject) return false;
+    if (!tasks || tasks.length === 0) return false;
+    return tasks.every((t) => {
+      const s = String(t.status || "").toUpperCase();
+      return s === "DONE" || s === "COMPLETED";
+    });
+  }, [selectedProject, tasks]);
+
+  const requestCompleteProject = async () => {
+    if (!selectedProjectId) return;
+    try {
+      setLoading(true);
+      await projectService.requestCompleteInBackend(selectedProjectId);
+      setCompletionLocked(true);
+      toast.success("done project");
+      await loadMyProjects();
+      await loadTasks(selectedProjectId);
+    } catch (e: any) {
+      toast.error(e?.message || "Request complete failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isMentor) {
     return (
       <div className="space-y-4">
@@ -372,7 +404,18 @@ const MentorProjectWorkspace: React.FC = () => {
             text="Add Task"
             className="bg-primary-500 text-white"
             onClick={() => setIsAddOpen(true)}
-            disabled={loading || !selectedProjectId}
+            disabled={loading || !selectedProjectId || areProjectActionsLocked}
+          />
+          <Button
+            text="Complete Project"
+            className="bg-green-600 text-white"
+            onClick={() => void requestCompleteProject()}
+            disabled={
+              loading ||
+              !selectedProjectId ||
+              !canRequestComplete ||
+              areProjectActionsLocked
+            }
           />
         </div>
       </div>

@@ -42,12 +42,18 @@ const decodeJwtPayload = (token: string): any => {
 };
 
 const normalizeRoleFromJwt = (roles: unknown): UserRole => {
-  const list = Array.isArray(roles) ? roles.map(String) : [];
+  const rawList = Array.isArray(roles) ? roles.map(String) : [];
+  const list = rawList.map((r) => r.replace(/^ROLE_/, "").toUpperCase());
+
   if (list.includes("SYSTEM_ADMIN")) return "SYSTEM_ADMIN";
   if (list.includes("LAB_ADMIN")) return "LAB_ADMIN";
   if (list.includes("COMPANY")) return "COMPANY";
   if (list.includes("MENTOR")) return "MENTOR";
-  // BE may use USER; map it to TALENT in FE.
+  if (list.includes("TALENT_LEADER")) return "TALENT_LEADER";
+  if (list.includes("TALENT")) return "TALENT";
+  if (list.includes("USER")) return "USER";
+
+  // Default to TALENT to keep legacy behavior for unknown roles.
   return "TALENT";
 };
 
@@ -56,17 +62,45 @@ const userFromBackendToken = (token: string): User => {
   const subject = String(payload.sub || payload.subject || "");
   const role = normalizeRoleFromJwt(payload.roles);
 
+  const rolesRaw: string[] = Array.isArray(payload.roles)
+    ? payload.roles.map((v: unknown) => String(v))
+    : [];
+  const roles = rolesRaw.map((r: string) => r.replace(/^ROLE_/, "").toUpperCase());
+
+  const permissions = Array.isArray(payload.permissions)
+    ? payload.permissions.map(String)
+    : payload.permissions
+      ? [String(payload.permissions)]
+      : [];
+
   const nowIso = new Date().toISOString();
 
   return {
     id: subject || "unknown",
     email: subject || "unknown",
-    full_name: subject || "User",
     role,
+
+    // Prefer keeping both naming styles for compatibility.
+    fullName: subject || "User",
+    full_name: subject || "User",
+
+    username: subject || "unknown",
+    roles,
+    permissions,
+
+    isActive: true,
     is_active: true,
+
+    emailVerified: true,
     email_verified: true,
+
+    lastLoginAt: nowIso,
     last_login_at: nowIso,
+
+    createdAt: nowIso,
     created_at: nowIso,
+
+    updatedAt: nowIso,
     updated_at: nowIso,
   };
 };
@@ -106,7 +140,7 @@ export const authService = {
 
   loginUser(credentials: LoginRequest): Promise<AuthResponse> {
     // Accept both TALENT and TALENT_LEADER; backend may also return USER.
-    return this.loginForRoles(credentials, ["TALENT", "TALENT_LEADER"]);
+    return this.loginForRoles(credentials, ["TALENT", "TALENT_LEADER", "USER"]);
   },
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {

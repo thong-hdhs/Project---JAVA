@@ -232,12 +232,12 @@ const ProfileUpdatePage: React.FC = () => {
               placeholder="Computer Science"
             />
             <InputGroup
-              label="Year"
+              label="Years of experience"
               type="number"
               name="year"
               value={profile.year ?? ""}
               onChange={handleChange}
-              placeholder="2026"
+              placeholder="2"
             />
             <InputGroup
               label="Portfolio URL"
