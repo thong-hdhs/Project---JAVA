@@ -54,7 +54,7 @@ const EnterpriseProjects: React.FC = () => {
       try {
         if (cid) {
           const payments = await paymentService.listPaymentsByCompany(cid);
-          const paidStatuses = new Set(['PAID', 'SUCCESS', 'COMPLETED']);
+          const paidStatuses = new Set(['PAID', 'SUCCESS']);
           const paidProjectKeys = new Set(
             payments
               .filter((p) => paidStatuses.has(String(p.status || '').toUpperCase()))
@@ -221,7 +221,7 @@ const EnterpriseProjects: React.FC = () => {
             <Button text="View" className="btn-outline-dark btn-sm" />
           </Link>
 
-          {item.validation_status === 'APPROVED' && !isProjectPaid(item) && (
+          {((item.validation_status === 'APPROVED') || String(item.status || '').toUpperCase() === 'COMPLETED') && !isProjectPaid(item) && (
             <button
               onClick={() => handlePaymentClick(item)}
               disabled={payLoading}

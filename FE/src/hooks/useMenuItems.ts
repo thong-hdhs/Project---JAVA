@@ -48,11 +48,6 @@ export const useMenuItems = () => {
         return [
           ...baseMenuItems,
           {
-            title: "Mentor Role Requests",
-            icon: "heroicons-outline:user-plus",
-            link: "system-admin/mentor-role-requests",
-          },
-          {
             title: "User Management",
             icon: "heroicons-outline:users",
             link: "system-admin/users",
@@ -123,6 +118,11 @@ export const useMenuItems = () => {
               },
             ],
           },
+            {
+              title: "Evaluations",
+              icon: "heroicons-outline:star",
+              link: "lab-admin/evaluations",
+            },
           {
             title: "Mentors",
             icon: "heroicons-outline:user-group",
@@ -213,6 +213,11 @@ export const useMenuItems = () => {
             link: "mentor/reports",
           },
           {
+            title: "Evaluations",
+            icon: "heroicons-outline:star",
+            link: "mentor/evaluations",
+          },
+          {
             title: "Project Invitations",
             icon: "heroicons-outline:envelope",
             link: "mentor/invitations",
@@ -251,6 +256,11 @@ export const useMenuItems = () => {
             title: "Reports",
             icon: "heroicons-outline:document-text",
             link: "candidate/reports",
+          },
+          {
+            title: "Evaluations",
+            icon: "heroicons-outline:star",
+            link: "candidate/evaluations",
           },
           {
             title: "View Projects",

@@ -47,6 +47,9 @@ const FundDistributions = lazy(
 );
 const TeamVotes = lazy(() => import("./pages/labodc/candidate/team-votes"));
 const CandidateReports = lazy(() => import("./pages/labodc/candidate/reports"));
+const CandidateEvaluations = lazy(
+  () => import("./pages/labodc/candidate/evaluations"),
+);
 
 // Company/Enterprise pages
 const EnterpriseDashboard = lazy(
@@ -90,6 +93,9 @@ const MentorApplications = lazy(
   () => import("./pages/labodc/mentor/applications"),
 );
 const MentorReports = lazy(() => import("./pages/labodc/mentor/reports"));
+const MentorEvaluations = lazy(
+  () => import("./pages/labodc/mentor/evaluations"),
+);
 const FundApprovals = lazy(
   () => import("./pages/labodc/mentor/fund-approvals"),
 );
@@ -115,6 +121,9 @@ const TransparencyReport = lazy(
 );
 const ChangeRequestApprovals = lazy(
   () => import("./pages/labodc/lab-admin/change-request-approvals"),
+);
+const LabAdminEvaluations = lazy(
+  () => import("./pages/labodc/lab-admin/evaluations"),
 );
 const RejectedProjects = lazy(
   () => import("./pages/labodc/lab-admin/rejected-projects"),
@@ -155,9 +164,6 @@ const EmailTemplates = lazy(
   () => import("./pages/labodc/system-admin/email-templates"),
 );
 const AuditLogs = lazy(() => import("./pages/labodc/system-admin/audit-logs"));
-const MentorRoleRequests = lazy(
-  () => import("./pages/labodc/system-admin/mentor-role-requests"),
-);
 
 // Common pages
 const Profile = lazy(() => import("./pages/profile"));
@@ -215,6 +221,10 @@ function App() {
             />
             <Route path="candidate/team-votes" element={<TeamVotes />} />
             <Route path="candidate/reports" element={<CandidateReports />} />
+            <Route
+              path="candidate/evaluations"
+              element={<CandidateEvaluations />}
+            />
           </Route>
 
           {/* Company/Enterprise routes */}
@@ -268,6 +278,7 @@ function App() {
               element={<MentorProjectWorkspace />}
             />
             <Route path="mentor/reports" element={<MentorReports />} />
+            <Route path="mentor/evaluations" element={<MentorEvaluations />} />
             <Route path="mentor/fund-approvals" element={<FundApprovals />} />
           </Route>
 
@@ -275,6 +286,10 @@ function App() {
           <Route element={<LabAdminRoute />}>
             <Route path="lab-admin/dashboard" element={<LabAdminDashboard />} />
             <Route path="lab-admin/profile" element={<Profile />} />
+            <Route
+              path="lab-admin/evaluations"
+              element={<LabAdminEvaluations />}
+            />
             <Route
               path="lab-admin/validate-projects"
               element={<ValidateProjects />}
@@ -347,10 +362,6 @@ function App() {
               element={<EmailTemplates />}
             />
             <Route path="system-admin/audit-logs" element={<AuditLogs />} />
-            <Route
-              path="system-admin/mentor-role-requests"
-              element={<MentorRoleRequests />}
-            />
           </Route>
 
           {/* Common routes */}

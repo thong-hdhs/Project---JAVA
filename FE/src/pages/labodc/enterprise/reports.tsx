@@ -6,6 +6,8 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
 
+import ReportViewModal from '@/shared/components/ReportViewModal';
+
 import { companyService } from '@/services/company.service';
 import { projectService } from '@/services/project.service';
 import { reportService, type BackendReportResponse, type ReportType } from '@/services/report.service';
@@ -22,6 +24,9 @@ const EnterpriseReports: React.FC = () => {
 
   const [reports, setReports] = useState<BackendReportResponse[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [selectedReport, setSelectedReport] = useState<BackendReportResponse | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId),
@@ -114,8 +119,19 @@ const EnterpriseReports: React.FC = () => {
     }
   };
 
+  const openView = (report: BackendReportResponse) => {
+    setSelectedReport(report);
+    setIsViewOpen(true);
+  };
+
   return (
     <div className="space-y-6">
+      <ReportViewModal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        report={selectedReport}
+      />
+
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
@@ -168,7 +184,7 @@ const EnterpriseReports: React.FC = () => {
                     <th className="py-2 pr-3">Status</th>
                     <th className="py-2 pr-3">Created</th>
                     <th className="py-2 pr-3">Submitted</th>
-                    <th className="py-2 pr-3">Attachment</th>
+                    <th className="py-2 pr-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,11 +196,12 @@ const EnterpriseReports: React.FC = () => {
                       <td className="py-2 pr-3">{r.createdAt ? String(r.createdAt).slice(0, 10) : '—'}</td>
                       <td className="py-2 pr-3">{r.submittedDate || '—'}</td>
                       <td className="py-2 pr-3">
-                        {r.attachmentUrl ? (
-                          <a className="text-blue-600 hover:underline" href={r.attachmentUrl} target="_blank" rel="noreferrer">Link</a>
-                        ) : (
-                          '—'
-                        )}
+                        <Button
+                          text="View"
+                          className="btn-outline"
+                          onClick={() => openView(r)}
+                          disabled={loading}
+                        />
                       </td>
                     </tr>
                   ))}

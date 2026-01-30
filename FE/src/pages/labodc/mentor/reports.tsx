@@ -6,6 +6,8 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
 
+import ReportViewModal from '@/shared/components/ReportViewModal';
+
 import { mentorService } from '@/services/mentor.service';
 import { reportService, type BackendReportResponse, type ReportType } from '@/services/report.service';
 import type { Project } from '@/types';
@@ -20,6 +22,8 @@ const MentorReports: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const [reports, setReports] = useState<BackendReportResponse[]>([]);
+  const [selectedReport, setSelectedReport] = useState<BackendReportResponse | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
@@ -121,8 +125,19 @@ const MentorReports: React.FC = () => {
     }
   };
 
+  const openView = (report: BackendReportResponse) => {
+    setSelectedReport(report);
+    setIsViewOpen(true);
+  };
+
   return (
     <div className="space-y-6">
+      <ReportViewModal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        report={selectedReport}
+      />
+
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Project Reports</h1>
@@ -165,6 +180,12 @@ const MentorReports: React.FC = () => {
                       <td className="py-2 pr-3">{r.createdAt ? String(r.createdAt).slice(0, 10) : '—'}</td>
                       <td className="py-2 pr-3">
                         <div className="flex items-center gap-2">
+                          <Button
+                            text="View"
+                            className="btn-outline"
+                            onClick={() => openView(r)}
+                            disabled={loading}
+                          />
                           <Button
                             text="Submit"
                             className="btn-outline"

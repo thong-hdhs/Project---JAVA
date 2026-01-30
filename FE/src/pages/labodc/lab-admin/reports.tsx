@@ -5,12 +5,29 @@ import { toast } from 'react-toastify';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
+import Modal from '@/shared/components/Modal';
 
 import { reportService, type BackendReportResponse, type ReportStatus, type ReportType } from '@/services/report.service';
 import { projectService } from '@/services/project.service';
 import type { Project } from '@/types';
 
 const REVIEW_STATUSES: ReportStatus[] = ['APPROVED', 'REJECTED', 'REVISION_NEEDED'];
+
+const backendBaseUrl = (): string => {
+  const envBase = (import.meta as any).env?.VITE_API_BASE_URL;
+  if (envBase) return String(envBase).replace(/\/+$/, '');
+  if ((import.meta as any).env?.DEV) return 'http://localhost:8082';
+  return window.location.origin;
+};
+
+const resolveAttachmentUrl = (maybeUrl: string): string => {
+  const raw = String(maybeUrl || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const base = backendBaseUrl();
+  if (raw.startsWith('/')) return `${base}${raw}`;
+  return `${base}/${raw}`;
+};
 
 const LabAdminReports: React.FC = () => {
   const { user } = useSelector((state: any) => state.auth);
@@ -39,6 +56,12 @@ const LabAdminReports: React.FC = () => {
     status: 'APPROVED' as ReportStatus,
     notes: '',
   });
+
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const openView = (reportId: string) => {
+    setSelectedReportId(reportId);
+    setIsViewOpen(true);
+  };
 
   const loadAll = async () => {
     try {
@@ -215,6 +238,7 @@ const LabAdminReports: React.FC = () => {
                     <th className="py-2 pr-3">Project</th>
                     <th className="py-2 pr-3">Mentor</th>
                     <th className="py-2 pr-3">Created</th>
+                    <th className="py-2 pr-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,6 +250,16 @@ const LabAdminReports: React.FC = () => {
                       <td className="py-2 pr-3">{r.projectId || '—'}</td>
                       <td className="py-2 pr-3">{r.mentorId || '—'}</td>
                       <td className="py-2 pr-3">{r.createdAt ? String(r.createdAt).slice(0, 10) : '—'}</td>
+                      <td className="py-2 pr-3">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            text="View"
+                            className="btn-outline"
+                            onClick={() => openView(String(r.id))}
+                            disabled={loading}
+                          />
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -343,6 +377,113 @@ const LabAdminReports: React.FC = () => {
           </div>
         </Card>
       )}
+
+      <Modal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        title="Report details"
+        size="lg"
+      >
+        {!selectedReport ? (
+          <div className="text-sm text-gray-600">No report selected.</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-gray-500">Title</div>
+                <div className="font-medium text-gray-900">{selectedReport.title}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Status</div>
+                <div className="mt-1"><StatusBadge status={String(selectedReport.status || '')} /></div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Type</div>
+                <div className="text-gray-900">{String(selectedReport.reportType || '—')}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Created</div>
+                <div className="text-gray-900">{selectedReport.createdAt ? String(selectedReport.createdAt).slice(0, 19) : '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Project</div>
+                <div className="text-gray-900">{selectedReport.projectId || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Mentor</div>
+                <div className="text-gray-900">{selectedReport.mentorId || '—'}</div>
+              </div>
+            </div>
+
+            {selectedReport.content ? (
+              <div>
+                <div className="text-xs text-gray-500">Content</div>
+                <div className="mt-1 whitespace-pre-wrap text-sm text-gray-900 border rounded p-3 bg-gray-50">
+                  {selectedReport.content}
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <div className="text-xs text-gray-500">Attachment</div>
+              {selectedReport.attachmentUrl ? (
+                <div className="mt-2 flex flex-col gap-2">
+                  <a
+                    className="text-sm text-blue-600 hover:underline break-all"
+                    href={resolveAttachmentUrl(selectedReport.attachmentUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {resolveAttachmentUrl(selectedReport.attachmentUrl)}
+                  </a>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      text="Open"
+                      className="btn-outline"
+                      onClick={() => {
+                        const url = resolveAttachmentUrl(selectedReport.attachmentUrl || '');
+                        if (!url) return;
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
+                    />
+                    <Button
+                      text="Download"
+                      className="btn-outline"
+                      onClick={() => {
+                        const url = resolveAttachmentUrl(selectedReport.attachmentUrl || '');
+                        if (!url) return;
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = '';
+                        link.rel = 'noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                      }}
+                    />
+                    <Button
+                      text="Copy link"
+                      className="btn-outline"
+                      onClick={async () => {
+                        const url = resolveAttachmentUrl(selectedReport.attachmentUrl || '');
+                        if (!url) return;
+                        try {
+                          await navigator.clipboard.writeText(url);
+                          toast.success('Copied');
+                        } catch {
+                          toast.error('Copy failed');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-1 text-sm text-gray-600">No attachment</div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -4,18 +4,17 @@ import { Link } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
-import InputGroup from "@/components/ui/InputGroup";
-import Textarea from "@/components/ui/Textarea";
 import { getDashboardLink } from "@/hooks/useMenuItems";
 import type { UserRole } from "@/types";
 import { setUser } from "@/store/api/auth/authSlice";
 import {
   getCandidateProfile,
   getMyCandidateProfile,
-  updateCandidateProfile,
-  updateMyCandidateProfile,
-  createCandidateProfile,
 } from "@/services";
+import { projectService } from "@/services/project.service";
+import { companyService } from "@/services/company.service";
+import { mentorService } from "@/services/mentor.service";
+import type { Project } from "@/types";
 
 type CandidateProfileForm = {
   studentCode: string;
@@ -90,14 +89,6 @@ const ProfilePage: React.FC = () => {
   // - POST /api/v1/talents/ : USER, SYSTEM_ADMIN (create OR update-by-current-user)
   // - PUT  /api/v1/talents/{id} : TALENT, SYSTEM_ADMIN (update by talentId)
   // - GET  /api/v1/talents/{id} : TALENT, LAB_ADMIN, MENTOR, SYSTEM_ADMIN
-  const canCreateOrUpdateViaPost = useMemo(
-    () => tokenRoles.includes("USER") || tokenRoles.includes("SYSTEM_ADMIN"),
-    [tokenRoles],
-  );
-  const canUpdateViaPut = useMemo(
-    () => tokenRoles.includes("TALENT") || tokenRoles.includes("SYSTEM_ADMIN"),
-    [tokenRoles],
-  );
   const canReadByTalentId = useMemo(
     () =>
       tokenRoles.includes("TALENT") ||
@@ -116,13 +107,8 @@ const ProfilePage: React.FC = () => {
     useState<CandidateProfileForm>({
       studentCode: "",
     });
-  const [candidateRecordId, setCandidateRecordId] = useState<string | null>(
-    null,
-  );
   const [profileLoading, setProfileLoading] = useState(false);
-  const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   const roleLabel = useMemo(() => {
     const role = (user?.role || "") as UserRole;
@@ -186,7 +172,6 @@ const ProfilePage: React.FC = () => {
     req
       .then((res) => {
         const data = res?.data?.data || res?.data || {};
-        setCandidateRecordId(data.id || null);
         if (data?.id) {
           localStorage.setItem("talentId", String(data.id));
         }
@@ -208,7 +193,6 @@ const ProfilePage: React.FC = () => {
           return;
         }
         if (status === 404) {
-          setCandidateRecordId(null);
           setProfileError(null);
           return;
         }
@@ -321,55 +305,77 @@ const ProfilePage: React.FC = () => {
     ];
   }, [user?.role]);
 
-  const sampleProjects = useMemo(() => {
+  const [profileProjects, setProfileProjects] = useState<Project[]>([]);
+  const [profileProjectsLoading, setProfileProjectsLoading] = useState(false);
+  const [profileProjectsError, setProfileProjectsError] = useState<string | null>(null);
+
+  const showProjectsCard = useMemo(() => {
     const role = (user?.role || "") as UserRole;
-    if (role === "COMPANY") {
-      return [
-        {
-          name: "Project Alpha",
-          meta: "Web Platform • Approved",
-          date: "2026-02-10",
-        },
-        {
-          name: "Project Beta",
-          meta: "Mobile App • Pending",
-          date: "2026-03-01",
-        },
-        {
-          name: "Project Gamma",
-          meta: "Data Pipeline • Draft",
-          date: "2026-03-15",
-        },
-      ];
-    }
-    if (role === "MENTOR") {
-      return [
-        { name: "Mentoring: Alpha", meta: "In Progress", date: "2026-02-12" },
-        { name: "Mentoring: Beta", meta: "Pending Review", date: "2026-02-28" },
-        { name: "Mentoring: Gamma", meta: "Planning", date: "2026-03-10" },
-      ];
-    }
-    if (role === "LAB_ADMIN" || role === "SYSTEM_ADMIN") {
-      return [
-        {
-          name: "Project Delta",
-          meta: "Awaiting Validation",
-          date: "2026-02-18",
-        },
-        {
-          name: "Project Epsilon",
-          meta: "Compliance Check",
-          date: "2026-02-25",
-        },
-        { name: "Project Zeta", meta: "Payments Review", date: "2026-03-05" },
-      ];
-    }
-    return [
-      { name: "Application: Alpha", meta: "Submitted", date: "2026-02-11" },
-      { name: "Team: Beta", meta: "In Progress", date: "2026-02-23" },
-      { name: "Project Gamma", meta: "Planned", date: "2026-03-06" },
-    ];
+    return role !== "SYSTEM_ADMIN" && role !== "LAB_ADMIN";
   }, [user?.role]);
+
+  useEffect(() => {
+    if (!showProjectsCard) {
+      setProfileProjects([]);
+      setProfileProjectsError(null);
+      setProfileProjectsLoading(false);
+      return;
+    }
+
+    let alive = true;
+    const role = (user?.role || "") as UserRole;
+
+    const load = async () => {
+      try {
+        setProfileProjectsLoading(true);
+        setProfileProjectsError(null);
+
+        if (role === "COMPANY") {
+          const myCompany = await companyService.getMyCompany();
+          const cid = String(myCompany?.id || "");
+          const list = await projectService.listAllProjectsFromBackend();
+          const companyProjects = cid ? list.filter((p) => String(p.company_id) === cid) : list;
+          if (!alive) return;
+          setProfileProjects(companyProjects);
+          return;
+        }
+
+        if (role === "MENTOR") {
+          const list = await mentorService.getMyAssignedProjects();
+          if (!alive) return;
+          setProfileProjects(list);
+          return;
+        }
+
+        // Default: TALENT / TALENT_LEADER
+        const res = await projectService.getMyProjects();
+        if (!alive) return;
+        setProfileProjects(res?.data || []);
+      } catch (e: any) {
+        if (!alive) return;
+        const apiData = e?.response?.data;
+        setProfileProjectsError(apiData?.message || apiData?.errors?.[0] || e?.message || "Failed to load projects");
+        setProfileProjects([]);
+      } finally {
+        if (!alive) return;
+        setProfileProjectsLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      alive = false;
+    };
+  }, [showProjectsCard, user?.role]);
+
+  const projectsForCard = useMemo(() => {
+    return (profileProjects || []).slice(0, 8).map((p) => ({
+      key: String(p.id),
+      name: p.project_name || '—',
+      meta: `${String(p.status || '').toUpperCase()} • ${String(p.validation_status || '').toUpperCase()}`,
+      date: p.created_at ? new Date(p.created_at).toISOString().slice(0, 10) : '—',
+    }));
+  }, [profileProjects]);
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) return;
@@ -404,147 +410,6 @@ const ProfilePage: React.FC = () => {
     e.target.value = "";
     if (!file) return;
     await handleAvatarUpload(file);
-  };
-
-  const handleProfileChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target;
-    setCandidateProfile((prev) => ({
-      ...prev,
-      [name]: name === "year" ? (value === "" ? "" : Number(value)) : value,
-    }));
-  };
-
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setProfileSuccess(null);
-    setProfileError(null);
-
-    if (!tokenStr) {
-      setProfileError("Please sign in to update your profile.");
-      return;
-    }
-    if (!canUpdateViaPut && !canCreateOrUpdateViaPost) {
-      setProfileError(
-        "Your account doesn't have permission to update this profile.",
-      );
-      return;
-    }
-    if (!candidateProfile.studentCode?.trim()) {
-      setProfileError("Student code is required.");
-      return;
-    }
-
-    try {
-      setProfileSaving(true);
-      const payload = {
-        studentCode: candidateProfile.studentCode,
-        major: candidateProfile.major || undefined,
-        year:
-          candidateProfile.year === ""
-            ? undefined
-            : Number(candidateProfile.year),
-        skills: candidateProfile.skills || undefined,
-        certifications: candidateProfile.certifications || undefined,
-        portfolioUrl: candidateProfile.portfolioUrl || undefined,
-        githubUrl: candidateProfile.githubUrl || undefined,
-        linkedinUrl: candidateProfile.linkedinUrl || undefined,
-      };
-
-      // TALENT: update via /me (no passing talentId).
-      // Otherwise fall back to legacy PUT by id (SYSTEM_ADMIN) or POST (USER/SYSTEM_ADMIN).
-      if (isTalent) {
-        const res = await updateMyCandidateProfile(payload);
-        const data = res?.data?.data || res?.data || {};
-        setCandidateProfile({
-          studentCode:
-            data.studentCode || data.student_code || payload.studentCode,
-          major: data.major ?? payload.major ?? "",
-          year: data.year ?? payload.year ?? "",
-          skills: data.skills ?? payload.skills ?? "",
-          certifications: data.certifications ?? payload.certifications ?? "",
-          portfolioUrl:
-            data.portfolioUrl ||
-            data.portfolio_url ||
-            payload.portfolioUrl ||
-            "",
-          githubUrl:
-            data.githubUrl || data.github_url || payload.githubUrl || "",
-          linkedinUrl:
-            data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
-        });
-        setProfileSuccess("Profile updated successfully.");
-      } else if (canUpdateViaPut && candidateRecordId) {
-        const res = await updateCandidateProfile(
-          String(candidateRecordId),
-          payload,
-        );
-        const data = res?.data?.data || res?.data || {};
-        setCandidateProfile({
-          studentCode:
-            data.studentCode || data.student_code || payload.studentCode,
-          major: data.major ?? payload.major ?? "",
-          year: data.year ?? payload.year ?? "",
-          skills: data.skills ?? payload.skills ?? "",
-          certifications: data.certifications ?? payload.certifications ?? "",
-          portfolioUrl:
-            data.portfolioUrl ||
-            data.portfolio_url ||
-            payload.portfolioUrl ||
-            "",
-          githubUrl:
-            data.githubUrl || data.github_url || payload.githubUrl || "",
-          linkedinUrl:
-            data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
-        });
-        setProfileSuccess("Profile updated successfully.");
-      } else {
-        if (!canCreateOrUpdateViaPost) {
-          setProfileError(
-            "Your current token can't update as USER. Please sign in again.",
-          );
-          return;
-        }
-        const res = await createCandidateProfile(payload);
-        const data = res?.data?.data || res?.data || {};
-        if (data?.id) {
-          setCandidateRecordId(String(data.id));
-          localStorage.setItem("talentId", String(data.id));
-        }
-        setCandidateProfile({
-          studentCode:
-            data.studentCode || data.student_code || payload.studentCode,
-          major: data.major ?? payload.major ?? "",
-          year: data.year ?? payload.year ?? "",
-          skills: data.skills ?? payload.skills ?? "",
-          certifications: data.certifications ?? payload.certifications ?? "",
-          portfolioUrl:
-            data.portfolioUrl ||
-            data.portfolio_url ||
-            payload.portfolioUrl ||
-            "",
-          githubUrl:
-            data.githubUrl || data.github_url || payload.githubUrl || "",
-          linkedinUrl:
-            data.linkedinUrl || data.linkedin_url || payload.linkedinUrl || "",
-        });
-        setProfileSuccess(
-          tokenRoles.includes("TALENT")
-            ? "Profile saved successfully."
-            : "Profile saved. If you just created your profile, sign out/sign in again to receive the TALENT role in your token.",
-        );
-      }
-    } catch (err: any) {
-      const apiData = err?.response?.data;
-      const message =
-        apiData?.errors?.join?.("; ") ||
-        apiData?.message ||
-        "Failed to save profile.";
-      setProfileError(message);
-    } finally {
-      setProfileSaving(false);
-    }
   };
 
   if (!user) {
@@ -704,26 +569,37 @@ const ProfilePage: React.FC = () => {
           </div>
         </Card>
 
-        <Card title="Projects" bodyClass="p-0">
-          <div className="divide-y divide-slate-200 dark:divide-slate-700">
-            {sampleProjects.map((p) => (
-              <div
-                key={p.name}
-                className="px-6 py-4 flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-medium text-slate-900 dark:text-slate-100">
-                    {p.name}
+        {showProjectsCard ? (
+          <Card title="Projects" bodyClass="p-0">
+            {profileProjectsError ? (
+              <div className="px-6 py-4 text-sm text-red-600">{profileProjectsError}</div>
+            ) : null}
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {profileProjectsLoading ? (
+                <div className="px-6 py-4 text-sm text-slate-500">Loading...</div>
+              ) : projectsForCard.length ? (
+                projectsForCard.map((p) => (
+                  <div
+                    key={p.key}
+                    className="px-6 py-4 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-medium text-slate-900 dark:text-slate-100">
+                        {p.name}
+                      </div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                        {p.meta}
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-400">{p.date}</div>
                   </div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    {p.meta}
-                  </div>
-                </div>
-                <div className="text-sm text-slate-400">{p.date}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
+                ))
+              ) : (
+                <div className="px-6 py-4 text-sm text-slate-500">No projects.</div>
+              )}
+            </div>
+          </Card>
+        ) : null}
 
         <Card
           title={user.role === "MENTOR" ? "Mentor Evaluations" : "Role Details"}
@@ -793,105 +669,117 @@ const ProfilePage: React.FC = () => {
               </ul>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">
-                  Student status
+            <div className="space-y-4">
+              {profileLoading && (
+                <div className="text-sm text-slate-600 dark:text-slate-300">
+                  Loading profile…
                 </div>
-                <div className="text-slate-900 dark:text-slate-100 font-medium">
-                  Active
+              )}
+              {profileError && !profileLoading && (
+                <div className="text-sm text-red-600 dark:text-red-400">
+                  {profileError}
                 </div>
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">Major</div>
-                <div className="text-slate-900 dark:text-slate-100 font-medium">
-                  {candidateProfile.major || "-"}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">Year</div>
-                <div className="text-slate-900 dark:text-slate-100 font-medium">
-                  {candidateProfile.year || "-"}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">
-                  Portfolio
-                </div>
-                {candidateProfile.portfolioUrl ? (
-                  <a
-                    href={candidateProfile.portfolioUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary-600"
-                  >
-                    {candidateProfile.portfolioUrl}
-                  </a>
-                ) : (
-                  <div className="text-slate-900 dark:text-slate-100 font-medium">
-                    -
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Student status
                   </div>
-                )}
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">Skills</div>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {(skillList.length
-                    ? skillList
-                    : ["React", "TypeScript", "Teamwork"]
-                  ).map((s) => (
-                    <span
-                      key={s}
-                      className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-100 text-xs"
+                  <div className="text-slate-900 dark:text-slate-100 font-medium">
+                    Active
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">Major</div>
+                  <div className="text-slate-900 dark:text-slate-100 font-medium">
+                    {candidateProfile.major || "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">Year</div>
+                  <div className="text-slate-900 dark:text-slate-100 font-medium">
+                    {candidateProfile.year || "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Portfolio
+                  </div>
+                  {candidateProfile.portfolioUrl ? (
+                    <a
+                      href={candidateProfile.portfolioUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary-600"
                     >
-                      {s}
-                    </span>
-                  ))}
+                      {candidateProfile.portfolioUrl}
+                    </a>
+                  ) : (
+                    <div className="text-slate-900 dark:text-slate-100 font-medium">
+                      -
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">
-                  Certifications
-                </div>
-                <div className="text-slate-900 dark:text-slate-100 font-medium">
-                  {candidateProfile.certifications || "-"}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">GitHub</div>
-                {candidateProfile.githubUrl ? (
-                  <a
-                    href={candidateProfile.githubUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary-600"
-                  >
-                    {candidateProfile.githubUrl}
-                  </a>
-                ) : (
-                  <div className="text-slate-900 dark:text-slate-100 font-medium">
-                    -
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">Skills</div>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {(skillList.length
+                      ? skillList
+                      : ["React", "TypeScript", "Teamwork"]
+                    ).map((s) => (
+                      <span
+                        key={s}
+                        className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-100 text-xs"
+                      >
+                        {s}
+                      </span>
+                    ))}
                   </div>
-                )}
-              </div>
-              <div>
-                <div className="text-slate-500 dark:text-slate-400">
-                  LinkedIn
                 </div>
-                {candidateProfile.linkedinUrl ? (
-                  <a
-                    href={candidateProfile.linkedinUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary-600"
-                  >
-                    {candidateProfile.linkedinUrl}
-                  </a>
-                ) : (
-                  <div className="text-slate-900 dark:text-slate-100 font-medium">
-                    -
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    Certifications
                   </div>
-                )}
+                  <div className="text-slate-900 dark:text-slate-100 font-medium">
+                    {candidateProfile.certifications || "-"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">GitHub</div>
+                  {candidateProfile.githubUrl ? (
+                    <a
+                      href={candidateProfile.githubUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary-600"
+                    >
+                      {candidateProfile.githubUrl}
+                    </a>
+                  ) : (
+                    <div className="text-slate-900 dark:text-slate-100 font-medium">
+                      -
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-slate-500 dark:text-slate-400">
+                    LinkedIn
+                  </div>
+                  {candidateProfile.linkedinUrl ? (
+                    <a
+                      href={candidateProfile.linkedinUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary-600"
+                    >
+                      {candidateProfile.linkedinUrl}
+                    </a>
+                  ) : (
+                    <div className="text-slate-900 dark:text-slate-100 font-medium">
+                      -
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -1,5 +1,24 @@
 import apiClient from './apiClient';
 
+export const resolveBackendBaseUrl = (): string => {
+  const base = String((apiClient.defaults as any)?.baseURL || '').trim();
+  return base.replace(/\/+$/, '');
+};
+
+export const resolveReportAttachmentUrl = (maybeUrl?: string | null): string => {
+  const raw = String(maybeUrl || '').trim();
+  if (!raw) return '';
+
+  // Already absolute.
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  // If we don't have a configured backend base URL (dev proxy), keep it same-origin.
+  const base = resolveBackendBaseUrl();
+  if (!base) return raw.startsWith('/') ? raw : `/${raw}`;
+
+  return raw.startsWith('/') ? `${base}${raw}` : `${base}/${raw}`;
+};
+
 type BackendApiResponse<T> = {
   success: boolean;
   message?: string;

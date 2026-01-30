@@ -39,6 +39,29 @@ export type BackendPaymentResponse = {
   updatedAt?: string;
 };
 
+export type BackendFundDistributionResponse = {
+  id: string;
+  fundAllocationId?: string;
+  projectId?: string;
+  projectName?: string;
+  projectCode?: string;
+  talentId?: string;
+  talentName?: string;
+  talentStudentCode?: string;
+  amount?: number | string;
+  percentage?: number | string;
+  status?: string;
+  approvedById?: string;
+  approvedByName?: string;
+  approvedAt?: string;
+  paidDate?: string;
+  paymentMethod?: string;
+  transactionReference?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 const getRuntimeBaseUrl = (): string => {
   const base = (apiClient.defaults as any)?.baseURL;
   return typeof base === 'string' ? base : '';
@@ -247,5 +270,19 @@ export const paymentService = {
       }
       throw err;
     }
+  },
+
+  // ====== BE Fund Distributions (Spring) ======
+  async listFundDistributionsByTalent(talentId: string): Promise<BackendFundDistributionResponse[]> {
+    const response = await apiClient.get<BackendApiResponse<BackendFundDistributionResponse[]>>(
+      `/api/v1/fund-distributions/talent/${talentId}`,
+    );
+
+    if (!response.data?.success) {
+      const msg = response.data?.message || response.data?.errors?.[0] || 'Load fund distributions failed';
+      throw new Error(msg);
+    }
+
+    return response.data?.data || [];
   },
 };
