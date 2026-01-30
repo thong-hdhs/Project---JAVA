@@ -66,7 +66,7 @@ const ProjectDetailEnterprise: React.FC = () => {
 			let effectiveProject: Project = p;
 			try {
 				const payments = await paymentService.listPaymentsByProject(projectId);
-				const paidStatuses = new Set(['PAID', 'SUCCESS']);
+				const paidStatuses = new Set(['PAID', 'SUCCESS', 'COMPLETED']);
 				const hasPaid = payments.some((pay) => paidStatuses.has(String(pay.status || '').toUpperCase()));
 				if (hasPaid) {
 					effectiveProject = { ...p, payment_status: 'PAID' };

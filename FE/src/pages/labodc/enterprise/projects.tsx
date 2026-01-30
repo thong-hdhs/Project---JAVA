@@ -54,15 +54,18 @@ const EnterpriseProjects: React.FC = () => {
       try {
         if (cid) {
           const payments = await paymentService.listPaymentsByCompany(cid);
-          const paidStatuses = new Set(['PAID', 'SUCCESS']);
+          const paidStatuses = new Set(['PAID', 'SUCCESS', 'COMPLETED', 'SETTLED']);
+          const normalizeKey = (v: unknown): string => String(v || '').trim().toLowerCase();
           const paidProjectKeys = new Set(
             payments
               .filter((p) => paidStatuses.has(String(p.status || '').toUpperCase()))
-              .flatMap((p) => [String(p.projectCode || ''), String(p.projectName || '')].filter(Boolean)),
+              .flatMap((p) => [normalizeKey(p.projectCode), normalizeKey(p.projectName)].filter(Boolean)),
           );
 
           const withPaid = companyProjects.map((p) => {
-            const isPaidByPayment = paidProjectKeys.has(String(p.id)) || paidProjectKeys.has(String(p.project_name));
+            const isPaidByPayment =
+              paidProjectKeys.has(String(p.project_code || '').trim().toLowerCase()) ||
+              paidProjectKeys.has(String(p.project_name || '').trim().toLowerCase());
             if (!isPaidByPayment) return p;
             return { ...p, payment_status: 'PAID' as const };
           });
@@ -82,11 +85,65 @@ const EnterpriseProjects: React.FC = () => {
   };
 
   const isProjectPaid = (project: Project): boolean => {
-    return String(project.payment_status || '').toUpperCase() === 'PAID';
+    const status = String(project.payment_status || '').toUpperCase();
+    return status === 'PAID' || status === 'SUCCESS' || status === 'COMPLETED' || status === 'SETTLED';
   };
 
+  // If the user pays via QR (PayOS), backend status may update asynchronously (webhook).
+  // While the QR modal is open, poll payment status and auto-hide Pay once paid.
+  useEffect(() => {
+    if (!showQRModal) return;
+    if (!companyId) return;
+    if (!currentPaymentId) return;
+    if (!selectedProject?.id) return;
+
+    let cancelled = false;
+    const paidStatuses = new Set(['PAID', 'SUCCESS', 'COMPLETED', 'SETTLED']);
+
+    const check = async () => {
+      try {
+        const payments = await paymentService.listPaymentsByCompany(companyId);
+        const match = payments.find((p) => String(p.id) === String(currentPaymentId));
+        const status = String(match?.status || '').toUpperCase();
+        if (!paidStatuses.has(status)) return;
+        if (cancelled) return;
+
+        const paidProjectId = String(selectedProject.id);
+        setProjects((prev) =>
+          prev.map((p) => (String(p.id) === paidProjectId ? { ...p, payment_status: 'PAID' } : p)),
+        );
+        setSelectedProject((prev) =>
+          prev && String(prev.id) === paidProjectId ? { ...prev, payment_status: 'PAID' } : prev,
+        );
+
+        try {
+          window.dispatchEvent(new Event('payments:changed'));
+        } catch {
+          // ignore
+        }
+
+        setShowQRModal(false);
+        setSelectedProject(null);
+        setQrUrl('');
+        setCurrentPaymentId('');
+      } catch {
+        // ignore polling failures
+      }
+    };
+
+    // initial quick check
+    void check();
+    const id = window.setInterval(() => {
+      void check();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [showQRModal, companyId, currentPaymentId, selectedProject?.id]);
+
   const handlePaymentClick = async (project: Project) => {
-    if (project.validation_status !== 'APPROVED') return;
     if (isProjectPaid(project)) return;
     if (payLoading) return;
 
@@ -221,7 +278,7 @@ const EnterpriseProjects: React.FC = () => {
             <Button text="View" className="btn-outline-dark btn-sm" />
           </Link>
 
-          {((item.validation_status === 'APPROVED') || String(item.status || '').toUpperCase() === 'COMPLETED') && !isProjectPaid(item) && (
+          {!isProjectPaid(item) && (
             <button
               onClick={() => handlePaymentClick(item)}
               disabled={payLoading}

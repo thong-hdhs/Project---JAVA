@@ -14,6 +14,33 @@ import type { Project } from '@/types';
 
 type StoredAuthUser = { id?: string; role?: string; email?: string } | null;
 
+const APPLIED_CHANGE_REQUEST_IDS_KEY = 'company_applied_change_request_ids';
+
+const loadAppliedChangeRequestIds = (): Record<string, true> => {
+	try {
+		const raw = localStorage.getItem(APPLIED_CHANGE_REQUEST_IDS_KEY);
+		if (!raw) return {};
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return {};
+		const map: Record<string, true> = {};
+		for (const id of parsed) {
+			const key = String(id || '').trim();
+			if (key) map[key] = true;
+		}
+		return map;
+	} catch {
+		return {};
+	}
+};
+
+const persistAppliedChangeRequestIds = (ids: Record<string, true>) => {
+	try {
+		localStorage.setItem(APPLIED_CHANGE_REQUEST_IDS_KEY, JSON.stringify(Object.keys(ids)));
+	} catch {
+		// ignore
+	}
+};
+
 const getStoredUser = (): StoredAuthUser => {
 	try {
 		const raw = localStorage.getItem('user');
@@ -72,6 +99,7 @@ const ChangeRequests: React.FC = () => {
 	const [items, setItems] = useState<BackendProjectChangeRequestResponse[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [actionLoading, setActionLoading] = useState(false);
+	const [appliedOnceMap, setAppliedOnceMap] = useState<Record<string, true>>(() => loadAppliedChangeRequestIds());
 
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [showApplyModal, setShowApplyModal] = useState(false);
@@ -139,6 +167,12 @@ const ChangeRequests: React.FC = () => {
 		[projects, selectedProjectId],
 	);
 
+	const closeApply = useCallback(() => {
+		setShowApplyModal(false);
+		setApplyTarget(null);
+		setApplyDraft({});
+	}, []);
+
 	const openCreate = useCallback(() => {
 		if (!selectedProjectId) {
 			toast.error('Please select a project first');
@@ -153,12 +187,16 @@ const ChangeRequests: React.FC = () => {
 
 	const openApply = useCallback(
 		(r: BackendProjectChangeRequestResponse) => {
-			if (!selectedProject) {
+			if (!selectedProjectId) {
 				toast.error('Please select a project first');
 				return;
 			}
 			if (!isApproved(r.status)) {
 				toast.error('Only approved requests can be applied');
+				return;
+			}
+			if (appliedOnceMap[String(r.id)]) {
+				toast.info('This change request was already applied');
 				return;
 			}
 
@@ -176,11 +214,11 @@ const ChangeRequests: React.FC = () => {
 			setApplyTarget(r);
 			setShowApplyModal(true);
 		},
-		[selectedProject],
+		[appliedOnceMap, selectedProjectId],
 	);
 
 	const applyApprovedRequest = useCallback(async () => {
-		if (!applyTarget || !selectedProject) return;
+		if (!applyTarget) return;
 		try {
 			setActionLoading(true);
 			const type = String(applyTarget.requestType || '').toUpperCase();
@@ -205,9 +243,14 @@ const ChangeRequests: React.FC = () => {
 
 			await projectChangeRequestService.applyApproved(applyTarget.id, Object.keys(payload).length ? payload : undefined);
 
+			setAppliedOnceMap((prev) => {
+				const next: Record<string, true> = { ...prev, [String(applyTarget.id)]: true as true };
+				persistAppliedChangeRequestIds(next);
+				return next;
+			});
+
 			toast.success('Project updated');
-			setShowApplyModal(false);
-			setApplyTarget(null);
+			closeApply();
 			await loadProjects();
 			await loadRequests(selectedProjectId);
 		} catch (e: any) {
@@ -215,7 +258,7 @@ const ChangeRequests: React.FC = () => {
 		} finally {
 			setActionLoading(false);
 		}
-	}, [applyDraft, applyTarget, loadProjects, loadRequests, selectedProject, selectedProjectId]);
+	}, [applyDraft, applyTarget, closeApply, loadProjects, loadRequests, selectedProjectId]);
 
 	const create = useCallback(async () => {
 		const user = getStoredUser();
@@ -377,14 +420,25 @@ const ChangeRequests: React.FC = () => {
 										<td className="py-3">
 											<div className="flex gap-2">
 												{isApproved(r.status) ? (
-													<button
-														onClick={() => openApply(r)}
-														disabled={actionLoading}
-														className="inline-flex items-center space-x-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
-													>
-														<Icon icon="check" className="w-4 h-4" />
-														<span className="text-sm font-medium">Apply</span>
-													</button>
+													appliedOnceMap[String(r.id)] ? (
+														<button
+															disabled
+															className="inline-flex items-center space-x-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-200 cursor-not-allowed"
+															title="Already applied"
+														>
+															<Icon icon="check" className="w-4 h-4" />
+															<span className="text-sm font-medium">Applied</span>
+														</button>
+													) : (
+														<button
+															onClick={() => openApply(r)}
+															disabled={actionLoading}
+															className="inline-flex items-center space-x-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+														>
+															<Icon icon="check" className="w-4 h-4" />
+															<span className="text-sm font-medium">Edit</span>
+														</button>
+													)
 												) : isPending(r.status) ? (
 													<>
 														<button
@@ -416,13 +470,13 @@ const ChangeRequests: React.FC = () => {
 				)}
 			</Card>
 
-			{showApplyModal && applyTarget && selectedProject && (
+			{showApplyModal && applyTarget && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 					<div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
 						<div className="p-6 border-b border-gray-200 flex items-center justify-between">
 							<h2 className="text-xl font-bold text-gray-900">Apply Approved Change</h2>
 							<button
-								onClick={() => setShowApplyModal(false)}
+								onClick={closeApply}
 								className="text-gray-500 hover:text-gray-700"
 								disabled={actionLoading}
 							>
@@ -554,7 +608,7 @@ const ChangeRequests: React.FC = () => {
 							<div className="flex justify-end gap-2 pt-2">
 								<button
 									className="px-4 py-2 rounded-lg border border-gray-300"
-									onClick={() => setShowApplyModal(false)}
+									onClick={closeApply}
 									disabled={actionLoading}
 								>
 									Close
@@ -564,7 +618,7 @@ const ChangeRequests: React.FC = () => {
 									onClick={() => void applyApprovedRequest()}
 									disabled={actionLoading}
 								>
-									{actionLoading ? 'Applying...' : 'Apply'}
+									{actionLoading ? 'Editing...' : 'Edit'}
 								</button>
 							</div>
 						</div>
